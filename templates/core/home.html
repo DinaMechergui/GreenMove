@@ -1,0 +1,616 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}GreenMove - Mobilité Douce & IA pour le Grand Tunis{% endblock %}
+
+{% block content %}
+<!-- ========================================================================
+     1. HERO SECTION DOUCE, LUMINEUSE & CRÉATIVE
+     ======================================================================== -->
+<section class="hero-section">
+  <!-- Feuilles SVG Délicates Flottantes -->
+  <svg class="floating-leaf floating-leaf-1" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 52C12 52 16 34 28 22C40 10 52 12 52 12C52 12 54 24 42 36C30 48 12 52 12 52Z" stroke="#52796F" stroke-width="2" fill="#84A98C" fill-opacity="0.15"/>
+  </svg>
+  <svg class="floating-leaf floating-leaf-2" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 52C12 52 16 34 28 22C40 10 52 12 52 12C52 12 54 24 42 36C30 48 12 52 12 52Z" stroke="#335C45" stroke-width="1.8" fill="#52796F" fill-opacity="0.12"/>
+  </svg>
+  <svg class="floating-leaf floating-leaf-3" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 52C12 52 16 34 28 22C40 10 52 12 52 12C52 12 54 24 42 36C30 48 12 52 12 52Z" stroke="#84A98C" stroke-width="1.8" fill="#A3C9A8" fill-opacity="0.15"/>
+  </svg>
+  <svg class="floating-leaf floating-leaf-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 52C12 52 16 34 28 22C40 10 52 12 52 12C52 12 54 24 42 36C30 48 12 52 12 52Z" stroke="#52796F" stroke-width="1.8" fill="#52796F" fill-opacity="0.1"/>
+  </svg>
+
+  <div class="container position-relative" style="z-index: 2;">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-7" data-aos="fade-right">
+        <!-- Badge Délicat Hackathon -->
+        <div class="badge-hackathon">
+          <span class="pulse-dot"></span>
+          <span>{{ HACKATHON_BADGE }} • Mobilité Durable & IA</span>
+        </div>
+
+        <h1 class="display-4 fw-bold mb-3 text-dark">
+          La mobilité douce et <span style="color: var(--gm-green-primary);">intelligente</span> au Grand Tunis
+        </h1>
+        <p class="lead text-muted mb-4 pe-lg-4" style="font-size: 1.12rem;">
+          Connectez vos trajets quotidiens grâce à l'IA. Partagez des véhicules décarbonés entre le Lac 2, Ariana, La Marsa et Manouba, réduisez les embouteillages et suivez votre impact écologique en toute sérénité.
+        </p>
+
+        <!-- Actions Principales Épurées -->
+        <div class="d-flex flex-wrap gap-3 mb-4">
+          <a href="{% url 'match:search' %}" class="btn btn-green-primary">
+            <i class="bi bi-search me-2"></i>{% trans "Trouver un covoiturage" %}
+          </a>
+          <a href="{% url 'match:create_ride' %}" class="btn btn-green-outline">
+            <i class="bi bi-plus-circle me-2"></i>{% trans "Proposer un trajet" %}
+          </a>
+        </div>
+
+        <!-- Micro-Garanties en Pastilles Discrètes -->
+        <div class="d-flex flex-wrap align-items-center gap-3 text-muted small pt-2">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-check text-success"></i>
+            <span>Communauté vérifiée</span>
+          </div>
+          <span class="text-secondary opacity-25">•</span>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-magic text-success"></i>
+            <span>Matching IA instantané</span>
+          </div>
+          <span class="text-secondary opacity-25">•</span>
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-tree text-success"></i>
+            <span>Zéro commission</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colonne Droite : Météo Douce & Accès Rapide -->
+      <div class="col-lg-5" data-aos="fade-left" data-aos-delay="100">
+        <div class="p-4 card-glass border">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+              <i class="bi bi-cloud-sun text-secondary"></i> Météo Grand Tunis
+            </h6>
+            <span class="badge rounded-pill text-muted border bg-light" style="font-size: 0.7rem;">Open-Meteo</span>
+          </div>
+
+          <!-- Widget Météo HTMX -->
+          <div id="weather-widget-container">
+            {% include "core/includes/weather_widget.html" %}
+          </div>
+
+          <!-- Accès rapide recherche directe -->
+          <form action="{% url 'match:search' %}" method="get" class="mt-3 pt-3 border-top border-secondary border-opacity-10">
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-geo-alt"></i></span>
+              <input type="text" name="origin" class="form-control border-start-0 ps-0 text-dark" placeholder="Quartier de départ (ex: Ariana)">
+              <button class="btn btn-green-primary" type="submit">
+                <i class="bi bi-arrow-right"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================
+     2. COMPTEURS D'IMPACT ÉCOLOGIQUE (Organisé & Lumineux, PAS SOMBRE)
+     ======================================================================== -->
+<section class="stats-section">
+  <div class="container">
+    <div class="text-center mb-5" data-aos="fade-up">
+      <span class="badge rounded-pill px-3 py-1 mb-2 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+        Impact Collectif
+      </span>
+      <h2 class="fw-bold mb-2 text-dark">L'empreinte positive de la communauté</h2>
+      <p class="text-muted mx-auto mb-0" style="max-width: 580px; font-size: 0.95rem;">
+        Des données transparentes qui traduisent chaque trajet partagé en réduction d'émissions réelles sur nos axes urbains.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="50">
+        <div class="stat-box-soft">
+          <div class="stat-counter" data-counter-target="{{ impact_stats.co2_saved_tons }}">0</div>
+          <div class="stat-label">Tonnes de CO₂ évitées</div>
+          <small class="text-muted" style="font-size: 0.78rem;">Sur le Grand Tunis</small>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-box-soft">
+          <div class="stat-counter" data-counter-target="{{ impact_stats.shared_rides_count }}">0</div>
+          <div class="stat-label">Trajets partagés</div>
+          <small class="text-muted" style="font-size: 0.78rem;">MobilityMatch IA</small>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="150">
+        <div class="stat-box-soft">
+          <div class="stat-counter" data-counter-target="{{ impact_stats.green_km_traveled }}">0</div>
+          <div class="stat-label">Kilomètres décarbonés</div>
+          <small class="text-muted" style="font-size: 0.78rem;">Électriques & Partagés</small>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3" data-aos="fade-up" data-aos-delay="200">
+        <div class="stat-box-soft">
+          <div class="stat-counter" data-counter-target="{{ impact_stats.trees_planted_equiv }}">0</div>
+          <div class="stat-label">Arbres équivalents</div>
+          <small class="text-muted" style="font-size: 0.78rem;">Capacité de séquestration</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================
+     3. LES 5 MODULES GREENMOVE (Bento-Grid Douce & Structurée)
+     ======================================================================== -->
+<section class="py-5" style="background-color: var(--gm-bg);">
+  <div class="container py-4">
+    <div class="text-center mb-5" data-aos="fade-up">
+      <span class="badge rounded-pill px-3 py-1 mb-2 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+        Écosystème Intégré
+      </span>
+      <h2 class="fw-bold mb-2 text-dark">Une suite complète pour la mobilité durable</h2>
+      <p class="text-muted mx-auto" style="max-width: 600px; font-size: 0.95rem;">
+        Cinq modules complémentaires conçus pour s'adapter à la réalité quotidienne des navetteurs tunisiens.
+      </p>
+    </div>
+
+    <div class="row g-4">
+      <!-- Module 1: MobilityMatch AI -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="50">
+        <div class="module-card card-greenmove" data-tilt>
+          <div class="module-icon-circle" style="background: var(--gm-green-tint); color: var(--gm-green-primary);">
+            <i class="bi bi-magic"></i>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="fw-bold mb-0 text-dark">MobilityMatch IA</h5>
+            <span class="badge rounded-pill" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.72rem;">Actif</span>
+          </div>
+          <p class="text-muted small flex-grow-1">
+            Moteur IA qui rapproche les trajets compatibles en analysant la proximité géographique de départ/arrivée, les horaires et le type de motorisation propre.
+          </p>
+          <a href="{% url 'match:search' %}" class="btn btn-sm btn-green-primary w-100 mt-3">
+            {% trans "Rechercher un trajet" %} <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Module 2: EcoTracker -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
+        <div class="module-card card-greenmove" data-tilt>
+          <div class="module-icon-circle" style="background: #E8F4F8; color: #0284C7;">
+            <i class="bi bi-speedometer2"></i>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="fw-bold mb-0 text-dark">Eco-Tracker</h5>
+            <span class="badge rounded-pill text-muted border bg-light" style="font-size: 0.72rem;">Bientôt</span>
+          </div>
+          <p class="text-muted small flex-grow-1">
+            Bilan carbone personnel et d'entreprise. Mesurez les émissions évitées et générez des synthèses d'impact pour les organisations éco-engagées.
+          </p>
+          <a href="{% url 'tracker:index' %}" class="btn btn-sm btn-green-outline w-100 mt-3">
+            {% trans "En savoir plus" %}
+          </a>
+        </div>
+      </div>
+
+      <!-- Module 3: TrafficEco -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="150">
+        <div class="module-card card-greenmove" data-tilt>
+          <div class="module-icon-circle" style="background: #FDF4E5; color: #D97706;">
+            <i class="bi bi-stoplights"></i>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="fw-bold mb-0 text-dark">TrafficEco</h5>
+            <span class="badge rounded-pill text-muted border bg-light" style="font-size: 0.72rem;">Bientôt</span>
+          </div>
+          <p class="text-muted small flex-grow-1">
+            Prédiction de la congestion aux heures de pointe et recommandations d'horaires décalés pour fluidifier les axes majeurs de Tunis.
+          </p>
+          <a href="{% url 'traffic:index' %}" class="btn btn-sm btn-green-outline w-100 mt-3">
+            {% trans "En savoir plus" %}
+          </a>
+        </div>
+      </div>
+
+      <!-- Module 4: GreenPlanner -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+        <div class="module-card card-greenmove" data-tilt>
+          <div class="module-icon-circle" style="background: #EAF4EE; color: #166534;">
+            <i class="bi bi-signpost-split"></i>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="fw-bold mb-0 text-dark">GreenPlanner</h5>
+            <span class="badge rounded-pill text-muted border bg-light" style="font-size: 0.72rem;">Bientôt</span>
+          </div>
+          <p class="text-muted small flex-grow-1">
+            Planificateur multimodal combinant métro léger, ligne TGM, bus, marche et vélos partagés pour un itinéraire vert de bout en bout.
+          </p>
+          <a href="{% url 'planner:index' %}" class="btn btn-sm btn-green-outline w-100 mt-3">
+            {% trans "En savoir plus" %}
+          </a>
+        </div>
+      </div>
+
+      <!-- Module 5: EcoRewards -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="250">
+        <div class="module-card card-greenmove" data-tilt>
+          <div class="module-icon-circle" style="background: #F8F3E6; color: #B45309;">
+            <i class="bi bi-trophy"></i>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="fw-bold mb-0 text-dark">Eco-Rewards</h5>
+            <span class="badge rounded-pill text-muted border bg-light" style="font-size: 0.72rem;">Bientôt</span>
+          </div>
+          <p class="text-muted small flex-grow-1">
+            Gamification éco-citoyenne : cumulez des GreenPoints à chaque trajet vert et profitez d'avantages chez nos commerçants partenaires.
+          </p>
+          <a href="{% url 'rewards:index' %}" class="btn btn-sm btn-green-outline w-100 mt-3">
+            {% trans "En savoir plus" %}
+          </a>
+        </div>
+      </div>
+
+      <!-- Module 6: API Ouverte Hackathon -->
+      <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
+        <div class="module-card card-greenmove border" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F9F5 100%);">
+          <div class="module-icon-circle" style="background: var(--gm-green-tint); color: var(--gm-green-primary);">
+            <i class="bi bi-code-slash"></i>
+          </div>
+          <h5 class="fw-bold mb-2 text-dark">API Ouverte & Équipe</h5>
+          <p class="text-muted small flex-grow-1">
+            Une architecture Django 5 avec spécification Swagger / OpenAPI 3 et modèles IA scikit-learn documentés pour les autres développeurs de l'équipe.
+          </p>
+          <a href="/api/docs/" target="_blank" class="btn btn-sm btn-green-primary w-100 mt-3">
+            <i class="bi bi-braces-asterisk me-1"></i> Documentation Swagger API
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================
+     4. CARTE LEAFLET ORGANISÉE DU GRAND TUNIS
+     ======================================================================== -->
+<section class="py-5 bg-white">
+  <div class="container py-4">
+    <div class="row align-items-end mb-4">
+      <div class="col-lg-7" data-aos="fade-right">
+        <span class="badge rounded-pill px-3 py-1 mb-2 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+          Cartographie Interactive
+        </span>
+        <h2 class="fw-bold mb-1 text-dark">Pôles de mobilité & hubs durables</h2>
+        <p class="text-muted mb-0 small">
+          Stations multimodales, bornes de recharge et axes de covoiturage prioritaires à Tunis.
+        </p>
+      </div>
+      <div class="col-lg-5 text-lg-end mt-3 mt-lg-0" data-aos="fade-left">
+        <div class="btn-group border rounded-pill p-1 bg-light shadow-none" role="group">
+          <button type="button" class="btn btn-sm rounded-pill btn-light active fw-semibold" onclick="filterMapCategory('all')">Tous</button>
+          <button type="button" class="btn btn-sm rounded-pill text-muted fw-semibold" onclick="filterMapCategory('covoit')">Covoiturage</button>
+          <button type="button" class="btn btn-sm rounded-pill text-muted fw-semibold" onclick="filterMapCategory('metro')">Intermodalité</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="position-relative" data-aos="zoom-in">
+      <div id="leaflet-tunis-map"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================
+     5. CAROUSEL TÉMOIGNAGES (Swiper.js, Épuré & Posé)
+     ======================================================================== -->
+<section class="py-5" style="background-color: var(--gm-bg);">
+  <div class="container py-4">
+    <div class="text-center mb-5" data-aos="fade-up">
+      <span class="badge rounded-pill px-3 py-1 mb-2 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+        Retours d'Expérience
+      </span>
+      <h2 class="fw-bold mb-2 text-dark">La mobilité verte au quotidien</h2>
+      <p class="text-muted mx-auto" style="max-width: 580px; font-size: 0.95rem;">
+        Des citoyens et navetteurs réels qui partagent leurs trajets sur le Grand Tunis.
+      </p>
+    </div>
+
+    <!-- Swiper Container -->
+    <div class="swiper testimonials-swiper pb-5" data-aos="fade-up">
+      <div class="swiper-wrapper">
+        <!-- Témoignage 1 -->
+        <div class="swiper-slide">
+          <div class="card-greenmove p-4 h-100 d-flex flex-column border">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <img src="https://api.dicebear.com/7.x/bottts/svg?seed=yassine_lac" class="rounded-circle border" width="46" height="46" alt="Yassine">
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">Yassine Ben Ali</h6>
+                <div class="small text-muted" style="font-size: 0.8rem;">Ingénieur IA au Lac 2</div>
+              </div>
+            </div>
+            <p class="text-muted small fst-italic flex-grow-1 mb-3">
+              "Faire La Marsa ➔ Lac 2 en covoiturage vert m'a permis d'éviter le stress des bouchons et de mutualiser les frais de carburant en toute confiance."
+            </p>
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-success fw-semibold">
+              <span><i class="bi bi-shield-check me-1"></i>Vérifié</span>
+              <span>-14 kg CO₂/semaine</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Témoignage 2 -->
+        <div class="swiper-slide">
+          <div class="card-greenmove p-4 h-100 d-flex flex-column border">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <img src="https://api.dicebear.com/7.x/bottts/svg?seed=mariem_eco" class="rounded-circle border" width="46" height="46" alt="Mariem">
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">Mariem Mansour</h6>
+                <div class="small text-muted" style="font-size: 0.8rem;">Consultante, Ariana</div>
+              </div>
+            </div>
+            <p class="text-muted small fst-italic flex-grow-1 mb-3">
+              "L'algorithme de MobilityMatch m'a trouvé deux collègues effectuant exactement le même parcours quotidien vers le Centre-ville en quelques secondes."
+            </p>
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-success fw-semibold">
+              <span><i class="bi bi-star-fill text-warning me-1"></i>5.0 Éco-Score</span>
+              <span>Toyota Hybride</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Témoignage 3 -->
+        <div class="swiper-slide">
+          <div class="card-greenmove p-4 h-100 d-flex flex-column border">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <img src="https://api.dicebear.com/7.x/bottts/svg?seed=salma_k" class="rounded-circle border" width="46" height="46" alt="Salma">
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">Salma Khemir</h6>
+                <div class="small text-muted" style="font-size: 0.8rem;">Étudiante ESPRIT (Ariana)</div>
+              </div>
+            </div>
+            <p class="text-muted small fst-italic flex-grow-1 mb-3">
+              "Depuis Ben Arous, les transports prenaient plus d'une heure. Grâce à GreenMove, je rejoins le campus en 35 minutes de façon agréable et sécurisée."
+            </p>
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-success fw-semibold">
+              <span><i class="bi bi-mortarboard me-1"></i>Étudiante</span>
+              <span>-60% Temps de trajet</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Témoignage 4 -->
+        <div class="swiper-slide">
+          <div class="card-greenmove p-4 h-100 d-flex flex-column border">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <img src="https://api.dicebear.com/7.x/bottts/svg?seed=aziz_jaziri" class="rounded-circle border" width="46" height="46" alt="Aziz">
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">Aziz Jaziri</h6>
+                <div class="small text-muted" style="font-size: 0.8rem;">Architecte à Carthage</div>
+              </div>
+            </div>
+            <p class="text-muted small fst-italic flex-grow-1 mb-3">
+              "Partager ma voiture électrique et remplir les sièges vides donne du sens à mes allers-retours vers le Lac 2. L'interface est simple et fluide."
+            </p>
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-success fw-semibold">
+              <span><i class="bi bi-lightning-charge text-success me-1"></i>Zéro Émission</span>
+              <span>890 GreenPoints</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Pagination Swiper -->
+      <div class="swiper-pagination"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================
+     6. POURQUOI GREENMOVE & FAQ MODERNE
+     ======================================================================== -->
+<section class="py-5 bg-white">
+  <div class="container py-4">
+    <div class="row g-5 align-items-center">
+      <div class="col-lg-5" data-aos="fade-right">
+        <span class="badge rounded-pill px-3 py-1 mb-2 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+          Conception Raisonnée
+        </span>
+        <h2 class="fw-bold mb-3 text-dark">Une solution pensée pour les flux réels de Tunis</h2>
+        <p class="text-muted mb-4 small">
+          Plutôt qu'une plateforme générique, GreenMove a été modélisée selon les spécificités pendulaires du Grand Tunis afin de maximiser le confort et réduire réellement l'empreinte carbone.
+        </p>
+
+        <div class="d-flex flex-column gap-3">
+          <div class="d-flex gap-3">
+            <div class="p-2 rounded-circle text-success flex-shrink-0" style="background: var(--gm-green-tint); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-cpu fs-6"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">Modèle IA de scoring pondéré</h6>
+              <div class="small text-muted">Prise en compte fine du détour kilométrique, de la synchronisation horaire et des préférences de mobilité.</div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3">
+            <div class="p-2 rounded-circle text-success flex-shrink-0" style="background: var(--gm-green-tint); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-map fs-6"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">APIs 100% Ouvertes et Gratuites</h6>
+              <div class="small text-muted">Intégration d'OpenStreetMap, OpenRouteService et Open-Meteo avec mode secours autonome.</div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3">
+            <div class="p-2 rounded-circle text-success flex-shrink-0" style="background: var(--gm-green-tint); width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+              <i class="bi bi-trophy fs-6"></i>
+            </div>
+            <div>
+              <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">Récompenses citoyennes</h6>
+              <div class="small text-muted">Vos kilomètres bas-carbone sont valorisés par des éco-points et des badges visibles.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accordéon FAQ Structuré -->
+      <div class="col-lg-7" data-aos="fade-left">
+        <h5 class="fw-bold mb-3 text-dark">Questions fréquentes</h5>
+        <div class="accordion accordion-flush" id="faqAccordion">
+          <div class="accordion-item card-greenmove mb-2 border">
+            <h2 class="accordion-header" id="faq1-heading">
+              <button class="accordion-button collapsed fw-semibold rounded-3 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                Comment l'IA calcule-t-elle le score de correspondance ?
+              </button>
+            </h2>
+            <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-muted small pt-0">
+                Notre modèle multidimensionnel combine la distance géographique entre points de départ/arrivée (45%), la synchronisation horaire (25%), la motorisation propre du véhicule (20%) et le score écologique du conducteur (10%).
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item card-greenmove mb-2 border">
+            <h2 class="accordion-header" id="faq2-heading">
+              <button class="accordion-button collapsed fw-semibold rounded-3 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                Le covoiturage GreenMove est-il payant ?
+              </button>
+            </h2>
+            <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-muted small pt-0">
+                GreenMove ne prend aucune commission. Le conducteur peut proposer un partage équitable des frais de carburant (généralement 1,5 à 3 DT symboliques) ou offrir le trajet gratuitement pour cumuler davantage de GreenPoints.
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item card-greenmove mb-2 border">
+            <h2 class="accordion-header" id="faq3-heading">
+              <button class="accordion-button collapsed fw-semibold rounded-3 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                Que se passe-t-il si une API externe est temporairement indisponible ?
+              </button>
+            </h2>
+            <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-muted small pt-0">
+                L'application dispose d'un cache Django et d'un mode de secours local avec les coordonnées des 12 principaux quartiers de Tunis et calcul d'itinéraire géodésique interne. Rien ne bloque jamais l'utilisateur.
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item card-greenmove mb-2 border">
+            <h2 class="accordion-header" id="faq4-heading">
+              <button class="accordion-button collapsed fw-semibold rounded-3 py-3" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                Comment tester l'application sans saisir de données ?
+              </button>
+            </h2>
+            <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+              <div class="accordion-body text-muted small pt-0">
+                La commande <code>python manage.py seed_demo</code> génère 20 profils tunisiens réalistes et 34 trajets actifs. Vous pouvez vous connecter avec <code>admin</code> (mot de passe <code>admin123</code>) ou <code>yassine_lac</code> (mot de passe <code>greenmove2026</code>).
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================================
+     7. CALL TO ACTION FINAL SOFT (Bannière Délicate, PAS NOIRE)
+     ======================================================================== -->
+<section class="py-5 bg-white">
+  <div class="container py-2">
+    <div class="cta-banner-soft text-center" data-aos="zoom-in">
+      <div class="d-inline-flex p-3 rounded-circle bg-white text-success mb-3 shadow-sm">
+        <i class="bi bi-flower1 fs-3"></i>
+      </div>
+      <h2 class="display-6 fw-bold mb-2 text-dark">Prêt à transformer la mobilité à Tunis ?</h2>
+      <p class="text-muted mx-auto mb-4" style="max-width: 580px; font-size: 1.05rem;">
+        Rejoignez des conducteurs et passagers qui font le choix d'un air plus pur et d'une ville plus fluide.
+      </p>
+      <div class="d-flex flex-wrap justify-content-center gap-3">
+        <a href="{% url 'accounts:register' %}" class="btn btn-green-primary">
+          <i class="bi bi-person-plus me-2"></i>Créer mon compte éco-citoyen
+        </a>
+        <a href="{% url 'match:search' %}" class="btn btn-green-outline bg-white">
+          <i class="bi bi-search me-2"></i>Explorer les trajets
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Injection des Hubs Tunis pour la Carte Leaflet -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const hubsData = {{ hubs|safe }};
+    const tunisMap = L.map('leaflet-tunis-map').setView([36.8189, 10.2000], 12);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+      maxZoom: 19,
+    }).addTo(tunisMap);
+
+    const markers = [];
+
+    // Création des marqueurs personnalisés doux
+    hubsData.forEach((hub) => {
+      const customIcon = L.divIcon({
+        className: 'custom-leaflet-marker',
+        html: `<div style="background-color: #335C45; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.18); border: 2px solid white;">
+                 <i class="bi bi-${hub.icon}" style="font-size: 1rem;"></i>
+               </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+        popupAnchor: [0, -30]
+      });
+
+      const marker = L.marker([hub.lat, hub.lon], { icon: customIcon }).addTo(tunisMap);
+      marker.category = hub.category.toLowerCase();
+
+      const popupContent = `
+        <div style="min-width: 200px; font-family: 'Inter', sans-serif;">
+          <h6 style="color: #335C45; font-weight: 700; margin-bottom: 4px; font-size: 0.95rem;">${hub.name}</h6>
+          <span class="badge rounded-pill" style="background: #EDF5EE; color: #335C45; font-size: 0.68rem;">${hub.category}</span>
+          <p style="font-size: 0.8rem; color: #555; margin: 6px 0;">${hub.description}</p>
+          <div style="font-size: 0.75rem; color: #335C45; font-weight: 600; border-top: 1px solid #f0f0f0; padding-top: 4px;">
+            <i class="bi bi-tree-fill"></i> Économie estimée : ${hub.co2_saved_today}
+          </div>
+        </div>
+      `;
+      marker.bindPopup(popupContent);
+      markers.push(marker);
+    });
+
+    window.filterMapCategory = function(cat) {
+      document.querySelectorAll('.btn-group button').forEach(b => {
+        b.classList.remove('btn-light', 'active');
+        b.classList.add('text-muted');
+      });
+      event.target.classList.remove('text-muted');
+      event.target.classList.add('btn-light', 'active');
+
+      markers.forEach(m => {
+        if (cat === 'all') {
+          tunisMap.addLayer(m);
+        } else if (cat === 'covoit' && m.category.includes('covoiturage')) {
+          tunisMap.addLayer(m);
+        } else if (cat === 'metro' && (m.category.includes('métro') || m.category.includes('interconnexion') || m.category.includes('tgm'))) {
+          tunisMap.addLayer(m);
+        } else {
+          tunisMap.removeLayer(m);
+        }
+      });
+    };
+  });
+</script>
+{% endblock %}

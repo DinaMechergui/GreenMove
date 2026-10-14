@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+{% load i18n l10n static %}
+
+{% block title %}Trajet {{ ride.origin_address }} ➔ {{ ride.destination_address }} | GreenMove{% endblock %}
+
+{% block extra_css %}
+<style>
+  #route-leaflet-map {
+    height: 420px;
+    width: 100%;
+    border-radius: var(--radius-md);
+    box-shadow: var(--gm-card-shadow);
+    border: 1px solid var(--gm-border-hairline);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 mt-4">
+  <div class="mb-3" data-aos="fade-down">
+    <a href="{% url 'match:search' %}" class="btn btn-sm btn-link text-muted text-decoration-none p-0">
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Retour aux résultats de recherche" %}
+    </a>
+  </div>
+
+  <div class="row g-4">
+    <!-- Colonne Gauche : Détails du trajet & Réservation -->
+    <div class="col-lg-7" data-aos="fade-right">
+      <div class="card-greenmove p-4 mb-4 border shadow-sm">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <span class="badge rounded-pill px-3 py-1 mb-2 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.75rem;">
+              {{ ride.get_ride_type_display }}
+            </span>
+            <h4 class="fw-bold mb-0 text-dark">
+              {{ ride.origin_address }}
+              <i class="bi bi-arrow-right text-muted mx-1" style="font-size: 0.9em;"></i>
+              {{ ride.destination_address }}
+            </h4>
+          </div>
+          <div class="text-end">
+            <div class="display-6 fw-bold text-dark" style="font-size: 2rem;">{{ ride.price_tnd }} <span class="fs-6 text-muted">DT</span></div>
+            <div class="small text-muted">par passager</div>
+          </div>
+        </div>
+
+        <div class="row g-3 py-3 border-top border-bottom border-secondary border-opacity-10 my-3 text-center">
+          <div class="col-3 border-end">
+            <div class="small text-muted" style="font-size: 0.72rem; text-transform: uppercase;">DATE</div>
+            <div class="fw-semibold text-dark">{{ ride.departure_datetime|date:"d M Y" }}</div>
+          </div>
+          <div class="col-3 border-end">
+            <div class="small text-muted" style="font-size: 0.72rem; text-transform: uppercase;">DÉPART</div>
+            <div class="fw-bold" style="color: var(--gm-green-primary);">{{ ride.departure_datetime|date:"H:i" }}</div>
+          </div>
+          <div class="col-3 border-end">
+            <div class="small text-muted" style="font-size: 0.72rem; text-transform: uppercase;">DISTANCE</div>
+            <div class="fw-semibold text-dark">{{ route_details.distance_km }} km</div>
+          </div>
+          <div class="col-3">
+            <div class="small text-muted" style="font-size: 0.72rem; text-transform: uppercase;">DURÉE EST.</div>
+            <div class="fw-semibold text-dark">{{ route_details.duration_min }} min</div>
+          </div>
+        </div>
+
+        <!-- Impact Écologique Soft -->
+        <div class="p-3 rounded-3 mb-3 d-flex align-items-center justify-content-between border" style="background: var(--gm-green-tint);">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-tree text-success fs-4"></i>
+            <div>
+              <div class="fw-bold small" style="color: var(--gm-green-primary);">Économie de CO₂ estimée</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Par rapport à un trajet individuel thermique</div>
+            </div>
+          </div>
+          <div class="fw-bold fs-5" style="color: var(--gm-green-primary);">-{{ route_details.co2_saved_kg }} kg</div>
+        </div>
+
+        {% if ride.description %}
+          <div class="mb-3">
+            <h6 class="fw-semibold text-muted small text-uppercase mb-1" style="font-size: 0.75rem;">Précisions :</h6>
+            <p class="text-muted small fst-italic bg-light p-3 rounded-3 mb-0 border">
+              "{{ ride.description }}"
+            </p>
+          </div>
+        {% endif %}
+
+        {% if ride.is_recurring %}
+          <div class="small text-success fw-medium">
+            <i class="bi bi-repeat me-1"></i>Trajet régulier : {{ ride.recurring_days }}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Actions : chat, suivi live, SOS, avis -->
+      <div class="card-greenmove p-3 mb-4 border shadow-sm" data-aos="fade-up">
+        <div class="d-flex flex-wrap gap-2">
+          {% if user.is_authenticated %}
+            <a href="{% url 'match:chat_room' ride.id %}" class="btn btn-sm btn-green-outline flex-fill">
+              <i class="bi bi-chat-dots me-1"></i>{% trans "Chat du trajet" %}
+            </a>
+          {% endif %}
+
+          {% if user == ride.user %}
+            <form method="post" action="{% url 'match:create_tracking_link' ride.id %}" class="flex-fill m-0">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-outline-primary w-100">
+                <i class="bi bi-broadcast me-1"></i>{% trans "Activer le suivi live" %}
+              </button>
+            </form>
+          {% elif active_link %}
+            <a href="{{ live_url }}" class="btn btn-sm btn-outline-primary flex-fill" target="_blank" rel="noopener">
+              <i class="bi bi-geo-alt-fill me-1"></i>{% trans "Suivre en live" %}
+            </a>
+          {% endif %}
+
+          <a href="{% url 'match:split_calculator' %}?ride={{ ride.id }}" class="btn btn-sm btn-outline-success flex-fill">
+            <i class="bi bi-calculator me-1"></i>{% trans "Partage des frais & CO₂" %}
+          </a>
+
+          {% if user.is_authenticated and user != ride.user %}
+            <form method="post" action="{% url 'match:trigger_sos' ride.id %}"
+                  onsubmit="return confirm('{% trans "Déclencher une alerte SOS ? Les participants seront prévenus." %}');"
+                  class="flex-fill m-0">
+              {% csrf_token %}
+              <input type="hidden" name="lat" id="sos-lat" value="">
+              <input type="hidden" name="lon" id="sos-lon" value="">
+              <button class="btn btn-sm btn-danger w-100">
+                <i class="bi bi-exclamation-octagon-fill me-1"></i>{% trans "SOS" %}
+              </button>
+            </form>
+          {% endif %}
+        </div>
+
+        {% if active_link and user == ride.user %}
+          <div class="small text-muted mt-2">
+            <i class="bi bi-link-45deg me-1"></i>{% trans "Lien de suivi actif" %} :
+            <a href="{{ live_url }}" target="_blank" rel="noopener">{{ live_url|truncatechars:64 }}</a>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Section Réservation Interactive HTMX -->
+      <div id="booking-section" class="card-greenmove p-4 border shadow-sm">
+        {% if has_booked %}
+          <div class="alert alert-success border-0 shadow-sm p-3 rounded-4 mb-0" role="alert" style="background: #EDF5EE; color: #2D5434;">
+            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <strong>{% trans "Vous avez déjà réservé ce trajet !" %}</strong>
+            <div class="small text-muted mt-1">Statut : {{ existing_booking.get_status_display }} • Places réservées : {{ existing_booking.seats_requested }}</div>
+          </div>
+        {% elif user.is_authenticated and user == ride.user %}
+          <div class="p-3 rounded-3 small text-muted border bg-light mb-0">
+            <i class="bi bi-info-circle me-2 text-primary"></i>Vous êtes le créateur de ce trajet.
+          </div>
+        {% elif user.is_authenticated %}
+          <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-ticket-perforated me-2" style="color: var(--gm-green-primary);"></i>{% trans "Réserver une place" %}</h5>
+          <form hx-post="{% url 'match:book_ride' ride.id %}" hx-target="#booking-section" hx-swap="outerHTML">
+            {% csrf_token %}
+            <div class="row g-3 mb-3">
+              <div class="col-md-4">
+                <label class="form-label small text-muted">Places demandées</label>
+                {{ booking_form.seats_requested }}
+              </div>
+              <div class="col-md-8">
+                <label class="form-label small text-muted">Message au conducteur (optionnel)</label>
+                {{ booking_form.message }}
+              </div>
+            </div>
+            <button type="submit" class="btn btn-green-primary w-100 py-2">
+              <i class="bi bi-check-lg me-1"></i>{% trans "Confirmer ma réservation (+20 GreenPoints)" %}
+            </button>
+          </form>
+        {% else %}
+          <div class="text-center py-3">
+            <p class="text-muted small mb-3">Connectez-vous pour réserver votre place sur ce trajet écologique.</p>
+            <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn btn-green-primary px-4">
+              {% trans "Se connecter pour réserver" %}
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Colonne Droite : Carte Leaflet & Profil Conducteur -->
+    <div class="col-lg-5" data-aos="fade-left">
+      <!-- Carte avec tracé ORS/OSRM -->
+      <div class="card-greenmove p-3 mb-4 border shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-dark mb-0"><i class="bi bi-map me-1 text-success"></i>Tracé Routier</h6>
+          <span class="badge rounded-pill text-muted border bg-light small" style="font-size: 0.72rem;">{{ route_details.source }}</span>
+        </div>
+        <div id="route-leaflet-map"></div>
+      </div>
+
+      <!-- Profil du conducteur -->
+      <div class="card-greenmove p-4 border shadow-sm">
+        <h6 class="fw-semibold text-muted small text-uppercase mb-3" style="font-size: 0.75rem;">Conducteur</h6>
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <img src="{{ ride.user.get_avatar_url }}" alt="{{ ride.user.username }}" class="rounded-circle border" width="54" height="54">
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">
+              {{ ride.user.get_full_name|default:ride.user.username }}
+              {% if ride.user.profile_verified %}
+                <i class="bi bi-patch-check-fill text-primary" title="{% trans 'Profil vérifié' %}"></i>
+              {% endif %}
+            </h5>
+            <span class="badge rounded-pill mt-1" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.7rem;">
+              {{ ride.user.eco_badge }}
+            </span>
+            <div class="small text-muted mt-1">
+              <i class="bi bi-star-fill text-warning me-1"></i>
+              {{ ride.user.reliability_score|floatformat:1 }}/5
+              <span class="mx-1">•</span>
+              {% trans "Fiabilité" %}
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 bg-light rounded-3 small border mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted"><i class="bi bi-car-front text-secondary me-1"></i>Véhicule :</span>
+            <strong>{{ ride.user.get_vehicle_type_display }}</strong>
+          </div>
+          {% if ride.user.vehicle_model %}
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Modèle :</span>
+              <strong>{{ ride.user.vehicle_model }}</strong>
+            </div>
+          {% endif %}
+          <div class="d-flex justify-content-between">
+            <span class="text-muted"><i class="bi bi-lightning-charge text-warning me-1"></i>Score Éco :</span>
+            <strong style="color: var(--gm-green-primary);">{{ ride.user.eco_points }} pts</strong>
+          </div>
+        </div>
+
+        {% if ride.user.bio %}
+          <p class="text-muted small fst-italic mb-3">
+            "{{ ride.user.bio }}"
+          </p>
+        {% endif %}
+
+        {% if user.is_authenticated and ride.user.phone_number %}
+          <div class="text-center pt-2 border-top small text-muted">
+            <i class="bi bi-telephone text-success me-1"></i>Téléphone : <strong>{{ ride.user.phone_number }}</strong>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Partage des frais & CO2 par duo -->
+      <div class="card-greenmove p-4 mb-4 border shadow-sm">
+        <h6 class="fw-semibold text-muted small text-uppercase mb-3">
+          <i class="bi bi-calculator me-1 text-success"></i>{% trans "Partage des frais & CO₂ (duo)" %}
+        </h6>
+        <div class="d-flex justify-content-between small border-bottom pb-2 mb-1">
+          <span class="text-muted">{% trans "Coût estimé du trajet" %}</span>
+          <strong>{{ duo_split.trip_cost_tnd }} DT</strong>
+        </div>
+        <div class="d-flex justify-content-between small border-bottom pb-2 mb-1">
+          <span class="text-muted">{% trans "Part du passager" %}</span>
+          <strong>{{ duo_split.passenger_pays_tnd }} DT</strong>
+        </div>
+        <div class="d-flex justify-content-between small border-bottom pb-2 mb-1">
+          <span class="text-muted">{% trans "Part du conducteur" %}</span>
+          <strong>{{ duo_split.driver_net_cost_tnd }} DT</strong>
+        </div>
+        <div class="d-flex justify-content-between small">
+          <span class="text-muted"><i class="bi bi-tree me-1 text-success"></i>{% trans "CO₂ évité par le duo" %}</span>
+          <strong class="text-success">-{{ duo_split.co2_duo_saved_kg }} kg</strong>
+        </div>
+        <a href="{% url 'match:split_calculator' %}?ride={{ ride.id }}" class="btn btn-sm btn-outline-success w-100 mt-3">
+          {% trans "Ouvrir le calculateur complet" %}
+        </a>
+      </div>
+
+      <!-- Avis post-trajet -->
+      <div class="card-greenmove p-4 mb-4 border shadow-sm">
+        <h6 class="fw-semibold text-muted small text-uppercase mb-3">
+          <i class="bi bi-star me-1 text-warning"></i>{% trans "Avis des passagers" %}
+        </h6>
+        {% if driver_reviews %}
+          {% for review in driver_reviews %}
+            <div class="border-bottom border-secondary border-opacity-10 pb-2 mb-2">
+              <div class="d-flex justify-content-between">
+                <strong class="small">{{ review.reviewer.get_full_name|default:review.reviewer.username }}</strong>
+                <span class="small text-warning">
+                  {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+                </span>
+              </div>
+              {% if review.comment %}<div class="small text-muted fst-italic">"{{ review.comment }}"</div>{% endif %}
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="small text-muted fst-italic">{% trans "Aucun avis pour le moment." %}</div>
+        {% endif %}
+
+        {% if can_review %}
+          <form method="post" action="{% url 'match:create_review' ride.id %}" class="mt-3 pt-3 border-top">
+            {% csrf_token %}
+            <div class="mb-2">
+              <label class="form-label small text-muted mb-1">{% trans "Laisser un avis" %}</label>
+              {{ review_form.rating }}
+            </div>
+            <div class="mb-2">{{ review_form.comment }}</div>
+            <button class="btn btn-sm btn-green-primary w-100">
+              <i class="bi bi-send me-1"></i>{% trans "Publier mon avis (+15 GreenPoints)" %}
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const routeCoords = {{ route_coords_json|safe }};
+    const originLat = {{ ride.origin_lat|unlocalize }};
+    const originLon = {{ ride.origin_lon|unlocalize }};
+    const destLat = {{ ride.destination_lat|unlocalize }};
+    const destLon = {{ ride.destination_lon|unlocalize }};
+
+    const map = L.map('route-leaflet-map').setView([originLat, originLon], 13);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+      maxZoom: 19,
+    }).addTo(map);
+
+    // Marqueur de départ
+    const startIcon = L.divIcon({
+      className: 'marker-start',
+      html: `<div style="background-color: #335C45; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+               <i class="bi bi-geo-alt-fill"></i>
+             </div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28]
+    });
+    L.marker([originLat, originLon], { icon: startIcon }).addTo(map).bindPopup("<strong>Départ :</strong> {{ ride.origin_address|escapejs }}");
+
+    // Marqueur d'arrivée
+    const endIcon = L.divIcon({
+      className: 'marker-end',
+      html: `<div style="background-color: #C05621; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+               <i class="bi bi-flag-fill"></i>
+             </div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 28]
+    });
+    L.marker([destLat, destLon], { icon: endIcon }).addTo(map).bindPopup("<strong>Arrivée :</strong> {{ ride.destination_address|escapejs }}");
+
+    // Tracé de l'itinéraire doux
+    if (routeCoords && routeCoords.length > 0) {
+      const polyline = L.polyline(routeCoords, {
+        color: '#335C45',
+        weight: 4,
+        opacity: 0.8
+      }).addTo(map);
+
+      map.fitBounds(polyline.getBounds(), { padding: [35, 35] });
+    } else {
+      map.fitBounds([[originLat, originLon], [destLat, destLon]], { padding: [35, 35] });
+    }
+
+    // Géolocalisation continue pour le bouton SOS
+    if (navigator.geolocation) {
+      navigator.geolocation.watchPosition((pos) => {
+        const latField = document.getElementById('sos-lat');
+        const lonField = document.getElementById('sos-lon');
+        if (latField) latField.value = pos.coords.latitude.toFixed(6);
+        if (lonField) lonField.value = pos.coords.longitude.toFixed(6);
+      }, () => {}, { maximumAge: 10000 });
+    }
+  });
+</script>
+{% endblock %}

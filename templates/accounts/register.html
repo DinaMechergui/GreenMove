@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Inscription Éco-Citoyenne" %} | GreenMove{% endblock %}
+
+{% block content %}
+<div class="container py-5 mt-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8" data-aos="fade-up">
+      <div class="card-greenmove p-4 p-md-5 border shadow-sm">
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-2" style="background: var(--gm-green-tint);">
+            <i class="bi bi-flower1 fs-2" style="color: var(--gm-green-primary);"></i>
+          </div>
+          <h3 class="fw-bold mb-1 text-dark">{% trans "Rejoindre le Mouvement Vert" %}</h3>
+          <p class="text-muted small">Créez votre profil de mobilité douce et recevez immédiatement 100 GreenPoints.</p>
+        </div>
+
+        <form method="post" action="{% url 'accounts:register' %}">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger p-2 small mb-3 border-0 rounded-3">
+              {{ form.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Prénom" %} *</label>
+              {{ form.first_name }}
+              {% if form.first_name.errors %}<div class="text-danger small">{{ form.first_name.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Nom de famille" %} *</label>
+              {{ form.last_name }}
+              {% if form.last_name.errors %}<div class="text-danger small">{{ form.last_name.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Nom d'utilisateur" %} *</label>
+              {{ form.username }}
+              {% if form.username.errors %}<div class="text-danger small">{{ form.username.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Adresse Email" %} *</label>
+              {{ form.email }}
+              {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Numéro de téléphone" %}</label>
+              {{ form.phone_number }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Rôle de mobilité" %}</label>
+              {{ form.role }}
+            </div>
+          </div>
+
+          <div class="p-3 bg-light rounded-4 border mb-3">
+            <h6 class="fw-bold mb-2 small text-uppercase" style="color: var(--gm-green-primary);"><i class="bi bi-car-front me-1"></i>Véhicule & Empreinte</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small text-muted">{% trans "Type de véhicule personnel" %}</label>
+                {{ form.vehicle_type }}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small text-muted">{% trans "Modèle" %}</label>
+                {{ form.vehicle_model }}
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small text-muted">{% trans "Places" %}</label>
+                {{ form.available_seats }}
+              </div>
+            </div>
+          </div>
+
+          <div class="p-3 bg-light rounded-4 border mb-3">
+            <h6 class="fw-bold mb-2 small text-uppercase" style="color: var(--gm-green-primary);"><i class="bi bi-geo-alt me-1"></i>Trajet habituel à Tunis</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small text-muted">{% trans "Quartier de domicile" %}</label>
+                {{ form.home_address }}
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">{% trans "Lieu de travail / université" %}</label>
+                {{ form.work_address }}
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Mot de passe" %} *</label>
+              {{ form.password1 }}
+              {% if form.password1.errors %}<div class="text-danger small">{{ form.password1.errors }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Confirmation mot de passe" %} *</label>
+              {{ form.password2 }}
+              {% if form.password2.errors %}<div class="text-danger small">{{ form.password2.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-green-primary w-100 py-3 mb-3">
+            <i class="bi bi-check-circle me-2"></i>{% trans "Créer mon compte GreenMove (+100 pts)" %}
+          </button>
+        </form>
+
+        <div class="text-center small text-muted">
+          {% trans "Déjà membre ?" %}
+          <a href="{% url 'accounts:login' %}" class="fw-semibold text-success">{% trans "Se connecter" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

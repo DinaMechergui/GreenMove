@@ -1,0 +1,102 @@
+{% load i18n %}
+<div id="profile-card-container" class="card-greenmove p-4 border shadow-sm">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0 text-success"><i class="bi bi-pencil-square me-2"></i>{% trans "Modifier mon profil" %}</h5>
+    <button class="btn btn-sm btn-link text-muted"
+            hx-get="{% url 'accounts:profile_edit_htmx' %}"
+            hx-target="#profile-card-container"
+            hx-swap="outerHTML">
+      {% trans "Annuler" %}
+    </button>
+  </div>
+
+  <form hx-post="{% url 'accounts:profile_edit_htmx' %}"
+        hx-target="#profile-card-container"
+        hx-swap="outerHTML">
+    {% csrf_token %}
+
+    <div class="row g-2 mb-2">
+      <div class="col-md-6">
+        <label class="form-label small text-muted">{% trans "Prénom" %}</label>
+        {{ form.first_name }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label small text-muted">{% trans "Nom" %}</label>
+        {{ form.last_name }}
+      </div>
+    </div>
+
+    <div class="row g-2 mb-2">
+      <div class="col-md-6">
+        <label class="form-label small text-muted">{% trans "Email" %}</label>
+        {{ form.email }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label small text-muted">{% trans "Téléphone" %}</label>
+        {{ form.phone_number }}
+      </div>
+    </div>
+
+    <div class="mb-2">
+      <label class="form-label small text-muted">{% trans "Bio / Présentation" %}</label>
+      {{ form.bio }}
+    </div>
+
+    <div class="row g-2 mb-2">
+      <div class="col-md-4">
+        <label class="form-label small text-muted">{% trans "Rôle" %}</label>
+        {{ form.role }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted">{% trans "Véhicule" %}</label>
+        {{ form.vehicle_type }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted">{% trans "Modèle" %}</label>
+        {{ form.vehicle_model }}
+      </div>
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-md-6">
+        <label class="form-label small text-muted">{% trans "Domicile" %}</label>
+        {{ form.home_address }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label small text-muted">{% trans "Travail" %}</label>
+        {{ form.work_address }}
+      </div>
+    </div>
+
+    <!-- Préférences de covoiturage & sécurité -->
+    <div class="p-3 rounded-3 border mb-3 bg-light">
+      <div class="small fw-semibold text-uppercase text-muted mb-2" style="font-size: 0.7rem;">
+        <i class="bi bi-shield-check me-1 text-success"></i>{% trans "Préférences de trajet (matching)" %}
+      </div>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <label class="form-label small text-muted">{% trans "Genre" %}</label>
+          {{ form.gender }}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small text-muted">{% trans "Préférence de trajet" %}</label>
+          {{ form.ride_preference }}
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+          <div class="form-check mt-2">
+            {{ form.is_smoker }}
+            <label class="form-check-label small text-muted" for="{{ form.is_smoker.id_for_label }}">
+              {% trans "Je fume" %}
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+      <button type="submit" class="btn btn-green-primary btn-sm px-4">
+        <i class="bi bi-save me-1"></i>{% trans "Enregistrer" %}
+      </button>
+    </div>
+  </form>
+</div>

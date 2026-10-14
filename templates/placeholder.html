@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ module_title }} | GreenMove{% endblock %}
+
+{% block content %}
+<div class="container py-5 mt-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 text-center" data-aos="fade-up">
+      <div class="p-5 card-greenmove border shadow-sm">
+        <div class="mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center p-4 rounded-circle" style="background: var(--gm-green-tint); width: 88px; height: 88px;">
+            <i class="bi {{ module_icon|default:'bi-hourglass-split' }} fs-1" style="color: var(--gm-green-primary);"></i>
+          </div>
+        </div>
+
+        <span class="badge rounded-pill px-3 py-1 mb-3 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.78rem;">
+          <i class="bi bi-clock me-1"></i>{% trans "Bientôt disponible" %}
+        </span>
+
+        <h2 class="fw-bold mb-3 text-dark">{{ module_title }}</h2>
+        <p class="text-muted mb-4 mx-auto" style="max-width: 580px; font-size: 0.95rem;">
+          {{ module_description }}
+        </p>
+
+        <div class="p-3 bg-light rounded-3 mb-4 border d-inline-block text-start small">
+          <div class="text-muted"><i class="bi bi-people me-1"></i><strong>Équipe assignée :</strong> {{ developer_name }}</div>
+          <div class="text-muted"><i class="bi bi-calendar-event me-1"></i><strong>Échéance :</strong> {{ eta }}</div>
+          <div class="text-success mt-1"><i class="bi bi-check2-circle me-1"></i>Emplacement et architecture prêts pour l'intégration de vos collègues.</div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+          <a href="{% url 'match:search' %}" class="btn btn-green-primary">
+            <i class="bi bi-magic me-2"></i>{% trans "Explorer MobilityMatch IA" %}
+          </a>
+          <a href="{% url 'core:home' %}" class="btn btn-green-outline">
+            <i class="bi bi-arrow-left me-1"></i>{% trans "Retour à l'accueil" %}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

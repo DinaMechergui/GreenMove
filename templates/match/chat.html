@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Chat du trajet" %} | GreenMove{% endblock %}
+
+{% block extra_css %}
+<style>
+  #chat-messages {
+    height: 420px;
+    overflow-y: auto;
+    background: linear-gradient(180deg, #F7FBF5 0%, #FFFFFF 100%);
+    border-radius: var(--radius-md);
+  }
+  .chat-bubble {
+    max-width: 78%;
+    padding: .55rem .9rem;
+    border-radius: 1rem;
+    font-size: .92rem;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+  .chat-mine { background: var(--gm-green-primary, #2E7D32); color: #fff; border-bottom-right-radius: .25rem; }
+  .chat-theirs { background: #EDF5EE; color: #23422A; border-bottom-left-radius: .25rem; }
+  .chat-meta { font-size: .65rem; opacity: .7; margin-top: .2rem; }
+  .suggestion-chip {
+    cursor: pointer;
+    border: 1px dashed var(--gm-green-primary, #2E7D32);
+    color: var(--gm-green-primary, #2E7D32);
+    background: #fff;
+    border-radius: 999px;
+    padding: .3rem .8rem;
+    font-size: .8rem;
+    transition: all .2s ease;
+  }
+  .suggestion-chip:hover { background: #EDF5EE; transform: translateY(-1px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 mt-4" style="max-width: 860px;">
+  <div class="d-flex justify-content-between align-items-center mb-3" data-aos="fade-down">
+    <div>
+      <a href="{% url 'match:ride_detail' ride.id %}" class="btn btn-sm btn-link text-muted text-decoration-none p-0">
+        <i class="bi bi-arrow-left me-1"></i>{% trans "Retour au trajet" %}
+      </a>
+      <h5 class="fw-bold mb-0 text-dark">
+        <i class="bi bi-chat-dots me-2 text-success"></i>{{ ride.origin_address }} ➔ {{ ride.destination_address }}
+      </h5>
+      <div class="small text-muted">
+        {{ ride.departure_datetime|date:"d M Y à H:i" }}
+        {% if other_participant %} • {{ other_participant.get_full_name|default:other_participant.username }}{% endif %}
+      </div>
+    </div>
+    <span class="badge rounded-pill bg-success bg-opacity-10 text-success border" style="font-size: .72rem;">
+      <span class="rounded-circle d-inline-block bg-success" style="width:7px;height:7px;"></span>
+      {% trans "En ligne" %}
+    </span>
+  </div>
+
+  <!-- Messages d'accueil suggérés -->
+  <div class="mb-3" id="suggestions-box">
+    <div class="small text-muted mb-2" style="font-size:.72rem; text-transform: uppercase; letter-spacing:.5px;">
+      <i class="bi bi-lightbulb me-1 text-warning"></i>{% trans "Messages d'accueil suggérés" %}
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      {% for s in suggestions %}
+        <button type="button" class="suggestion-chip" data-suggestion="{{ s|escapejs }}">
+          <i class="bi bi-lightning-charge-fill me-1" style="font-size:.7rem;"></i>{{ s }}
+        </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card-greenmove p-3 border shadow-sm mb-3">
+    <div id="chat-messages" class="p-3">
+      <div class="text-center text-muted small py-5" id="chat-placeholder">
+        <i class="bi bi-hourglass-split fs-3 d-block mb-2"></i>{% trans "Chargement de la discussion…" %}
+      </div>
+    </div>
+
+    <form id="chat-form" class="d-flex gap-2 mt-3 pt-3 border-top">
+      {% csrf_token %}
+      <input type="text" id="chat-input" class="form-control rounded-pill"
+             placeholder="{% trans 'Écrivez votre message…' %}" maxlength="2000" autocomplete="off" required>
+      <button type="submit" class="btn btn-green-primary px-4">
+        <i class="bi bi-send-fill"></i>
+      </button>
+    </form>
+  </div>
+
+  <div class="small text-muted text-center">
+    <i class="bi bi-lock me-1"></i>{% trans "Discussion chiffrée dans votre salon de trajet — visible par le conducteur et les passagers réservés." %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const roomUrl = `ws://${window.location.host}/ws/match/chat/{{ room.id }}/`;
+    let ws;
+    const box = document.getElementById('chat-messages');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const placeholder = document.getElementById('chat-placeholder');
+    const myId = {{ user.id }};
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function addMessage(m, mine) {
+      if (placeholder) placeholder.remove();
+      const wrap = document.createElement('div');
+      wrap.className = 'd-flex mb-3 ' + (mine ? 'justify-content-end' : 'justify-content-start');
+      wrap.innerHTML = `
+        <div class="chat-bubble ${mine ? 'chat-mine' : 'chat-theirs'}">
+          <div class="fw-semibold" style="font-size:.72rem;${mine ? 'opacity:.85' : 'color:#2D5434'}">
+            ${mine ? '' : escapeHtml(m.sender_name || '')}
+          </div>
+          <div>${escapeHtml(m.content)}</div>
+          <div class="chat-meta text-end">${escapeHtml(m.created_at || '')}</div>
+        </div>`;
+      box.appendChild(wrap);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function renderHistory(messages) {
+      if (placeholder) placeholder.remove();
+      box.innerHTML = '';
+      if (!messages.length) {
+        box.innerHTML = '<div class="text-center text-muted small py-5" id="chat-placeholder"><i class="bi bi-emoji-smile fs-3 d-block mb-2"></div>';
+        return;
+      }
+      messages.forEach(m => addMessage(m, m.sender === myId));
+    }
+
+    function connect() {
+      ws = new WebSocket(roomUrl);
+
+      ws.onopen = () => { input.focus(); };
+
+      ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        if (data.type === 'chat_history') {
+          renderHistory(data.messages || []);
+          // suggestions déjà rendues côté serveur
+        } else if (data.type === 'chat_message') {
+          addMessage(data.message, data.message.sender === myId);
+        }
+      };
+
+      ws.onclose = () => {
+        setTimeout(connect, 2500); // reconnexion automatique
+      };
+    }
+
+    connect();
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const content = input.value.trim();
+      if (!content || !ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ content }));
+      input.value = '';
+    });
+
+    // Clic sur une suggestion → envoi comme message de l'utilisateur
+    document.querySelectorAll('.suggestion-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const text = chip.getAttribute('data-suggestion');
+        if (ws && ws.readyState === WebSocket.OPEN && text) {
+          ws.send(JSON.stringify({ content: text }));
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

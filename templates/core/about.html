@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}À Propos & Architecture | GreenMove{% endblock %}
+
+{% block content %}
+<div class="container py-5 mt-4">
+  <div class="row g-5">
+    <div class="col-lg-8" data-aos="fade-right">
+      <span class="badge rounded-pill px-3 py-1 mb-2 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+        Hackathon IA & Climat 2026
+      </span>
+      <h2 class="display-6 fw-bold mb-3 text-dark">GreenMove : L'Intelligence Artificielle au service du Climat</h2>
+      <p class="lead text-muted mb-4" style="font-size: 1.05rem;">
+        Conçu par une équipe pluridisciplinaire de 5 développeurs et data scientists, GreenMove repense les déplacements pendulaires dans le Grand Tunis grâce à la mutualisation écologique et prédictive des trajets.
+      </p>
+
+      <div class="p-4 card-greenmove mb-4 border">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-stack me-2" style="color: var(--gm-green-primary);"></i>Stack Technique Moderne</h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <h6 class="fw-semibold text-dark small text-uppercase">Backend & Données</h6>
+            <ul class="list-unstyled small text-muted">
+              <li>• Python 3.11+ & Django 5.x</li>
+              <li>• Django REST Framework & SimpleJWT</li>
+              <li>• Django Channels & ASGI (WebSockets)</li>
+              <li>• PostgreSQL / SQLite avec cache LocMem</li>
+              <li>• Scikit-learn (Modèle de scoring IA)</li>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h6 class="fw-semibold text-dark small text-uppercase">Frontend 100% Django & UI</h6>
+            <ul class="list-unstyled small text-muted">
+              <li>• Templates Django + HTMX (zéro React)</li>
+              <li>• Bootstrap 5 & Bootstrap Icons</li>
+              <li>• Leaflet.js (Cartographie interactive)</li>
+              <li>• AOS, Vanilla-Tilt, CountUp.js, Swiper</li>
+              <li>• Mode clair/sombre doux & i18n avec RTL</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 card-greenmove border">
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-cloud-check me-2" style="color: var(--gm-green-primary);"></i>APIs Ouvertes & Résilience</h5>
+        <p class="text-muted small">
+          Conformément aux exigences du hackathon, l'application fonctionne exclusivement avec des services gratuits et open data, sans dépendance coûteuse :
+        </p>
+        <ul class="small text-muted mb-0">
+          <li><strong>Nominatim OpenStreetMap :</strong> Géocodage précis avec mise en cache 24h et limitation stricte à 1 req/sec.</li>
+          <li><strong>OpenRouteService & OSRM :</strong> Calcul d'itinéraires réels et secours autonome par interpolation géodésique.</li>
+          <li><strong>Open-Meteo :</strong> Météo temps réel sans clé API pour le Grand Tunis avec conseils de mobilité douce.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="col-lg-4" data-aos="fade-left">
+      <div class="card-greenmove p-4 sticky-top border" style="top: 100px;">
+        <h6 class="fw-bold mb-3 text-dark">Répartition de l'équipe (5 membres)</h6>
+        <div class="list-group list-group-flush small">
+          <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+            <span>Core & Design Front</span>
+            <span class="badge rounded-pill" style="background: var(--gm-green-tint); color: var(--gm-green-primary);">Terminé</span>
+          </div>
+          <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+            <span>Accounts & Profil Éco</span>
+            <span class="badge rounded-pill" style="background: var(--gm-green-tint); color: var(--gm-green-primary);">Terminé</span>
+          </div>
+          <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+            <span>MobilityMatch AI</span>
+            <span class="badge rounded-pill" style="background: var(--gm-green-tint); color: var(--gm-green-primary);">Terminé</span>
+          </div>
+          <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center text-muted">
+            <span>Eco-Tracker (Bilan Carbone)</span>
+            <span class="badge rounded-pill text-muted border bg-light">Équipe Data</span>
+          </div>
+          <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center text-muted">
+            <span>TrafficEco (Congestion)</span>
+            <span class="badge rounded-pill text-muted border bg-light">Équipe IA</span>
+          </div>
+          <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center text-muted">
+            <span>GreenPlanner (Multimodal)</span>
+            <span class="badge rounded-pill text-muted border bg-light">Équipe Transport</span>
+          </div>
+          <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center text-muted">
+            <span>EcoRewards (Gamification)</span>
+            <span class="badge rounded-pill text-muted border bg-light">Équipe Produit</span>
+          </div>
+        </div>
+
+        <div class="mt-4 pt-3 border-top text-center">
+          <a href="{% url 'match:search' %}" class="btn btn-green-primary w-100">
+            Tester MobilityMatch IA
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

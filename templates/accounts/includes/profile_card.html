@@ -1,0 +1,41 @@
+{% load i18n %}
+<div id="profile-card-container" class="card-greenmove p-4 border shadow-sm">
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <img src="{{ user_profile.get_avatar_url }}" alt="{{ user_profile.username }}" class="rounded-circle border" width="64" height="64">
+      <div>
+        <h4 class="fw-bold mb-0 text-dark">{{ user_profile.get_full_name|default:user_profile.username }}</h4>
+        <div class="text-muted small">{{ user_profile.email }} • {{ user_profile.phone_number|default:"Non renseigné" }}</div>
+        <span class="badge rounded-pill mt-1" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.72rem;">
+          <i class="bi bi-shield-check me-1"></i>{{ user_profile.get_role_display }}
+        </span>
+      </div>
+    </div>
+    <button class="btn btn-sm btn-green-outline"
+            hx-get="{% url 'accounts:profile_edit_htmx' %}"
+            hx-target="#profile-card-container"
+            hx-swap="outerHTML">
+      <i class="bi bi-pencil me-1"></i>{% trans "Modifier" %}
+    </button>
+  </div>
+
+  {% if user_profile.bio %}
+    <p class="text-muted small fst-italic mb-3">"{{ user_profile.bio }}"</p>
+  {% endif %}
+
+  <div class="row g-2 pt-3 border-top border-secondary border-opacity-10 small">
+    <div class="col-md-6">
+      <div class="text-muted"><i class="bi bi-car-front text-secondary me-1"></i><strong>Véhicule :</strong> {{ user_profile.get_vehicle_type_display }}</div>
+      {% if user_profile.vehicle_model %}
+        <div class="text-muted"><i class="bi bi-tag text-muted me-1"></i><strong>Modèle :</strong> {{ user_profile.vehicle_model }} ({{ user_profile.available_seats }} places)</div>
+      {% endif %}
+    </div>
+    <div class="col-md-6">
+      <div class="text-muted"><i class="bi bi-house-door text-secondary me-1"></i><strong>Domicile :</strong> {{ user_profile.home_address|default:"Non spécifié" }}</div>
+      <div class="text-muted"><i class="bi bi-briefcase text-secondary me-1"></i><strong>Travail :</strong> {{ user_profile.work_address|default:"Non spécifié" }}</div>
+      {% if user_profile.departure_time_default %}
+        <div class="text-muted"><i class="bi bi-clock text-secondary me-1"></i><strong>Départ :</strong> {{ user_profile.departure_time_default }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>

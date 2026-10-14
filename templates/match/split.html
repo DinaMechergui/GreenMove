@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Calculateur Frais & CO₂" %} | GreenMove{% endblock %}
+
+{% block content %}
+<div class="container py-4 mt-4" style="max-width: 960px;">
+  <div class="mb-4" data-aos="fade-down">
+    <span class="badge rounded-pill px-3 py-1 mb-1 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+      <i class="bi bi-calculator me-1"></i>{% trans "Partage des frais" %}
+    </span>
+    <h3 class="fw-bold mb-0 text-dark">{% trans "Calculateur de partage des frais & CO₂ par duo" %}</h3>
+    <p class="text-muted small mb-0">
+      {% trans "Répartissez le coût réel du trajet entre le conducteur et le passager, et découvrez le CO₂ évité par le duo." %}
+    </p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-5" data-aos="fade-right">
+      <div class="card-greenmove p-4 border shadow-sm">
+        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-sliders me-1 text-success"></i>{% trans "Paramètres" %}</h6>
+        <form method="post" action="{% url 'match:split_calculator' %}"
+              hx-post="{% url 'match:split_calculator' %}?partial=1"
+              hx-target="#split-result"
+              hx-swap="innerHTML">
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-warning py-2 small">{{ form.non_field_errors }}</div>
+          {% endif %}
+          <div class="mb-3">
+            <label class="form-label small text-muted">{% trans "Trajet enregistré (optionnel)" %}</label>
+            {{ form.ride }}
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small text-muted">{% trans "Distance (km)" %}</label>
+              {{ form.distance_km }}
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted">{% trans "Personnes" %}</label>
+              {{ form.passengers }}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted">{% trans "Montant à partager (DT) — optionnel" %}</label>
+            {{ form.total_cost }}
+          </div>
+          <button class="btn btn-green-primary w-100">
+            <i class="bi bi-equals me-1"></i>{% trans "Calculer" %}
+          </button>
+        </form>
+
+        <div class="p-3 rounded-3 mt-3 border bg-light small text-muted">
+          <i class="bi bi-info-circle me-1 text-primary"></i>
+          {% trans "Base de calcul : 0,85 DT/km (carburant + usure) et 0,13 kg CO₂/km évités par rapport à une voiture individuelle." %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7" data-aos="fade-left">
+      <div id="split-result">
+        {% include "match/includes/split_result.html" %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

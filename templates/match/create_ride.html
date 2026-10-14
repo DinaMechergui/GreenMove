@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Proposer un Covoiturage Vert" %} | GreenMove{% endblock %}
+
+{% block content %}
+<div class="container py-5 mt-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8" data-aos="fade-up">
+      <div class="card-greenmove p-4 p-md-5 border shadow-lg">
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-2" style="background: rgba(46, 125, 50, 0.1);">
+            <i class="bi bi-plus-circle-fill text-success fs-2"></i>
+          </div>
+          <h2 class="fw-bold mb-1">{% trans "Partager un Trajet Décarboné" %}</h2>
+          <p class="text-muted small">
+            Remplissez vos places vacantes, réduisez la facture d'essence et gagnez <strong>+30 GreenPoints</strong>.
+          </p>
+        </div>
+
+        <form method="post" action="{% url 'match:create_ride' %}">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger p-2 small mb-3">
+              {{ form.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-muted">{% trans "Vous proposez ou cherchez un trajet ?" %}</label>
+            {{ form.ride_type }}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">
+                <i class="bi bi-geo-alt-fill text-danger me-1"></i>{% trans "Lieu de départ" %} *
+              </label>
+              {{ form.origin_address }}
+              <div class="form-text small">Ex: Ariana Centre, Station Métro 2</div>
+              {% if form.origin_address.errors %}<div class="text-danger small">{{ form.origin_address.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">
+                <i class="bi bi-geo-alt-fill text-success me-1"></i>{% trans "Lieu d'arrivée" %} *
+              </label>
+              {{ form.destination_address }}
+              <div class="form-text small">Ex: Les Berges du Lac 2, Tunis</div>
+              {% if form.destination_address.errors %}<div class="text-danger small">{{ form.destination_address.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Date du départ" %}</label>
+              {{ form.departure_date }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Heure du départ" %}</label>
+              <input type="time" name="departure_time_input" class="form-control" value="08:00" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Places disponibles" %}</label>
+              {{ form.seats_available }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-muted">{% trans "Partage de frais symbolique (DT)" %}</label>
+              {{ form.price_tnd }}
+              <div class="form-text small">Moyenne recommandée : 1.5 à 3.0 DT</div>
+            </div>
+          </div>
+
+          <div class="p-3 bg-light rounded-4 border mb-3">
+            <div class="form-check form-switch mb-2">
+              {{ form.is_recurring }}
+              <label class="form-check-label fw-semibold text-success small" for="{{ form.is_recurring.id_for_label }}">
+                <i class="bi bi-repeat me-1"></i>{% trans "Trajet pendulaire régulier (ex: du lundi au vendredi)" %}
+              </label>
+            </div>
+            <div class="mt-2">
+              <label class="form-label small text-muted">{% trans "Jours récurrents" %}</label>
+              {{ form.recurring_days }}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label small fw-semibold text-muted">{% trans "Précisions utiles pour les voyageurs" %}</label>
+            {{ form.description }}
+          </div>
+
+          <button type="submit" class="btn btn-green-primary w-100 py-3 fw-bold shadow">
+            <i class="bi bi-check2-circle me-2"></i>{% trans "Publier mon trajet vert (+30 GreenPoints)" %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

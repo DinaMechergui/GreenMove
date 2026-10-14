@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Groupes de Trajets Récurrents" %} | GreenMove{% endblock %}
+
+{% block content %}
+<div class="container py-4 mt-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3" data-aos="fade-down">
+    <div>
+      <span class="badge rounded-pill px-3 py-1 mb-1 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+        <i class="bi bi-diagram-3 me-1"></i>{% trans "Clustering DBSCAN" %}
+      </span>
+      <h3 class="fw-bold mb-0 text-dark">{% trans "Groupes de trajets récurrents" %}</h3>
+      <p class="text-muted small mb-0">
+        {% trans "Origines/destinations regroupées automatiquement pour proposer covoiturages, pédibus et convois vélo." %}
+      </p>
+    </div>
+    <div class="text-md-end">
+      <div class="fs-4 fw-bold" style="color: var(--gm-green-primary);">{{ total_groups }}</div>
+      <div class="small text-muted text-uppercase" style="font-size: 0.7rem;">{% trans "groupes détectés" %}</div>
+    </div>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 mb-4" data-aos="fade-up">
+    <span class="badge rounded-pill px-3 py-2 border bg-white text-muted"><i class="bi bi-car-front me-1 text-success"></i>{% trans "Covoiturage" %}</span>
+    <span class="badge rounded-pill px-3 py-2 border bg-white text-muted"><i class="bi bi-person-walking me-1 text-warning"></i>{% trans "Pédibus" %}</span>
+    <span class="badge rounded-pill px-3 py-2 border bg-white text-muted"><i class="bi bi-bicycle me-1 text-primary"></i>{% trans "Convoi vélo" %}</span>
+    <span class="badge rounded-pill px-3 py-2 border bg-white text-muted small"><i class="bi bi-rulers me-1"></i>{% trans "eps = 1500 m • min_samples = 2" %}</span>
+  </div>
+
+  {% if current_group %}
+    <div class="alert d-flex align-items-center gap-2 rounded-3 border-0 mb-4" role="alert"
+         style="background: var(--gm-green-tint); color: var(--gm-green-primary);">
+      <i class="bi bi-info-circle-fill"></i>
+      <span class="small">
+        {% trans "Vous êtes membre du groupe" %} « {{ current_group.label }} ».
+        {% trans "Un seul groupe à la fois : rejoindre un autre groupe vous retirera automatiquement de celui-ci." %}
+      </span>
+    </div>
+  {% endif %}
+
+  {% if clusters %}
+    <div class="row g-4">
+      {% for c in clusters %}
+        <div class="col-md-6 col-xl-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:60 }}">
+          <div class="card-greenmove h-100 p-4 border shadow-sm">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <span class="badge rounded-pill px-3 py-1 fw-semibold"
+                    style="font-size: 0.7rem;
+                    {% if c.mode == 'COVOITURAGE' %}background:#EDF5EE;color:#2D5434;
+                    {% elif c.mode == 'PEDIBUS' %}background:#FFF4E0;color:#B26A00;
+                    {% else %}background:#E3F2FD;color:#0D47A1;{% endif %}">
+                {% if c.mode == 'COVOITURAGE' %}<i class="bi bi-car-front me-1"></i>
+                {% elif c.mode == 'PEDIBUS' %}<i class="bi bi-person-walking me-1"></i>
+                {% else %}<i class="bi bi-bicycle me-1"></i>{% endif %}
+                {{ c.mode_display }}
+              </span>
+              <span class="badge rounded-pill bg-light text-muted border" style="font-size: 0.68rem;">
+                #{{ c.cluster_id }}
+              </span>
+            </div>
+
+            <h6 class="fw-bold text-dark mb-1">{{ c.label }}</h6>
+            <div class="small text-muted mb-3">
+              <i class="bi bi-geo-alt me-1 text-success"></i>{{ c.rides|length }} {% trans "trajets" %}
+              <span class="mx-1">•</span>
+              <i class="bi bi-people me-1"></i>{{ c.member_count }} {% trans "membres" %}
+              <span class="mx-1">•</span>
+              <i class="bi bi-signpost me-1"></i>{{ c.avg_distance_km }} km
+            </div>
+
+            <div class="small text-muted mb-3">
+              {% for r in c.rides|slice:":4" %}
+                <div class="d-flex justify-content-between border-bottom border-secondary border-opacity-10 py-1">
+                  <span class="text-truncate" style="max-width: 70%;">{{ r.user.get_full_name|default:r.user.username }}</span>
+                  <span class="text-nowrap">{{ r.departure_datetime|date:"Hh" }}</span>
+                </div>
+              {% endfor %}
+              {% if c.rides|length > 4 %}
+                <div class="text-center pt-1 small">+ {{ c.rides|length|add:"-4" }} …</div>
+              {% endif %}
+            </div>
+
+            {% if user.is_authenticated %}
+              {% if c.joined %}
+                <div class="alert alert-success py-2 px-3 small rounded-3 mb-0" role="alert">
+                  <i class="bi bi-check-circle me-1"></i>{% trans "Vous faites partie de ce groupe" %}
+                </div>
+              {% else %}
+                <form method="post" action="{% url 'match:groups' %}">
+                  {% csrf_token %}
+                  {% for r in c.rides %}
+                    <input type="hidden" name="ride_ids" value="{{ r.id }}">
+                  {% endfor %}
+                  <button class="btn btn-green-primary w-100">
+                    <i class="bi bi-people me-1"></i>{% trans "Rejoindre ce groupe" %}
+                  </button>
+                </form>
+              {% endif %}
+            {% else %}
+              <a href="{% url 'accounts:login' %}?next={% url 'match:groups' %}" class="btn btn-green-outline w-100">
+                <i class="bi bi-box-arrow-in-right me-1"></i>{% trans "Se connecter pour rejoindre" %}
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card-greenmove p-5 text-center text-muted border">
+      <i class="bi bi-diagram-3 fs-1 d-block mb-3 text-secondary opacity-50"></i>
+      <h5 class="text-dark">{% trans "Aucun groupe détecté pour l'instant" %}</h5>
+      <p class="small text-muted mx-auto" style="max-width: 520px;">
+        {% trans "Le clustering DBSCAN a besoin d'au moins 2 trajets réguliers proches (≤ 1,5 km). Publiez des trajets récurrents (domicile-travail) pour former des groupes !" %}
+      </p>
+      <a href="{% url 'match:create_ride' %}" class="btn btn-green-primary mt-2">
+        <i class="bi bi-repeat me-1"></i>{% trans "Publier un trajet régulier" %}
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

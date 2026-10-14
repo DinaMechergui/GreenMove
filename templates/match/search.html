@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Recherche de Covoiturage & IA" %} | GreenMove{% endblock %}
+
+{% block extra_css %}
+<style>
+  #match-leaflet-map {
+    height: 420px;
+    width: 100%;
+    border-radius: var(--radius-md);
+    box-shadow: var(--gm-card-shadow);
+    border: 1px solid var(--gm-border-hairline);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 mt-4">
+  <!-- Titre & Accroche -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3" data-aos="fade-down">
+    <div>
+      <span class="badge rounded-pill px-3 py-1 mb-1 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+        <i class="bi bi-magic me-1"></i>MobilityMatch IA
+      </span>
+      <h3 class="fw-bold mb-0 text-dark">{% trans "Covoiturage Éco-Intelligent au Grand Tunis" %}</h3>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'match:meeting_point' %}" class="btn btn-sm btn-green-outline">
+        <i class="bi bi-signpost-split me-1"></i>{% trans "Point de RDV" %}
+      </a>
+      <a href="{% url 'match:groups' %}" class="btn btn-sm btn-green-outline">
+        <i class="bi bi-people me-1"></i>{% trans "Groupes" %}
+      </a>
+      <a href="{% url 'match:split_calculator' %}" class="btn btn-sm btn-green-outline">
+        <i class="bi bi-calculator me-1"></i>{% trans "Frais & CO₂" %}
+      </a>
+      <a href="{% url 'match:create_ride' %}" class="btn btn-green-primary">
+        <i class="bi bi-plus-circle me-1"></i>{% trans "Proposer un trajet" %}
+      </a>
+    </div>
+  </div>
+
+  <!-- Barre de Recherche & Filtres HTMX -->
+  <div class="card-greenmove p-4 mb-4 border shadow-sm" data-aos="fade-up">
+    <form method="get" action="{% url 'match:search' %}"
+          hx-get="{% url 'match:search' %}"
+          hx-target="#rides-results-container"
+          hx-trigger="submit, change from:select, change from:input[type='checkbox']">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">{% trans "Lieu de départ (ex: Ariana, Marsa)" %}</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-geo-alt"></i></span>
+            <input type="text" name="origin" value="{{ origin_query }}" class="form-control border-start-0 ps-0" placeholder="Quartier de départ">
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold text-muted">{% trans "Lieu d'arrivée (ex: Lac 2, Centre-ville)" %}</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-geo-alt-fill text-success"></i></span>
+            <input type="text" name="destination" value="{{ dest_query }}" class="form-control border-start-0 ps-0" placeholder="Quartier d'arrivée">
+          </div>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold text-muted">{% trans "Type de trajet" %}</label>
+          {{ form.ride_type }}
+        </div>
+
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-green-primary w-100 py-2">
+            <i class="bi bi-search me-1"></i>{% trans "Filtrer" %}
+          </button>
+        </div>
+      </div>
+
+      <div class="row mt-3 pt-2 border-top border-secondary border-opacity-10">
+        <div class="col-12 d-flex align-items-center">
+          <div class="form-check form-switch">
+            {{ form.only_green_vehicles }}
+            <label class="form-check-label small text-muted" for="{{ form.only_green_vehicles.id_for_label }}">
+              <i class="bi bi-lightning-charge text-warning me-1"></i>{% trans "Véhicules 100% Électriques et Hybrides uniquement" %}
+            </label>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Carte Interactive des Trajets Actifs -->
+  <div class="mb-4" data-aos="zoom-in">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-map me-1 text-success"></i>Visualisation spatiale des départs et arrivées</h6>
+      <span class="badge rounded-pill text-muted border bg-white small" style="font-size: 0.72rem;">Grand Tunis</span>
+    </div>
+    <div id="match-leaflet-map"></div>
+  </div>
+
+  <!-- Conteneur des Résultats HTMX -->
+  <div id="rides-results-container">
+    {% include "match/includes/ride_list.html" %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const ridesData = {{ map_rides_json|safe }};
+    const map = L.map('match-leaflet-map').setView([36.8189, 10.2000], 12);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
+      maxZoom: 19,
+    }).addTo(map);
+
+    const bounds = [];
+
+    ridesData.forEach((r) => {
+      if (r.origin_lat && r.origin_lon) {
+        bounds.push([r.origin_lat, r.origin_lon]);
+        const startIcon = L.divIcon({
+          className: 'marker-start',
+          html: `<div style="background-color: #335C45; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
+                   <i class="bi bi-car-front-fill"></i>
+                 </div>`,
+          iconSize: [28, 28],
+          iconAnchor: [14, 28]
+        });
+
+        const startMarker = L.marker([r.origin_lat, r.origin_lon], { icon: startIcon }).addTo(map);
+        startMarker.bindPopup(`
+          <div style="font-family: 'Inter', sans-serif;">
+            <div class="fw-bold" style="color: #335C45;">${r.user}</div>
+            <div class="small"><strong>Départ :</strong> ${r.origin}</div>
+            <div class="small"><strong>Vers :</strong> ${r.destination}</div>
+            <div class="small text-muted">Heure : ${r.departure} • <strong>${r.price} DT</strong></div>
+            <div class="badge rounded-pill mt-1" style="background: #EDF5EE; color: #335C45;">Score IA : ${r.score}%</div>
+            <div class="badge rounded-pill mt-1" style="background: #E3F2FD; color: #0D47A1;">Tracé commun : ${r.overlap}%</div>
+            <div class="mt-2"><a href="/match/${r.id}/" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;">Voir</a></div>
+          </div>
+        `);
+      }
+
+      if (r.destination_lat && r.destination_lon) {
+        bounds.push([r.destination_lat, r.destination_lon]);
+      }
+
+      // Vrai tracé routier (ORS/OSRM) si disponible, sinon ligne droite de repli
+      if (r.route && r.route.length > 1) {
+        r.route.forEach((pt) => bounds.push(pt));
+        L.polyline(r.route, {
+          color: '#335C45',
+          weight: 3,
+          opacity: 0.85
+        }).addTo(map);
+      } else if (r.origin_lat && r.origin_lon && r.destination_lat && r.destination_lon) {
+        L.polyline([[r.origin_lat, r.origin_lon], [r.destination_lat, r.destination_lon]], {
+          color: '#84A98C',
+          weight: 2,
+          dashArray: '4, 8',
+          opacity: 0.7
+        }).addTo(map);
+      }
+    });
+
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [30, 30] });
+    }
+  });
+</script>
+{% endblock %}

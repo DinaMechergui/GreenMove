@@ -1,0 +1,42 @@
+<div class="weather-card-hero">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <div class="p-1 px-2 rounded-pill small fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.78rem;">
+        <i class="bi bi-geo-alt-fill me-1"></i>{{ weather.city }}
+      </div>
+      <span class="badge rounded-pill text-muted border bg-light" style="font-size: 0.65rem;">Direct</span>
+    </div>
+    <button class="btn btn-sm btn-link text-decoration-none p-0 text-muted"
+            hx-get="{% url 'core:weather_snippet' %}"
+            hx-target="#weather-widget-container"
+            title="Rafraîchir météo">
+      <i class="bi bi-arrow-clockwise fs-6"></i>
+    </button>
+  </div>
+
+  <div class="d-flex align-items-center justify-content-between my-2">
+    <div>
+      <div class="weather-temp" style="color: var(--gm-green-primary);">{{ weather.temperature }}°C</div>
+      <div class="small text-muted">{{ weather.description }} (Ressenti {{ weather.apparent_temperature }}°C)</div>
+    </div>
+    <div class="text-end">
+      <i class="bi {{ weather.icon_class }}" style="font-size: 2.2rem; opacity: 0.85;"></i>
+    </div>
+  </div>
+
+  <div class="row g-2 pt-2 border-top border-secondary border-opacity-10 small text-muted">
+    <div class="col-6">
+      <i class="bi bi-droplet text-primary me-1"></i> Humidité: <strong>{{ weather.humidity }}%</strong>
+    </div>
+    <div class="col-6 text-end">
+      <i class="bi bi-wind text-secondary me-1"></i> Vent: <strong>{{ weather.wind_speed }} km/h</strong>
+    </div>
+  </div>
+
+  <div class="mt-2 pt-2 border-top border-secondary border-opacity-10">
+    <div class="small text-muted d-flex align-items-start gap-1" style="font-size: 0.82rem;">
+      <i class="bi bi-info-circle text-success flex-shrink-0 mt-1"></i>
+      <span>{{ weather.eco_tip }}</span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Mes Trajets & Réservations" %} | GreenMove{% endblock %}
+
+{% block content %}
+<div class="container py-4 mt-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3" data-aos="fade-down">
+    <div>
+      <h2 class="fw-bold mb-1">{% trans "Mes Trajets Écologiques" %}</h2>
+      <p class="text-muted small mb-0">Retrouvez l'historique de vos propositions et de vos covoiturages partagés.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'match:create_ride' %}" class="btn btn-green-primary">
+        <i class="bi bi-plus-circle me-1"></i>{% trans "Proposer un trajet" %}
+      </a>
+      <a href="{% url 'match:search' %}" class="btn btn-green-outline">
+        <i class="bi bi-search me-1"></i>{% trans "Rechercher" %}
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Mes Propositions Conducteur -->
+    <div class="col-lg-6" data-aos="fade-right">
+      <div class="card-greenmove p-4 border shadow-sm h-100">
+        <h5 class="fw-bold text-success mb-3">
+          <i class="bi bi-car-front-fill me-2"></i>{% trans "Mes Trajets Publiés" %} ({{ proposed_rides.count }})
+        </h5>
+
+        {% if proposed_rides %}
+          <div class="d-flex flex-column gap-3">
+            {% for ride in proposed_rides %}
+              <div class="p-3 border rounded-3 bg-white">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div class="fw-bold text-dark">
+                    {{ ride.origin_address }} ➔ {{ ride.destination_address }}
+                  </div>
+                  <span class="badge bg-success-subtle text-success">{{ ride.get_status_display }}</span>
+                </div>
+                <div class="small text-muted mb-2">
+                  <i class="bi bi-calendar3 me-1"></i>{{ ride.departure_datetime|date:"d M Y à H:i" }} •
+                  <strong>{{ ride.price_tnd }} DT</strong> •
+                  {{ ride.seats_available }} places restantes
+                </div>
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                  <span class="small text-success">
+                    <i class="bi bi-tree-fill"></i> -{{ ride.estimated_co2_saved }} kg CO₂
+                  </span>
+                  <a href="{% url 'match:ride_detail' ride.id %}" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                    {% trans "Gérer le trajet" %}
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-car-front fs-1 d-block mb-2 text-secondary"></i>
+            <p>{% trans "Vous n'avez aucun trajet publié en tant que conducteur." %}</p>
+            <a href="{% url 'match:create_ride' %}" class="btn btn-sm btn-green-primary">{% trans "Proposer un trajet" %}</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Mes Réservations Passager -->
+    <div class="col-lg-6" data-aos="fade-left">
+      <div class="card-greenmove p-4 border shadow-sm h-100">
+        <h5 class="fw-bold text-primary mb-3">
+          <i class="bi bi-ticket-perforated-fill me-2"></i>{% trans "Mes Réservations" %} ({{ bookings.count }})
+        </h5>
+
+        {% if bookings %}
+          <div class="d-flex flex-column gap-3">
+            {% for b in bookings %}
+              <div class="p-3 border rounded-3 bg-white">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div class="fw-bold text-dark">
+                    {{ b.ride.origin_address }} ➔ {{ b.ride.destination_address }}
+                  </div>
+                  <span class="badge bg-primary-subtle text-primary">{{ b.get_status_display }}</span>
+                </div>
+                <div class="small text-muted mb-2">
+                  Conducteur : <strong>{{ b.ride.user.get_full_name|default:b.ride.user.username }}</strong> •
+                  Date : {{ b.ride.departure_datetime|date:"d M à H:i" }} •
+                  Places : {{ b.seats_requested }}
+                </div>
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                  <span class="small text-muted">
+                    Réservé le {{ b.created_at|date:"d/m/Y" }}
+                  </span>
+                  <a href="{% url 'match:ride_detail' b.ride.id %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                    {% trans "Voir trajet" %}
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-ticket-detailed fs-1 d-block mb-2 text-secondary"></i>
+            <p>{% trans "Vous n'avez pas de réservation active." %}</p>
+            <a href="{% url 'match:search' %}" class="btn btn-sm btn-green-primary">{% trans "Rechercher un covoiturage" %}</a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

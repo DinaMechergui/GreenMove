@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% load i18n l10n static %}
+
+{% block title %}{% trans "Suivi Live" %} | GreenMove{% endblock %}
+
+{% block extra_css %}
+<style>
+  #live-map { height: 480px; width: 100%; border-radius: var(--radius-md); box-shadow: var(--gm-card-shadow); border: 1px solid var(--gm-border-hairline); }
+  .pulse-marker { animation: pulse 1.6s infinite; }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.25); } 100% { transform: scale(1); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 mt-4" style="max-width: 1000px;">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3" data-aos="fade-down">
+    <div>
+      <span class="badge rounded-pill px-3 py-1 mb-1 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
+        <i class="bi bi-broadcast me-1"></i>{% trans "Suivi live partagé" %}
+      </span>
+      <h4 class="fw-bold mb-0 text-dark">{{ ride.origin_address }} ➔ {{ ride.destination_address }}</h4>
+      <div class="small text-muted">
+        {% trans "Conducteur" %} : {{ ride.user.get_full_name|default:ride.user.username }}
+        • {{ ride.departure_datetime|date:"d M Y à H:i" }}
+      </div>
+    </div>
+    <a href="{% url 'match:ride_detail' ride.id %}" class="btn btn-sm btn-green-outline">
+      <i class="bi bi-arrow-left me-1"></i>{% trans "Trajet" %}
+    </a>
+  </div>
+
+  {% if not is_valid %}
+    <div class="alert alert-warning rounded-4 border" role="alert">
+      <i class="bi bi-clock-history me-2 fs-5"></i>
+      <strong>{% trans "Ce lien de suivi a expiré." %}</strong>
+      {% trans "Demandez un nouveau lien au conducteur." %}
+    </div>
+  {% else %}
+    {% if is_owner %}
+      <div class="alert alert-success rounded-4 border d-flex justify-content-between align-items-center" role="alert">
+        <div>
+          <i class="bi bi-globe-americas me-2 fs-5"></i>
+          <strong>{% trans "Vous diffusez votre position en direct." %}</strong>
+          <div class="small">{% trans "Partagez ce lien avec vos proches pour qu'ils vous suivent (valable 24h)." %}</div>
+        </div>
+        <button class="btn btn-sm btn-outline-success" id="copy-link-btn">
+          <i class="bi bi-clipboard me-1"></i>{% trans "Copier le lien" %}
+        </button>
+      </div>
+    {% else %}
+      <div class="alert alert-info rounded-4 border" role="alert">
+        <i class="bi bi-eye me-2 fs-5"></i>
+        <strong>{% trans "Suivi en lecture seule." %}</strong>
+        <span class="small">{% trans "Vous suivez la position du conducteur en temps réel." %}</span>
+      </div>
+    {% endif %}
+
+    <div class="card-greenmove p-3 border shadow-sm mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h6 class="fw-bold text-dark mb-0"><i class="bi bi-geo-alt-fill me-1 text-danger"></i>{% trans "Carte de suivi" %}</h6>
+        <span class="small text-muted" id="live-status">
+          <span class="rounded-circle d-inline-block bg-secondary" style="width:7px;height:7px;"></span>
+          {% trans "Connexion…" %}
+        </span>
+      </div>
+      <div id="live-map"></div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="card-greenmove p-3 border shadow-sm small">
+          <div class="d-flex justify-content-between"><span class="text-muted">{% trans "Token" %}</span><code>{{ ws_token|slice:":8" }}…</code></div>
+          <div class="d-flex justify-content-between"><span class="text-muted">{% trans "Expire le" %}</span><strong>{{ link.expires_at|date:"d/m/Y H:i" }}</strong></div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card-greenmove p-3 border shadow-sm small">
+          <div class="d-flex justify-content-between"><span class="text-muted">{% trans "Dernière position" %}</span><strong id="last-pos">—</strong></div>
+          <div class="d-flex justify-content-between"><span class="text-muted">{% trans "Reçue à" %}</span><strong id="last-ts">—</strong></div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if is_valid %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const isOwner = {{ is_owner|yesno:"true,false" }};
+    const startLat = {{ ride.origin_lat|unlocalize }};
+    const startLon = {{ ride.origin_lon|unlocalize }};
+
+    const map = L.map('live-map').setView([startLat, startLon], 13);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      attribution: '&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics', maxZoom: 19,
+    }).addTo(map);
+
+    const routeCoords = {{ route_coords_json|safe }};
+    if (Array.isArray(routeCoords) && routeCoords.length > 1) {
+      L.polyline(routeCoords, { color: '#2E7D32', weight: 4, opacity: .7 }).addTo(map);
+    }
+
+    const icon = L.divIcon({
+      className: 'live-pin',
+      html: '<div class="pulse-marker" style="background:#C05621;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,.35);"><i class="bi bi-car-front-fill"></i></div>',
+      iconSize: [30, 30], iconAnchor: [15, 15],
+    });
+    const marker = L.marker([startLat, startLon], { icon }).addTo(map);
+    let firstFix = true;
+
+    const statusEl = document.getElementById('live-status');
+    const lastPos = document.getElementById('last-pos');
+    const lastTs = document.getElementById('last-ts');
+
+    const ws = new WebSocket(`ws://${window.location.host}/ws/match/track/{{ ws_token }}/`);
+
+    ws.onopen = () => {
+      statusEl.innerHTML = '<span class="rounded-circle d-inline-block bg-success" style="width:7px;height:7px;"></span> {% trans "Connecté" %}';
+    };
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.type === 'tracking_role') {
+        statusEl.innerHTML = data.role === 'broadcaster'
+          ? '<span class="rounded-circle d-inline-block bg-success" style="width:7px;height:7px;"></span> {% trans "Diffusion active" %}'
+          : '<span class="rounded-circle d-inline-block bg-info" style="width:7px;height:7px;"></span> {% trans "Suivi en direct" %}';
+      } else if (data.type === 'tracking_update') {
+        const pos = [data.lat, data.lon];
+        marker.setLatLng(pos);
+        if (firstFix) { map.setView(pos, 15); firstFix = false; }
+        lastPos.textContent = `${data.lat.toFixed(5)}, ${data.lon.toFixed(5)}`;
+        lastTs.textContent = data.ts || '';
+      }
+    };
+
+    ws.onclose = () => {
+      statusEl.innerHTML = '<span class="rounded-circle d-inline-block bg-danger" style="width:7px;height:7px;"></span> {% trans "Déconnecté" %}';
+    };
+
+    // Le conducteur diffuse sa géolocalisation navigateur
+    if (isOwner && navigator.geolocation) {
+      navigator.geolocation.watchPosition((pos) => {
+        const lat = pos.coords.latitude, lon = pos.coords.longitude;
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ lat, lon }));
+        }
+        marker.setLatLng([lat, lon]);
+        lastPos.textContent = `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+      }, () => {}, { enableHighAccuracy: true, maximumAge: 5000 });
+    }
+
+    const copyBtn = document.getElementById('copy-link-btn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(window.location.href).then(() => {
+          copyBtn.innerHTML = '<i class="bi bi-check2 me-1"></i>{% trans "Lien copié !" %}';
+        });
+      });
+    }
+  });
+</script>
+{% endif %}
+{% endblock %}

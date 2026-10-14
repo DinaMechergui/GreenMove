@@ -1,0 +1,633 @@
+/* ==========================================================================
+   GreenMove - Plateforme de Mobilité Durable avec IA
+   Feuille de styles - Design Soft, Épuré, Botanique & Créatif
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. VARIABLES CSS (Palette Soft, Scandinave & Botanique)
+   -------------------------------------------------------------------------- */
+:root {
+  /* Nuances Principales Douces */
+  --gm-green-primary: #335C45;       /* Sauge botanique profonde mais douce */
+  --gm-green-hover: #264634;
+  --gm-green-sage: #52796F;          /* Sauge eucalyptus sereine */
+  --gm-green-soft: #84A98C;          /* Vert doux apaisant */
+  --gm-green-tint: #EDF5EE;          /* Voile sauge ultra-délicat */
+  --gm-green-accent: #A3C9A8;
+
+  /* Accents Chaleureux & Météo Délicats */
+  --gm-warm-sand: #E9C46A;           /* Sable chaud / miel discret */
+  --gm-warm-tint: #FDF8EC;           /* Fond chaleureux discret */
+  --gm-sky-soft: #E8F4F8;            /* Ciel poudré météo */
+  --gm-sky-text: #0284C7;
+
+  /* Surfaces & Fonds (Soft, Lumineux, Aéré) */
+  --gm-bg: #F9FAF7;                  /* Fond crème poudré doux (jamais blanc blafard) */
+  --gm-surface: #FFFFFF;             /* Cartes blanches pures */
+  --gm-surface-muted: #F2F6F2;       /* Surface secondaire douce */
+  --gm-surface-glass: rgba(255, 255, 255, 0.88);
+  --gm-border-hairline: rgba(51, 92, 69, 0.08); /* Bordure ultra fine et subtile */
+  --gm-border-subtle: rgba(51, 92, 69, 0.14);
+
+  /* Typographie Délicate */
+  --gm-text-main: #1D2A22;           /* Anthracite sauge doux (pas de noir dur) */
+  --gm-text-muted: #607266;          /* Gris sauge lisible et reposant */
+  --gm-text-subtle: #8A9A90;
+
+  /* Ombres Diffuses Flottantes (Légères comme l'air) */
+  --gm-card-shadow: 0 4px 20px rgba(35, 60, 46, 0.035), 0 1px 3px rgba(35, 60, 46, 0.02);
+  --gm-card-shadow-hover: 0 12px 32px rgba(35, 60, 46, 0.07), 0 2px 6px rgba(35, 60, 46, 0.03);
+
+  /* Navbar & Footer Délicats */
+  --gm-nav-bg: rgba(249, 250, 247, 0.88);
+  --gm-footer-bg: #F2F5F0;           /* Footer clair, propre et reposant */
+  --gm-footer-text: #506456;
+
+  /* Typographie & Rayons */
+  --font-headings: 'Plus Jakarta Sans', 'Poppins', -apple-system, sans-serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-pill: 9999px;
+
+  --transition-smooth: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Thème Sombre Optionnel (Sauge Matte Délicate, jamais agressive) */
+[data-theme="dark"] {
+  --gm-bg: #151D18;
+  --gm-surface: #1C2620;
+  --gm-surface-muted: #222E27;
+  --gm-surface-glass: rgba(28, 38, 32, 0.9);
+  --gm-border-hairline: rgba(163, 201, 168, 0.12);
+  --gm-border-subtle: rgba(163, 201, 168, 0.2);
+  --gm-text-main: #EBF2EC;
+  --gm-text-muted: #9BB0A1;
+  --gm-text-subtle: #75897B;
+  --gm-green-primary: #52796F;
+  --gm-green-tint: #202D24;
+  --gm-card-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+  --gm-card-shadow-hover: 0 16px 36px rgba(0, 0, 0, 0.45);
+  --gm-nav-bg: rgba(21, 29, 24, 0.9);
+  --gm-footer-bg: #111813;
+  --gm-footer-text: #8A9D90;
+}
+
+/* --------------------------------------------------------------------------
+   2. STYLES DE BASE & TYPOGRAPHIE
+   -------------------------------------------------------------------------- */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--gm-bg);
+  color: var(--gm-text-main);
+  line-height: 1.65;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  letter-spacing: -0.01em;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Décalage pour la navbar fixe : évite que le haut du contenu soit masqué */
+main {
+  padding-top: 3.5rem;
+}
+
+/* Les liens d'ancre ne doivent pas se glisser sous la navbar fixe */
+html {
+  scroll-padding-top: 4.5rem;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-headings);
+  font-weight: 700;
+  color: var(--gm-text-main);
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+a {
+  color: var(--gm-green-primary);
+  text-decoration: none;
+  transition: var(--transition-smooth);
+}
+
+a:hover {
+  color: var(--gm-green-sage);
+}
+
+/* Support RTL (Arabe) */
+[dir="rtl"] {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="rtl"] .dropdown-menu {
+  text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   3. BARRE DE LECTURE DISCRÈTE (Top Scroll Progress)
+   -------------------------------------------------------------------------- */
+#reading-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, var(--gm-green-soft), var(--gm-green-primary));
+  z-index: 1060;
+  transition: width 0.1s ease-out;
+}
+
+/* --------------------------------------------------------------------------
+   4. ÉCRAN DE CHARGEMENT ÉPURÉ (Feuille Minimaliste)
+   -------------------------------------------------------------------------- */
+#page-preloader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--gm-bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+
+#page-preloader.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loader-leaf-svg {
+  width: 58px;
+  height: 58px;
+  animation: leafPulseSoft 1.4s infinite ease-in-out;
+}
+
+.leaf-path {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: leafDraw 1s ease-in-out forwards;
+}
+
+@keyframes leafDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes leafPulseSoft {
+  0%, 100% {
+    transform: scale(0.97);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. NAVBAR MODERNE GLASSMORPHISME ÉPURÉE
+   -------------------------------------------------------------------------- */
+.navbar-greenmove {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
+  padding: 0.7rem 0;
+  background: var(--gm-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--gm-border-hairline);
+  transition: all 0.3s ease;
+}
+
+.navbar-greenmove.scrolled {
+  padding: 0.5rem 0;
+  background: var(--gm-surface-glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 2px 16px rgba(35, 60, 46, 0.06);
+  border-bottom: 1px solid var(--gm-border-subtle);
+}
+
+.navbar-brand-logo {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-headings);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--gm-text-main) !important;
+  letter-spacing: -0.03em;
+}
+
+.brand-dot {
+  color: var(--gm-green-soft);
+}
+
+.nav-link-custom {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--gm-text-muted) !important;
+  padding: 0.3rem 0.6rem !important;
+  border-radius: var(--radius-pill);
+  transition: var(--transition-smooth);
+  white-space: nowrap;
+}
+
+.nav-link-custom:hover {
+  background-color: var(--gm-green-tint);
+  color: var(--gm-green-primary) !important;
+}
+
+.badge-coming-soft {
+  background-color: rgba(96, 114, 102, 0.1);
+  color: var(--gm-text-muted);
+  font-size: 0.68rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius-pill);
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   6. BOUTONS SOFT & CHICS
+   -------------------------------------------------------------------------- */
+.btn-green-primary {
+  background-color: var(--gm-green-primary);
+  color: #FFFFFF !important;
+  border: 1px solid transparent;
+  font-weight: 500;
+  font-size: 0.93rem;
+  border-radius: var(--radius-pill);
+  padding: 0.62rem 1.45rem;
+  box-shadow: 0 2px 10px rgba(51, 92, 69, 0.15);
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+}
+
+.btn-green-primary:hover {
+  background-color: var(--gm-green-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(51, 92, 69, 0.22);
+  color: #FFFFFF;
+}
+
+.btn-green-outline {
+  background-color: transparent;
+  color: var(--gm-green-primary) !important;
+  border: 1px solid var(--gm-border-subtle);
+  font-weight: 500;
+  font-size: 0.93rem;
+  border-radius: var(--radius-pill);
+  padding: 0.62rem 1.45rem;
+  transition: var(--transition-smooth);
+}
+
+.btn-green-outline:hover {
+  background-color: var(--gm-green-tint);
+  border-color: var(--gm-green-primary);
+  color: var(--gm-green-primary) !important;
+  transform: translateY(-1px);
+}
+
+.btn-soft-sand {
+  background-color: #F8F3E6;
+  color: #7A5B1E !important;
+  border: 1px solid rgba(233, 196, 106, 0.3);
+  font-weight: 600;
+  font-size: 0.93rem;
+  border-radius: var(--radius-pill);
+  padding: 0.62rem 1.45rem;
+  transition: var(--transition-smooth);
+}
+
+.btn-soft-sand:hover {
+  background-color: #F4ECCF;
+  transform: translateY(-1px);
+}
+
+/* Effet Ripple discret */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: rippleEffect 0.5s linear;
+  background-color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+}
+
+@keyframes rippleEffect {
+  to {
+    transform: scale(3.5);
+    opacity: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. CARTES & SURFACES SOFT
+   -------------------------------------------------------------------------- */
+.card-greenmove {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--gm-card-shadow);
+  transition: var(--transition-smooth);
+}
+
+.card-greenmove:hover {
+  box-shadow: var(--gm-card-shadow-hover);
+  border-color: var(--gm-border-subtle);
+}
+
+.card-glass {
+  background: var(--gm-surface-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--gm-border-hairline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--gm-card-shadow);
+}
+
+/* --------------------------------------------------------------------------
+   8. HERO SECTION SOFT & LUMINEUSE
+   -------------------------------------------------------------------------- */
+.hero-section {
+  position: relative;
+  min-height: 94vh;
+  display: flex;
+  align-items: center;
+  padding-top: 3rem;
+  padding-bottom: 4.5rem;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(132, 169, 140, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 90% 75%, rgba(82, 121, 111, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg, var(--gm-bg) 0%, #FFFFFF 100%);
+}
+
+[data-theme="dark"] .hero-section {
+  background:
+    radial-gradient(circle at 10% 15%, rgba(82, 121, 111, 0.15) 0%, transparent 45%),
+    radial-gradient(circle at 90% 75%, rgba(132, 169, 140, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, var(--gm-bg) 0%, #1A241E 100%);
+}
+
+/* Feuilles SVG Douces en fond */
+.floating-leaf {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.16;
+  transition: transform 0.25s ease-out;
+  z-index: 1;
+}
+
+.floating-leaf-1 {
+  top: 14%;
+  left: 6%;
+  width: 50px;
+  animation: floatSlow 7s ease-in-out infinite;
+}
+
+.floating-leaf-2 {
+  top: 60%;
+  left: 10%;
+  width: 40px;
+  animation: floatSlow 9s ease-in-out infinite 1s;
+}
+
+.floating-leaf-3 {
+  top: 22%;
+  right: 7%;
+  width: 52px;
+  animation: floatSlow 8s ease-in-out infinite 2s;
+}
+
+.floating-leaf-4 {
+  bottom: 15%;
+  right: 14%;
+  width: 36px;
+  animation: floatSlow 10s ease-in-out infinite 3s;
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-16px) rotate(8deg);
+  }
+}
+
+/* Badge Hackathon Délicat */
+.badge-hackathon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--gm-green-tint);
+  color: var(--gm-green-primary);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(51, 92, 69, 0.12);
+  margin-bottom: 1.35rem;
+}
+
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--gm-green-soft);
+  animation: pulseDot 2s infinite ease-in-out;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.4); opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   9. WIDGET MÉTÉO ÉCOLOGIQUE SOFT
+   -------------------------------------------------------------------------- */
+.weather-card-hero {
+  background: var(--gm-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gm-border-hairline);
+  padding: 1.35rem;
+  box-shadow: var(--gm-card-shadow);
+}
+
+.weather-temp {
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--gm-text-main);
+  line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   10. SECTION COMPTEURS D'IMPACT ORGANISÉE (Soft, Lumineuse, Pas sombre !)
+   -------------------------------------------------------------------------- */
+.stats-section {
+  padding: 4rem 0;
+  background-color: #FFFFFF;
+  border-top: 1px solid var(--gm-border-hairline);
+  border-bottom: 1px solid var(--gm-border-hairline);
+  position: relative;
+}
+
+.stat-box-soft {
+  background: var(--gm-surface-muted);
+  border: 1px solid var(--gm-border-hairline);
+  border-radius: var(--radius-md);
+  padding: 1.85rem 1.35rem;
+  text-align: center;
+  height: 100%;
+  transition: var(--transition-smooth);
+}
+
+.stat-box-soft:hover {
+  transform: translateY(-2px);
+  border-color: var(--gm-border-subtle);
+  box-shadow: var(--gm-card-shadow);
+}
+
+.stat-counter {
+  font-size: 2.5rem;
+  font-weight: 800;
+  font-family: var(--font-headings);
+  color: var(--gm-green-primary);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.stat-label {
+  font-size: 0.95rem;
+  color: var(--gm-text-main);
+  font-weight: 600;
+  margin-top: 0.45rem;
+}
+
+/* --------------------------------------------------------------------------
+   11. MODULES GREENMOVE (Bento-Grid Soft & Épurée)
+   -------------------------------------------------------------------------- */
+.module-card {
+  height: 100%;
+  padding: 1.85rem;
+  border-radius: var(--radius-md);
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border-hairline);
+  box-shadow: var(--gm-card-shadow);
+  transition: var(--transition-smooth);
+  display: flex;
+  flex-direction: column;
+}
+
+.module-card:hover {
+  border-color: var(--gm-border-subtle);
+  transform: translateY(-3px);
+  box-shadow: var(--gm-card-shadow-hover);
+}
+
+.module-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   12. CARTE LEAFLET ORGANISÉE
+   -------------------------------------------------------------------------- */
+#leaflet-tunis-map {
+  width: 100%;
+  height: 480px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--gm-card-shadow);
+  border: 1px solid var(--gm-border-hairline);
+  z-index: 10;
+}
+
+/* --------------------------------------------------------------------------
+   13. BANNIÈRE CALL-TO-ACTION SOFT
+   -------------------------------------------------------------------------- */
+.cta-banner-soft {
+  background: linear-gradient(135deg, #EDF5EE 0%, #F5F9F4 100%);
+  border: 1px solid rgba(51, 92, 69, 0.12);
+  border-radius: var(--radius-lg);
+  padding: 3.5rem 2rem;
+  color: var(--gm-text-main);
+  position: relative;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   14. PIED DE PAGE CLAIR, ÉPURÉ & ORGANISÉ
+   -------------------------------------------------------------------------- */
+.footer-greenmove {
+  background-color: var(--gm-footer-bg);
+  color: var(--gm-footer-text);
+  position: relative;
+  border-top: 1px solid var(--gm-border-hairline);
+  padding-top: 0;
+  padding-bottom: 2.8rem;
+}
+
+.wave-svg-container {
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+  margin-bottom: -1px;
+}
+
+.wave-svg {
+  display: block;
+  width: 100%;
+  height: 42px;
+}
+
+.footer-link {
+  color: var(--gm-text-muted);
+  font-size: 0.9rem;
+  transition: var(--transition-smooth);
+}
+
+.footer-link:hover {
+  color: var(--gm-green-primary);
+  padding-left: 3px;
+}
+
+/* --------------------------------------------------------------------------
+   15. ACCESSIBILITÉ : PREFERS-REDUCED-MOTION
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .floating-leaf {
+    display: none !important;
+  }
+}
