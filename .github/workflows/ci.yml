@@ -1,0 +1,66 @@
+name: GreenMove CI / CD Pipeline
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    name: Tests & Qualité de Code
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Récupération du dépôt
+        uses: actions/checkout@v4
+
+      - name: Configuration de Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Installation des dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 coverage
+
+      - name: Contrôle de la qualité et du style (Linting)
+        run: |
+          # Arrêt si erreurs de syntaxe Python ou noms non définis
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=venv,.git,migrations
+          # Avertissements de complexité
+          flake8 . --count --exit-zero --max-complexity=15 --max-line-length=127 --statistics --exclude=venv,.git,migrations
+
+      - name: Vérification de l'intégrité Django
+        env:
+          SECRET_KEY: 'ci-testing-secret-key-greenmove-2026'
+          DEBUG: 'True'
+          DB_ENGINE: 'sqlite'
+          CHANNEL_LAYER_TYPE: 'memory'
+        run: |
+          python manage.py check
+          python manage.py makemigrations --check --dry-run
+
+      - name: Exécution des tests unitaires & couverture
+        env:
+          SECRET_KEY: 'ci-testing-secret-key-greenmove-2026'
+          DEBUG: 'True'
+          DB_ENGINE: 'sqlite'
+          CHANNEL_LAYER_TYPE: 'memory'
+        run: |
+          coverage run manage.py test rewards core accounts
+          coverage report -m

@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block title %}Portail Validation Commerçant | GreenMove{% endblock %}
+
+{% block content %}
+<div class="py-5" style="background: var(--gm-bg);">
+  <div class="container" style="max-width: 680px;">
+
+    <!-- En-tête Caisse Partenaire -->
+    <div class="text-center mb-4">
+      <div class="rounded-circle mx-auto p-3 mb-2 d-inline-flex align-items-center justify-content-center shadow-sm" style="width: 64px; height: 64px; background: var(--gm-green-tint);">
+        <i class="bi bi-upc-scan fs-3" style="color: var(--gm-green-primary);"></i>
+      </div>
+      <h2 class="fw-extrabold text-dark mb-1">{% trans "Terminal Validation Commerçant" %}</h2>
+      <p class="text-muted small">{% trans "Vérification et validation immédiate des coupons et QR Codes GreenMove en caisse" %}</p>
+    </div>
+
+    <!-- Formulaire de Saisie / Scan -->
+    <div class="card border-0 rounded-4 shadow-sm p-4 mb-4" style="background: var(--gm-surface); border: 1px solid var(--gm-border-subtle) !important;">
+      <form action="{% url 'rewards:verify_coupon' %}" method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="coupon_code" class="form-label fw-bold text-dark small">{% trans "Code Coupon (ou contenu QR Code scanné)" %}</label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-qr-code"></i></span>
+            <input type="text" class="form-control form-control-lg border-start-0 font-monospace fw-bold" id="coupon_code" name="coupon_code" placeholder="Ex: GM-ECO-A7F92B" value="{{ searched_code }}" required style="letter-spacing: 1.5px; text-transform: uppercase;">
+          </div>
+          <div class="form-text small text-muted">{% trans "Scannez avec un lecteur de code-barres/smartphone ou saisissez le code à 10 caractères." %}</div>
+        </div>
+
+        <div class="mb-4">
+          <label for="partner_pin" class="form-label fw-bold text-dark small">{% trans "Code PIN Caisse (Optionnel)" %}</label>
+          <input type="password" class="form-control" id="partner_pin" name="partner_pin" placeholder="PIN commerçant de sécurité (ex: 2026)" maxlength="6">
+        </div>
+
+        <button type="submit" class="btn btn-green-primary w-100 rounded-pill py-3 fw-bold shadow-sm fs-6">
+          <i class="bi bi-check2-circle me-2"></i>{% trans "Vérifier & Valider le Coupon" %}
+        </button>
+      </form>
+    </div>
+
+    <!-- Résultat de la validation -->
+    {% if result %}
+      <div class="card border-0 rounded-4 shadow-sm p-4 text-center animate__animated animate__fadeIn" style="background: var(--gm-surface);">
+        {% if result.status == 'SUCCESS' %}
+          <div class="rounded-circle mx-auto p-3 mb-2 d-inline-flex align-items-center justify-content-center bg-success text-white shadow" style="width: 60px; height: 60px;">
+            <i class="bi bi-check-lg fs-2"></i>
+          </div>
+          <h4 class="fw-bold text-success mb-1">{% trans "Coupon Validé avec Succès !" %}</h4>
+          <p class="text-muted small mb-3">{{ result.message }}</p>
+
+          <div class="p-3 rounded-4 bg-light text-start mb-3 border">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Avantage accordé :</span>
+              <span class="fw-bold text-dark">{{ result.coupon.reward.discount_label }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Article :</span>
+              <span class="fw-bold text-dark">{{ result.coupon.reward.title }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted small">Client GreenMove :</span>
+              <span class="fw-bold text-dark">{{ result.coupon.user.get_full_name|default:result.coupon.user.username }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted small">Partenaire :</span>
+              <span class="fw-bold text-success">{{ result.coupon.reward.partner.name }}</span>
+            </div>
+          </div>
+
+          <a href="{% url 'rewards:verify_coupon' %}" class="btn btn-outline-secondary rounded-pill px-4">
+            {% trans "Scanner un autre coupon" %}
+          </a>
+
+        {% elif result.status == 'FOUND' %}
+          <div class="rounded-circle mx-auto p-3 mb-2 d-inline-flex align-items-center justify-content-center bg-info text-white shadow" style="width: 60px; height: 60px;">
+            <i class="bi bi-search fs-3"></i>
+          </div>
+          <h4 class="fw-bold text-dark mb-1">{% trans "Coupon Prêt à être Validé" %}</h4>
+          <p class="text-muted small mb-3">{% trans "Le code est valide. Confirmez pour accorder l'avantage au client." %}</p>
+
+          <div class="p-3 rounded-4 bg-light text-start mb-3 border">
+            <div class="fw-bold text-dark fs-5 mb-1">{{ result.coupon.reward.title }}</div>
+            <div class="text-muted small mb-2">{{ result.coupon.reward.partner.name }}</div>
+            <span class="badge rounded-pill bg-warning text-dark fs-6">{{ result.coupon.reward.discount_label }}</span>
+          </div>
+
+          <form action="{% url 'rewards:verify_coupon' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="coupon_code" value="{{ result.coupon.coupon_code }}">
+            <button type="submit" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm">
+              <i class="bi bi-check-circle-fill me-1"></i>{% trans "Confirmer l'utilisation en caisse" %}
+            </button>
+          </form>
+
+        {% elif result.status == 'ALREADY_USED' %}
+          <div class="rounded-circle mx-auto p-3 mb-2 d-inline-flex align-items-center justify-content-center bg-warning text-dark shadow" style="width: 60px; height: 60px;">
+            <i class="bi bi-exclamation-triangle fs-2"></i>
+          </div>
+          <h4 class="fw-bold text-dark mb-1">{% trans "Coupon Déjà Utilisé" %}</h4>
+          <p class="text-muted small mb-3">{{ result.message }}</p>
+          <div class="badge bg-secondary-subtle text-secondary px-3 py-2 rounded-pill">
+            {% trans "Tentative de réutilisation bloquée" %}
+          </div>
+
+        {% else %}
+          <div class="rounded-circle mx-auto p-3 mb-2 d-inline-flex align-items-center justify-content-center bg-danger text-white shadow" style="width: 60px; height: 60px;">
+            <i class="bi bi-x-lg fs-2"></i>
+          </div>
+          <h4 class="fw-bold text-danger mb-1">{% trans "Code Inconnu ou Invalide" %}</h4>
+          <p class="text-muted small mb-0">{{ result.message }}</p>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

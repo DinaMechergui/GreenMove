@@ -1,0 +1,68 @@
+{% load i18n static %}
+
+<div class="card border-0 rounded-4 shadow-sm p-4 mb-3 {% if challenge.status == 'COMPLETED' or claimed_now %}border-warning bg-warning-subtle{% else %}bg-white{% endif %}" id="challenge-card-{{ challenge.id }}">
+  <div class="d-flex align-items-start justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm {% if challenge.status == 'COMPLETED' or claimed_now %}bg-warning-subtle{% else %}bg-success-subtle{% endif %}" style="width: 50px; height: 50px;">
+        <i class="bi {% if challenge.category == 'CO2' %}bi-cloud-slash{% elif challenge.category == 'PEAK_HOURS' %}bi-lightning-charge{% else %}bi-car-front{% endif %} fs-4" style="color: var(--gm-green-primary);"></i>
+      </div>
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <h5 class="fw-bold text-dark mb-0">{{ challenge.title }}</h5>
+          <span class="badge rounded-pill px-2 py-1 {% if challenge.difficulty == 'EASY' %}bg-success-subtle text-success{% elif challenge.difficulty == 'MEDIUM' %}bg-info-subtle text-info{% else %}bg-danger-subtle text-danger{% endif %}" style="font-size: 0.72rem;">
+            {{ challenge.get_difficulty_display }}
+          </span>
+          <span class="badge bg-light text-secondary border rounded-pill small">
+            <i class="bi bi-tag-fill me-1"></i>{{ challenge.kmeans_cluster_tag }}
+          </span>
+        </div>
+        <p class="text-muted small mt-1 mb-0">{{ challenge.description }}</p>
+      </div>
+    </div>
+
+    <div class="text-end">
+      <span class="badge rounded-pill px-3 py-2 fw-bold shadow-sm" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.9rem;">
+        +{{ challenge.points_reward }} pts
+      </span>
+    </div>
+  </div>
+
+  <!-- Jauge de progression -->
+  <div class="mt-3">
+    <div class="d-flex justify-content-between small text-muted mb-1">
+      <span>Objectif : <strong class="text-dark">{{ challenge.current_value|floatformat:1 }} / {{ challenge.target_value|floatformat:1 }} {{ challenge.unit }}</strong></span>
+      <span class="fw-bold {% if challenge.status == 'COMPLETED' or claimed_now %}text-success{% else %}text-secondary{% endif %}">
+        {{ challenge.progress_percentage }}%
+      </span>
+    </div>
+    <div class="progress rounded-pill" style="height: 10px;">
+      <div class="progress-bar rounded-pill {% if challenge.status == 'COMPLETED' or claimed_now %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" data-progress="{{ challenge.progress_percentage }}" aria-valuenow="{{ challenge.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+  </div>
+
+  <!-- Pied de carte : Date limite et Action -->
+  <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+    <span class="small text-muted" style="font-size: 0.78rem;">
+      <i class="bi bi-calendar-event me-1"></i>Date d'échéance : {{ challenge.end_date|date:"d/m/Y" }}
+    </span>
+
+    <div>
+      {% if challenge.status == 'COMPLETED' and not claimed_now %}
+        <form action="{% url 'rewards:claim_challenge' challenge.id %}" method="post" hx-post="{% url 'rewards:claim_challenge' challenge.id %}" hx-target="#challenge-card-{{ challenge.id }}" hx-swap="outerHTML">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 py-1 shadow-sm fw-bold">
+            <i class="bi bi-gift-fill me-1"></i>{% trans "Réclamer ma récompense" %}
+          </button>
+        </form>
+      {% elif challenge.status == 'CLAIMED' or claimed_now %}
+        <span class="badge bg-success text-white rounded-pill px-3 py-2">
+          <i class="bi bi-check-circle-fill me-1"></i>{% trans "Récompensé & Validé" %}
+        </span>
+      {% else %}
+        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-1 small">
+          <i class="bi bi-hourglass-split me-1"></i>{% trans "Défi en cours..." %}
+        </span>
+      {% endif %}
+    </div>
+  </div>
+</div>

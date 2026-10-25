@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block title %}Défis Personnalisés IA & Défis Collectifs | GreenMove{% endblock %}
+
+{% block content %}
+<div class="py-4" style="background: var(--gm-bg);">
+  <div class="container">
+
+    <!-- En-tête -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+      <div>
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2" style="background: var(--gm-green-tint); border: 1px solid var(--gm-border-subtle);">
+          <i class="bi bi-cpu-fill" style="color: var(--gm-green-primary);"></i>
+          <span class="small fw-bold" style="color: var(--gm-green-primary);">{% trans "Algorithme KMeans & Profilage Comportemental" %}</span>
+        </div>
+        <h2 class="display-6 fw-extrabold text-dark mb-1">{% trans "Défis Éco-Citoyens" %}</h2>
+        <p class="text-muted small mb-0">{% trans "Des défis individuels progressifs basés sur vos trajets et des challenges collectifs pour le Grand Tunis" %}</p>
+      </div>
+
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <a href="{% url 'rewards:ai_evaluation' %}" class="btn btn-outline-success rounded-pill px-3 py-2 shadow-sm fw-semibold">
+          <i class="bi bi-graph-up-arrow me-1"></i>{% trans "Métriques IA (Silhouette & Elbow)" %}
+        </a>
+        <form action="{% url 'rewards:refresh_challenges' %}" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-green-primary rounded-pill px-4 py-2 shadow-sm">
+            <i class="bi bi-magic me-2"></i>{% trans "Régénérer mes Défis par IA" %}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Profil IA Explicatif -->
+    <div class="card border-0 rounded-4 shadow-sm p-4 mb-4" style="background: linear-gradient(135deg, #EDF5EE 0%, #FFFFFF 100%); border: 1px solid var(--gm-border-subtle) !important;">
+      <div class="row align-items-center g-3">
+        <div class="col-md-8">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle p-3 d-flex align-items-center justify-content-center shadow-sm" style="background: var(--gm-surface); width: 56px; height: 56px;">
+              <i class="bi {{ cluster_info.icon }} fs-3" style="color: var(--gm-green-primary);"></i>
+            </div>
+            <div>
+              <div class="text-muted small text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">{% trans "Votre Profil Comportemental Actuel (KMeans)" %}</div>
+              <h4 class="fw-bold text-dark mb-1">{{ cluster_info.name }}</h4>
+              <p class="text-muted small mb-0">{{ cluster_info.description }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 text-md-end">
+          <span class="badge rounded-pill bg-white text-dark border px-3 py-2 small shadow-sm">
+            <i class="bi bi-shield-check text-success me-1"></i>3 Niveaux de Difficulté Progressive
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1 : Défis Personnalisés Individuels -->
+    <div class="mb-5">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h4 class="fw-bold text-dark mb-0">{% trans "Vos Défis Individuels en Cours" %}</h4>
+        <span class="text-muted small">{{ personalized_challenges.count }} défi{{ personalized_challenges.count|pluralize }} actif{{ personalized_challenges.count|pluralize }}</span>
+      </div>
+
+      {% for challenge in personalized_challenges %}
+        {% include 'rewards/includes/challenge_card.html' with challenge=challenge %}
+      {% empty %}
+        <div class="card border-0 rounded-4 p-5 text-center shadow-sm" style="background: var(--gm-surface);">
+          <i class="bi bi-check2-circle fs-1 text-success mb-2"></i>
+          <h5 class="fw-bold text-dark">{% trans "Tous vos défis sont relevés !" %}</h5>
+          <p class="text-muted small mb-3">{% trans "Cliquez sur 'Régénérer mes Défis par IA' pour découvrir vos prochaines étapes éco-responsables." %}</p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Section 2 : Défis Collectifs Communautaires -->
+    <div>
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h4 class="fw-bold text-dark mb-0">{% trans "Défis Collectifs & Jauges Communautaires" %}</h4>
+          <p class="text-muted small mb-0">{% trans "Mobilisez votre université, entreprise ou délégation municipale pour remporter des récompenses collectives" %}</p>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        {% for col in collective_challenges %}
+          <div class="col-lg-6">
+            <div class="card border-0 rounded-4 shadow-sm p-4 h-100" style="background: var(--gm-surface); border: 1px solid var(--gm-border-subtle) !important;">
+              <div class="d-flex align-items-start justify-content-between mb-3">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px; background: var(--gm-green-tint);">
+                    <i class="bi {{ col.icon }} fs-4" style="color: var(--gm-green-primary);"></i>
+                  </div>
+                  <div>
+                    <span class="badge rounded-pill bg-light text-secondary border small mb-1">{{ col.get_scope_display }}</span>
+                    <h5 class="fw-bold text-dark mb-0">{{ col.title }}</h5>
+                  </div>
+                </div>
+              </div>
+
+              <p class="text-muted small mb-3">{{ col.description }}</p>
+
+              <!-- Jauge Communautaire Animée -->
+              <div class="p-3 rounded-4 mb-3" style="background: var(--gm-surface-muted);">
+                <div class="d-flex justify-content-between small fw-bold mb-1">
+                  <span class="text-success"><i class="bi bi-cloud-slash me-1"></i>{{ col.current_co2_kg|floatformat:0 }} kg CO₂ évités</span>
+                  <span class="text-muted">Objectif : {{ col.target_co2_kg|floatformat:0 }} kg</span>
+                </div>
+                <div class="progress rounded-pill mb-2" style="height: 12px;">
+                  <div class="progress-bar rounded-pill bg-success progress-bar-striped progress-bar-animated" role="progressbar" data-progress="{{ col.progress_percentage }}" aria-valuenow="{{ col.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="d-flex justify-content-between small text-muted" style="font-size: 0.75rem;">
+                  <span><i class="bi bi-people-fill me-1 text-primary"></i>{{ col.participants_count }} participant{{ col.participants_count|pluralize }} engagé{{ col.participants_count|pluralize }}</span>
+                  <span class="fw-bold text-dark">{{ col.progress_percentage }}% complété</span>
+                </div>
+              </div>
+
+              <div class="d-flex align-items-center justify-content-between mt-auto pt-2 border-top">
+                <div class="small text-muted" style="font-size: 0.75rem;">
+                  <i class="bi bi-trophy-fill text-warning me-1"></i><strong>Gain :</strong> {{ col.reward_description|truncatewords:8 }}
+                </div>
+
+                <form action="{% url 'rewards:join_collective' col.id %}" method="post">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3 shadow-none">
+                    <i class="bi bi-person-plus-fill me-1"></i>{% trans "Rejoindre l'Équipe" %}
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.progress-bar[data-progress]').forEach(function(bar) {
+      bar.style.width = bar.getAttribute('data-progress') + '%';
+    });
+  });
+</script>
+{% endblock %}

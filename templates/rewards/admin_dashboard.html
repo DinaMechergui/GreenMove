@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block title %}Dashboard Admin & Carte d'Impact Global | GreenMove{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  #impact-map {
+    height: 480px;
+    width: 100%;
+    border-radius: 20px;
+    z-index: 10;
+  }
+  .pulse-circle {
+    animation: pulseGlow 2s infinite;
+  }
+  @keyframes pulseGlow {
+    0% { transform: scale(0.95); opacity: 0.9; }
+    50% { transform: scale(1.05); opacity: 0.6; }
+    100% { transform: scale(0.95); opacity: 0.9; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="py-4" style="background: var(--gm-bg);">
+  <div class="container">
+
+    <!-- En-tête Administration -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+      <div>
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2" style="background: #FFF3CD; border: 1px solid #FFE69C;">
+          <i class="bi bi-shield-lock-fill text-warning"></i>
+          <span class="small fw-bold text-dark">{% trans "Supervision Gamification & Impact Climat Grand Tunis" %}</span>
+        </div>
+        <h2 class="display-6 fw-extrabold text-dark mb-1">{% trans "Tableau de Bord Administrateur & Impact Global" %}</h2>
+        <p class="text-muted small mb-0">{% trans "Mesure en direct de la décarbonation urbaine et gestion des éco-profils (Hackathon 2026)" %}</p>
+      </div>
+
+      <div class="d-flex gap-2">
+        <a href="{% url 'rewards:dashboard' %}" class="btn btn-outline-secondary rounded-pill px-3 py-2 small">
+          <i class="bi bi-arrow-left me-1"></i>{% trans "Mon Espace Utilisateur" %}
+        </a>
+        <a href="{% url 'rewards:leaderboard' %}" class="btn btn-light border rounded-pill px-3 py-2 small">
+          <i class="bi bi-trophy me-1"></i>{% trans "Ligue en Direct" %}
+        </a>
+      </div>
+    </div>
+
+    <!-- 5 KPIs Globaux -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-lg">
+        <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface);">
+          <div class="text-muted small">{% trans "Total CO₂ Évité" %}</div>
+          <div class="display-6 fw-extrabold text-success mt-2">{{ total_co2_kg }} <span class="fs-6 text-muted fw-normal">kg</span></div>
+          <div class="small fw-bold text-dark mt-1">Soit {{ total_co2_tons }} tonnes de CO₂</div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg">
+        <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface);">
+          <div class="text-muted small">{% trans "EcoPoints Distribués" %}</div>
+          <div class="display-6 fw-extrabold text-dark mt-2">{{ total_points }} <span class="fs-6 text-muted fw-normal">pts</span></div>
+          <div class="small text-muted mt-1">Monnaie verte mutualisée</div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg">
+        <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface);">
+          <div class="text-muted small">{% trans "Arbres Équivalents" %}</div>
+          <div class="display-6 fw-extrabold text-primary mt-2">{{ trees_equivalent }} <span class="fs-6 text-muted fw-normal">arbres</span></div>
+          <div class="small text-muted mt-1">Capacité d'absorption annuelle</div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg">
+        <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface);">
+          <div class="text-muted small">{% trans "Coupons Consommés" %}</div>
+          <div class="display-6 fw-extrabold text-warning mt-2">{{ total_coupons }} <span class="fs-6 text-muted fw-normal">coupons</span></div>
+          <div class="small text-muted mt-1">Validés chez les partenaires</div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg">
+        <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface);">
+          <div class="text-muted small">{% trans "Communauté Éco-Active" %}</div>
+          <div class="display-6 fw-extrabold text-dark mt-2">{{ total_users }} <span class="fs-6 text-muted fw-normal">citoyens</span></div>
+          <div class="small text-success mt-1"><i class="bi bi-people-fill me-1"></i>Grand Tunis mobilisé</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARTE D'IMPACT LEAFLET DU GRAND TUNIS -->
+    <div class="card border-0 rounded-4 shadow-sm p-4 mb-4" style="background: var(--gm-surface); border: 1px solid var(--gm-border-subtle) !important;">
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+          <div class="d-inline-flex align-items-center gap-2 mb-1">
+            <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+              <i class="bi bi-geo-alt-fill me-1"></i>{% trans "Cartographie SIG Leaflet" %}
+            </span>
+          </div>
+          <h4 class="fw-bold text-dark mb-0">{% trans "Carte d'Impact Carbone & Répartition Géographique" %}</h4>
+          <p class="text-muted small mb-0">{% trans "Visualisation des émissions évitées par pôle urbain (Berges du Lac 2, Ariana, La Marsa, Centre-ville, ESPRIT)" %}</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge rounded-pill px-3 py-2 text-white" style="background: var(--gm-green-primary);">
+            <i class="bi bi-circle-fill me-1" style="font-size: 0.6rem;"></i>Densité Covoiturage
+          </span>
+        </div>
+      </div>
+
+      <div id="impact-map" class="shadow-inner"></div>
+    </div>
+
+    <!-- DÉMONSTRATEUR D'INTERCONNEXION DES MODULES (Roua -> Skander) -->
+    <div class="card border-0 rounded-4 shadow-sm p-4 mb-4" style="background: linear-gradient(135deg, #FFFDF5 0%, #FFFFFF 100%); border: 2px solid #E9C46A !important;">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-7">
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2" style="background: #FFF3CD; color: #664D03;">
+            <i class="bi bi-link-45deg fs-5"></i>
+            <span class="small fw-bold">{% trans "Interconnexion Démo Hackathon : Match ➔ EcoRewards" %}</span>
+          </div>
+          <h4 class="fw-extrabold text-dark mb-2">{% trans "Simuler la complétion d'un trajet et déclencher les EcoPoints" %}</h4>
+          <p class="text-muted small mb-0" style="line-height: 1.6;">
+            Cette action démontre en direct devant le jury le lien organique entre les modules : <strong>un trajet complété dans MobilityMatch (Roua) déclenche immédiatement le calcul scientifique du CO₂ économisé et crédite les EcoPoints chez Skander</strong>, avec émission instantanée sur le WebSocket du classement !
+          </p>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="p-3 rounded-4 bg-white border shadow-sm">
+            <form action="{% url 'rewards:simulate_ride_demo' %}" method="post">
+              {% csrf_token %}
+              <div class="mb-3">
+                <label for="ride_id" class="form-label small fw-bold text-dark">{% trans "Choisir un trajet de covoiturage réel :" %}</label>
+                <select name="ride_id" id="ride_id" class="form-select form-select-sm rounded-pill">
+                  {% for r in demo_rides %}
+                    <option value="{{ r.id }}">
+                      #{{ r.id }} - {{ r.origin_address|truncatewords:2 }} ➔ {{ r.destination_address|truncatewords:2 }} ({{ r.distance_km }} km, {{ r.user.username }})
+                    </option>
+                  {% empty %}
+                    <option value="">{% trans "Simulation automatique Grand Tunis" %}</option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <button type="submit" class="btn btn-warning w-100 rounded-pill py-2 fw-bold text-dark shadow-sm">
+                <i class="bi bi-play-circle-fill me-2"></i>{% trans "Valider le Trajet & Distribuer les Points CO₂" %}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GESTION DES UTILISATEURS & PROFILS GAMIFICATION -->
+    <div class="card border-0 rounded-4 shadow-sm p-4" style="background: var(--gm-surface);">
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold text-dark mb-0">{% trans "Gestion des Utilisateurs & Éco-Profils" %}</h5>
+          <p class="text-muted small mb-0">{% trans "Supervision des clusters comportementaux KMeans, séries et émissions" %}</p>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small text-muted">
+            <tr>
+              <th>{% trans "Utilisateur" %}</th>
+              <th>{% trans "Quartier" %}</th>
+              <th>{% trans "Établissement" %}</th>
+              <th>{% trans "Profil IA (KMeans)" %}</th>
+              <th class="text-center">{% trans "Niveau" %}</th>
+              <th class="text-center">{% trans "CO₂ Évité" %}</th>
+              <th class="text-end">{% trans "EcoPoints" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users_list %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: var(--gm-green-tint);">
+                      <span class="fw-bold text-success small">{{ u.username|slice:":1"|upper }}</span>
+                    </div>
+                    <div>
+                      <div class="fw-bold text-dark small">{{ u.get_full_name|default:u.username }}</div>
+                      <div class="text-muted" style="font-size: 0.72rem;">{{ u.email }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="small text-muted">{{ u.gamification_profile.district|default:"Grand Tunis" }}</td>
+                <td class="small text-muted"><span class="badge bg-light text-secondary border rounded-pill">{{ u.gamification_profile.organization|default:"ESPRIT" }}</span></td>
+                <td>
+                  <span class="badge bg-secondary-subtle text-secondary rounded-pill small">
+                    {{ u.gamification_profile.kmeans_cluster_label }}
+                  </span>
+                </td>
+                <td class="text-center small">
+                  {% if u.gamification_profile.current_level == 5 %}
+                    <span class="badge rounded-pill px-2 py-1 bg-warning text-dark">Lvl 5</span>
+                  {% elif u.gamification_profile.current_level == 4 %}
+                    <span class="badge rounded-pill px-2 py-1 bg-info text-white">Lvl 4</span>
+                  {% elif u.gamification_profile.current_level == 3 %}
+                    <span class="badge rounded-pill px-2 py-1 bg-success text-white">Lvl 3</span>
+                  {% elif u.gamification_profile.current_level == 2 %}
+                    <span class="badge rounded-pill px-2 py-1 text-white" style="background-color: #52796F;">Lvl 2</span>
+                  {% else %}
+                    <span class="badge rounded-pill px-2 py-1 text-white" style="background-color: #84A98C;">Lvl 1</span>
+                  {% endif %}
+                </td>
+                <td class="text-center fw-bold text-success small">
+                  {{ u.gamification_profile.total_co2_saved_kg|floatformat:1 }} kg
+                </td>
+                <td class="text-end fw-bold text-dark small">
+                  {{ u.eco_points }} pts
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Script d'Initialisation de la Carte Leaflet -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script id="impact-zones-data" type="application/json">
+  {{ impact_zones_json|safe }}
+</script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 1. Initialiser la carte centrée sur le Grand Tunis
+    const map = L.map('impact-map').setView([36.8392, 10.2200], 12);
+
+    // 2. Fond de carte OpenStreetMap clair et moderne
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors | GreenMove Impact'
+    }).addTo(map);
+
+    // 3. Charger les zones d'impact
+    const dataElement = document.getElementById('impact-zones-data');
+    const impactZones = JSON.parse(dataElement ? dataElement.textContent : '[]');
+
+    impactZones.forEach(zone => {
+      // Cercle d'impact dont le rayon est proportionnel aux kg de CO2 évités
+      const radius = Math.max(300, zone.co2_saved_kg * 4.5);
+
+      const circle = L.circle([zone.lat, zone.lon], {
+        color: zone.color,
+        fillColor: zone.color,
+        fillOpacity: 0.35,
+        radius: radius,
+        weight: 2
+      }).addTo(map);
+
+      // Marqueur central avec popup interactive
+      const marker = L.circleMarker([zone.lat, zone.lon], {
+        radius: 8,
+        color: '#FFFFFF',
+        fillColor: zone.color,
+        fillOpacity: 1.0,
+        weight: 3
+      }).addTo(map);
+
+      const popupContent = `
+        <div style="font-family: Inter, sans-serif; min-width: 180px;">
+          <h6 style="font-weight: 700; color: #1D2A22; margin-bottom: 4px;">${zone.name}</h6>
+          <div style="font-size: 0.78rem; color: #607266; margin-bottom: 6px;">Pôle : ${zone.top_org}</div>
+          <div style="background: #EDF5EE; padding: 6px 10px; border-radius: 8px; margin-bottom: 6px;">
+            <strong style="color: #335C45; font-size: 1.05rem;">${zone.co2_saved_kg} kg CO₂</strong>
+            <span style="font-size: 0.72rem; color: #52796F; display: block;">évités dans l'atmosphère</span>
+          </div>
+          <div style="font-size: 0.75rem; color: #335C45;">
+            <strong>${zone.carpoolers}</strong> covoitureurs actifs dans la zone
+          </div>
+        </div>
+      `;
+
+      circle.bindPopup(popupContent);
+      marker.bindPopup(popupContent);
+    });
+  });
+</script>
+{% endblock %}
