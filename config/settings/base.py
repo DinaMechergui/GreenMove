@@ -257,7 +257,7 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='GreenMove <noreply@greenmove.tn>')
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default=config('REDIS_URL', default='redis://127.0.0.1:6379/0'))
 # Sans broker (dev/tests), les tâches s'exécutent de façon synchrone.
-CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=True, cast=bool)
+CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=False, cast=bool)
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULE = {
     'planner-month-end-projection': {

@@ -24,6 +24,8 @@ urlpatterns = [
 
     # Rapport
     path('report/download/', views.download_report, name='download_report'),
+    path('report/generate/', views.generate_report, name='generate_report'),
+    path('report/status/', views.report_status, name='report_status'),
     path('report/email/', views.email_report, name='email_report'),
 
     # Export CSV

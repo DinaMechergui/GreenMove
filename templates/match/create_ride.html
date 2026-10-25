@@ -10,9 +10,9 @@
       <div class="card-greenmove p-4 p-md-5 border shadow-lg">
         <div class="text-center mb-4">
           <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-2" style="background: rgba(46, 125, 50, 0.1);">
-            <i class="bi bi-plus-circle-fill text-success fs-2"></i>
+            <i class="bi bi-plus-circle-fill text-success fs-2" aria-hidden="true"></i>
           </div>
-          <h2 class="fw-bold mb-1">{% trans "Partager un Trajet Décarboné" %}</h2>
+          <h1 class="h2 fw-bold mb-1">{% trans "Partager un Trajet Décarboné" %}</h1>
           <p class="text-muted small">
             Remplissez vos places vacantes, réduisez la facture d'essence et gagnez <strong>+30 GreenPoints</strong>.
           </p>
@@ -35,7 +35,7 @@
           <div class="row g-3 mb-3">
             <div class="col-md-6">
               <label class="form-label small fw-semibold text-muted">
-                <i class="bi bi-geo-alt-fill text-danger me-1"></i>{% trans "Lieu de départ" %} *
+                <i class="bi bi-geo-alt-fill text-danger me-1" aria-hidden="true"></i>{% trans "Lieu de départ" %} *
               </label>
               {{ form.origin_address }}
               <div class="form-text small">Ex: Ariana Centre, Station Métro 2</div>
@@ -44,7 +44,7 @@
 
             <div class="col-md-6">
               <label class="form-label small fw-semibold text-muted">
-                <i class="bi bi-geo-alt-fill text-success me-1"></i>{% trans "Lieu d'arrivée" %} *
+                <i class="bi bi-geo-alt-fill text-success me-1" aria-hidden="true"></i>{% trans "Lieu d'arrivée" %} *
               </label>
               {{ form.destination_address }}
               <div class="form-text small">Ex: Les Berges du Lac 2, Tunis</div>
@@ -79,7 +79,7 @@
             <div class="form-check form-switch mb-2">
               {{ form.is_recurring }}
               <label class="form-check-label fw-semibold text-success small" for="{{ form.is_recurring.id_for_label }}">
-                <i class="bi bi-repeat me-1"></i>{% trans "Trajet pendulaire régulier (ex: du lundi au vendredi)" %}
+                <i class="bi bi-repeat me-1" aria-hidden="true"></i>{% trans "Trajet pendulaire régulier (ex: du lundi au vendredi)" %}
               </label>
             </div>
             <div class="mt-2">
@@ -94,7 +94,7 @@
           </div>
 
           <button type="submit" class="btn btn-green-primary w-100 py-3 fw-bold shadow">
-            <i class="bi bi-check2-circle me-2"></i>{% trans "Publier mon trajet vert (+30 GreenPoints)" %}
+            <i class="bi bi-check2-circle me-2" aria-hidden="true"></i>{% trans "Publier mon trajet vert (+30 GreenPoints)" %}
           </button>
         </form>
       </div>

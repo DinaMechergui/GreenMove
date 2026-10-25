@@ -65,7 +65,13 @@ def _load_room(room_id, user):
         room = ChatRoom.objects.select_related('ride').get(pk=room_id)
     except ChatRoom.DoesNotExist:
         return None, []
-    if user is None or user.is_anonymous or not room.participants.filter(pk=user.pk).exists():
+    allowed = bool(user and not user.is_anonymous and (
+        room.ride.user_id == user.pk or
+        room.ride.bookings.filter(
+            passenger=user, status='ACCEPTED'
+        ).exists()
+    ))
+    if not allowed or not room.participants.filter(pk=user.pk).exists():
         return None, []
     messages = [
         {
@@ -90,9 +96,13 @@ def _save_message(room_id, user_id, content):
     from .models import ChatMessage, ChatRoom
     from accounts.models import CustomUser
     try:
-        room = ChatRoom.objects.get(pk=room_id)
+        room = ChatRoom.objects.select_related('ride').get(pk=room_id)
         sender = CustomUser.objects.get(pk=user_id)
     except Exception:
+        return None
+    if sender.pk != room.ride.user_id and not room.ride.bookings.filter(
+        passenger=sender, status='ACCEPTED'
+    ).exists():
         return None
     msg = ChatMessage.objects.create(room=room, sender=sender, content=content[:2000])
     return {

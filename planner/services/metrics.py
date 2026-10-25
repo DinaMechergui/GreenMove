@@ -48,18 +48,37 @@ def clustering_metrics(population_limit=500):
 
     points = [f for _, f in valid]
     k = min(3, len(points))
+    elbow = []
+    stability = None
+    baseline_silhouette = None
     try:
         from sklearn.cluster import KMeans
-        import numpy as np
+        from sklearn.metrics import adjusted_rand_score, silhouette_score
         model = KMeans(n_clusters=k, n_init=10, random_state=0).fit(points)
         labels = list(model.labels_)
         centers = [list(c) for c in model.cluster_centers_]
         inertia = round(float(model.inertia_), 3)
+        for candidate_k in range(1, min(6, len(points) - 1) + 1):
+            fitted = KMeans(n_clusters=candidate_k, n_init=10, random_state=0).fit(points)
+            elbow.append({'k': candidate_k, 'inertia': round(float(fitted.inertia_), 3)})
+        seeded_labels = [KMeans(n_clusters=k, n_init=10, random_state=seed).fit_predict(points)
+                         for seed in range(5)]
+        pair_scores = [adjusted_rand_score(seeded_labels[i], seeded_labels[j])
+                       for i in range(len(seeded_labels)) for j in range(i + 1, len(seeded_labels))]
+        stability = round(sum(pair_scores) / len(pair_scores), 3) if pair_scores else None
+        baseline_labels = [0 if p[0] >= 0.55 else 1 if p[1] >= 0.5 else 2 for p in points]
+        if 1 < len(set(baseline_labels)) < len(points):
+            baseline_silhouette = round(float(silhouette_score(points, baseline_labels)), 3)
+        if 1 < len(set(labels)) < len(points):
+            silhouette = round(float(silhouette_score(points, labels)), 3)
+        else:
+            silhouette = None
     except ImportError:
         labels, centers = _kmeans_py(points, k)
         inertia = None
+        silhouette = _silhouette_approx(points, labels, centers, k)
+        elbow = []
 
-    silhouette = _silhouette_approx(points, labels, centers, k)
     distribution = dict(Counter(labels))
 
     # Nommage des clusters
@@ -74,7 +93,15 @@ def clustering_metrics(population_limit=500):
         'n_users_analysed': len(valid),
         'n_users_total': len(users),
         'inertia': inertia,
+        'elbow': elbow,
+        'stability_ari_5_seeds': stability,
         'silhouette_score': silhouette,
+        'baseline': {
+            'method': 'règles fixes (voiture ≥ 55 %, mobilité douce ≥ 50 %, sinon mixte)',
+            'silhouette_score': baseline_silhouette,
+            'silhouette_delta': round(silhouette - baseline_silhouette, 3)
+                if silhouette is not None and baseline_silhouette is not None else None,
+        },
         'silhouette_interpretation': (
             'Excellent (>0.7)' if silhouette and silhouette > 0.7 else
             'Bon (0.5–0.7)' if silhouette and silhouette > 0.5 else

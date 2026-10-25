@@ -19,9 +19,11 @@ from .serializers import TripRecordSerializer, RecurringTripSerializer, CarbonBu
 from .services import planning
 from .services.explain import explain_plan
 from .services.metrics import clustering_metrics, co2_statistics, eco_leaderboard
-from .services.report import render_report
 from .signals import GAUGE_CACHE_KEY, refresh_budget
-from .tasks import send_weekly_report_for, generate_explanation_async
+from .tasks import (
+    send_weekly_report_for, generate_explanation_async,
+    generate_plan_and_report_async, REPORT_STATUS_KEY, REPORT_RESULT_KEY,
+)
 
 RAIN_WORDS = ('pluie', 'averse', 'orage', 'bruine')
 EXPLANATION_CACHE_KEY = 'planner:explanation:{}'
@@ -54,7 +56,8 @@ def _rain(request):
 def dashboard(request):
     user = request.user
     rain = _rain(request)
-    plan = planning.optimize_week(user, _weights(request), rain)
+    bundle = cache.get(REPORT_RESULT_KEY.format(user.pk)) if not request.GET else None
+    plan = bundle['plan'] if bundle else planning.optimize_week(user, _weights(request), rain)
     # Explication : lue depuis le cache (générée par Celery), fallback immédiat sur gabarits
     explanation_key = EXPLANATION_CACHE_KEY.format(user.pk)
     explanations = cache.get(explanation_key)
@@ -180,18 +183,46 @@ def api_explain(request):
 
 @login_required
 def download_report(request):
-    """Rapport hebdomadaire (PDF si WeasyPrint est disponible, sinon HTML)."""
-    content, mimetype, ext = render_report(request.user)
-    resp = HttpResponse(content, content_type=mimetype)
-    resp['Content-Disposition'] = f'attachment; filename="greenmove_rapport.{ext}"'
+    """Télécharge le rapport préparé en tâche Celery, sans bloquer la requête HTTP."""
+    result = cache.get(REPORT_RESULT_KEY.format(request.user.pk))
+    if not result:
+        return HttpResponse("Le rapport n'est pas encore prêt. Lancez sa génération depuis le tableau de bord.",
+                            status=drf_status.HTTP_202_ACCEPTED, content_type='text/plain; charset=utf-8')
+    resp = HttpResponse(result['report'], content_type=result['mimetype'])
+    resp['Content-Disposition'] = f"attachment; filename=greenmove_rapport.{result['extension']}"
     return resp
 
 
 @login_required
 @require_POST
+def generate_report(request):
+    """Déclenche le calcul du plan et le rendu du rapport dans Celery."""
+    cache.delete(REPORT_RESULT_KEY.format(request.user.pk))
+    cache.set(REPORT_STATUS_KEY.format(request.user.pk), {'state': 'queued'}, 60 * 60 * 6)
+    try:
+        generate_plan_and_report_async.delay(request.user.pk)
+    except Exception:
+        cache.set(REPORT_STATUS_KEY.format(request.user.pk), {'state': 'error'}, 60 * 60 * 6)
+        messages.error(request, "Le worker Celery est indisponible; le calcul n'a pas été exécuté dans la requête web.")
+        return redirect('planner:index')
+    messages.info(request, "Génération du plan et du rapport placée dans Celery. Suivez l'état ci-dessous.")
+    return redirect('planner:index')
+
+
+@login_required
+def report_status(request):
+    state = cache.get(REPORT_STATUS_KEY.format(request.user.pk), {'state': 'idle'})
+    return JsonResponse(state)
+
+
+@login_required
+@require_POST
 def email_report(request):
-    send_weekly_report_for.delay(request.user.pk)
-    messages.success(request, "Rapport envoyé par e-mail.")
+    try:
+        send_weekly_report_for.delay(request.user.pk)
+        messages.success(request, "L'envoi du rapport a été placé dans la file de tâches.")
+    except Exception:
+        messages.error(request, "Le worker Celery est indisponible; l'envoi n'a pas été exécuté dans la requête web.")
     return redirect('planner:index')
 
 

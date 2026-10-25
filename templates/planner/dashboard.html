@@ -13,7 +13,7 @@
     </div>
     <div class="d-flex flex-wrap gap-2">
       <a href="{% url 'planner:export_calendar' %}" class="btn btn-green-primary" aria-label="{% trans 'Exporter le calendrier au format .ics' %}"><i class="bi bi-calendar-plus me-1" aria-hidden="true"></i>{% trans "Export .ics" %}</a>
-      <a href="{% url 'planner:download_report' %}" class="btn btn-green-outline" aria-label="{% trans 'Télécharger le rapport PDF' %}"><i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>{% trans "Rapport PDF" %}</a>
+      <form method="post" action="{% url 'planner:generate_report' %}">{% csrf_token %}<button class="btn btn-green-outline" aria-label="{% trans 'Générer le plan et le rapport PDF en arrière-plan' %}"><i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>{% trans "Générer plan + rapport" %}</button></form>
       <a href="{% url 'planner:export_csv' %}" class="btn btn-green-outline" aria-label="{% trans 'Exporter mes trajets en CSV' %}"><i class="bi bi-download me-1" aria-hidden="true"></i>{% trans "Export CSV" %}</a>
       <form method="post" action="{% url 'planner:email_report' %}">{% csrf_token %}<button class="btn btn-green-outline" aria-label="{% trans 'Recevoir le rapport par e-mail' %}"><i class="bi bi-envelope me-1" aria-hidden="true"></i>{% trans "E-mail" %}</button></form>
       <a href="{% url 'accounts:export_data' %}" class="btn btn-green-outline" aria-label="{% trans 'Télécharger mes données personnelles (RGPD)' %}"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>{% trans "Mes données" %}</a>
@@ -21,6 +21,10 @@
   </div>
 
   {% if messages %}{% for m in messages %}<div class="alert alert-{{ m.tags|default:'info' }}" role="alert">{{ m }}</div>{% endfor %}{% endif %}
+  <div class="d-flex align-items-center gap-2 mb-3" aria-live="polite" aria-atomic="true">
+    <span id="report-job-status" class="small text-muted"></span>
+    <a id="report-download-link" href="{% url 'planner:download_report' %}" class="btn btn-sm btn-green-primary d-none">{% trans "Télécharger le rapport prêt" %}</a>
+  </div>
 
   {# ─── KPIs ─────────────────────────────────────────────────────────── #}
   <div class="row g-4 mb-4" role="region" aria-label="{% trans 'Indicateurs clés' %}">
@@ -35,6 +39,8 @@
       <div class="fs-3 fw-bold text-success">{{ plan.co2_saved_kg }} kg</div>
       <div class="small text-muted">{% trans "vs tout en voiture" %} ({{ plan.baseline_car_co2_kg }} kg)</div>
       <div class="small text-muted mt-1">Solveur : <code>{{ plan.solver }}</code></div>
+      <div class="small text-muted">{% trans "Temps de calcul" %} : {{ plan.performance.duration_ms }} ms</div>
+      <div class="small text-muted">{% trans "Économie vs voiture" %} : {{ plan.performance.co2_reduction_pct }} %</div>
     </div></div>
     <div class="col-md-3"><div class="card-greenmove border p-3 h-100">
       <div class="text-muted small text-center">{% trans "Budget carbone du mois" %}</div>
@@ -241,7 +247,10 @@ fetch("{% url 'planner:api_metrics' %}").then(r => r.json()).then(d => {
       <span class="badge bg-success">Silhouette : ${c.silhouette_score ?? 'N/A'}</span>
       <span class="badge bg-secondary">${c.silhouette_interpretation}</span>
       <span class="badge bg-light text-dark">${c.n_clusters} clusters · ${c.n_users_analysed} utilisateurs</span>
+      <span class="badge bg-info text-dark">Stabilité ARI : ${c.stability_ari_5_seeds ?? 'N/D'}</span>
     </div>
+    <div class="mb-2">Silhouette KMeans : <strong>${c.silhouette_score ?? 'N/D'}</strong> · baseline règles : <strong>${c.baseline?.silhouette_score ?? 'N/D'}</strong> · écart : <strong>${c.baseline?.silhouette_delta ?? 'N/D'}</strong></div>
+    ${c.elbow?.length ? `<details class="mb-2"><summary>Courbe du coude (inertie par k)</summary><ul class="mb-0">${c.elbow.map(p => `<li>k=${p.k} : ${p.inertia}</li>`).join('')}</ul></details>` : ''}
     <div class="mb-2">${distHtml}</div>
     <div class="text-muted" style="font-size:.75rem;">
       CO₂ sauvé vs voiture : <strong class="text-success">${s.savings_vs_car_kg} kg (${s.savings_vs_car_pct}%)</strong> ·
@@ -263,5 +272,27 @@ fetch("{% url 'planner:api_leaderboard' %}").then(r => r.json()).then(d => {
      </li>`).join('');
   panel.innerHTML = `<ul class="list-unstyled mb-0">${rows}</ul>`;
 });
+
+// Statut du rendu asynchrone du plan et du rapport PDF.
+const reportStatus = document.getElementById('report-job-status');
+const reportDownload = document.getElementById('report-download-link');
+async function pollReportStatus() {
+  try {
+    const response = await fetch("{% url 'planner:report_status' %}", {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+    const status = await response.json();
+    if (status.state === 'queued' || status.state === 'running') {
+      reportStatus.textContent = 'Calcul du plan et génération du rapport en cours…';
+      window.setTimeout(pollReportStatus, 2000);
+    } else if (status.state === 'ready') {
+      reportStatus.textContent = `Rapport prêt · calcul et rendu : ${status.duration_ms} ms`;
+      reportDownload.classList.remove('d-none');
+    } else if (status.state === 'error') {
+      reportStatus.textContent = 'La génération a échoué. Relancez-la ou consultez les journaux du worker.';
+    }
+  } catch (_) {
+    reportStatus.textContent = 'Statut du rapport indisponible.';
+  }
+}
+pollReportStatus();
 </script>
 {% endblock %}

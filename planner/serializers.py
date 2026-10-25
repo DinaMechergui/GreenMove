@@ -44,6 +44,11 @@ class RecurringTripSerializer(serializers.ModelSerializer):
     def get_weekday_label(self, obj):
         return obj.get_weekday_display()
 
+    def validate_distance_km(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('La distance doit être positive.')
+        return value
+
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
         return super().create(validated_data)

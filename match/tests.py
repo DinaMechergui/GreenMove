@@ -143,7 +143,17 @@ class MobilityMatchAITests(TestCase):
         booking = RideBooking.objects.filter(ride=self.ride, passenger=self.passenger).first()
         self.assertIsNotNone(booking)
         self.passenger.refresh_from_db()
+        self.assertEqual(self.passenger.eco_points, initial_points)
+        self.assertEqual(booking.status, RideBooking.StatusChoices.PENDING)
+        self.client.force_login(self.driver)
+        self.client.post(reverse('match:manage_booking', kwargs={'booking_id': booking.pk}),
+                         {'action': 'accept'})
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, RideBooking.StatusChoices.ACCEPTED)
+        self.passenger.refresh_from_db()
         self.assertEqual(self.passenger.eco_points, initial_points + 20)
+        self.ride.refresh_from_db()
+        self.assertEqual(self.ride.seats_available, 2)
 
     def test_api_find_matches(self):
         """Vérifie l'endpoint REST d'IA pour le matching."""

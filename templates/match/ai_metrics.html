@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Métriques IA MobilityMatch" %} | GreenMove{% endblock %}
+
+{% block content %}
+<section class="container py-4 mt-4" aria-labelledby="ai-metrics-title">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <span class="badge rounded-pill px-3 py-1 mb-1 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary);">
+        <i class="bi bi-cpu me-1" aria-hidden="true"></i>{% trans "Évaluation IA" %}
+      </span>
+      <h1 id="ai-metrics-title" class="h3 fw-bold mb-0 text-dark">{% trans "Métriques du moteur de matching" %}</h1>
+      <p class="text-muted small mb-0">
+        {% trans "Score multi-critères et clustering DBSCAN comparés à une baseline simple, calculés en arrière-plan par Celery." %}
+      </p>
+    </div>
+    <form method="post" action="{% url 'match:ai_metrics' %}">
+      {% csrf_token %}
+      <button type="submit" id="btn-rerun-metrics" class="btn btn-green-primary" aria-label="{% trans 'Relancer l’évaluation IA' %}">
+        <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{% trans "Relancer l'évaluation" %}
+      </button>
+    </form>
+  </div>
+
+  <div id="ai-metrics-result"
+       hx-get="{% url 'match:ai_metrics_status' %}"
+       hx-trigger="load"
+       hx-swap="innerHTML"
+       hx-indicator="#ai-metrics-spinner"
+       aria-live="polite" aria-busy="true">
+    <div id="ai-metrics-spinner" class="htmx-indicator d-flex align-items-center gap-2 text-muted" role="status">
+      <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+      {% trans "Analyse en cours…" %}
+    </div>
+  </div>
+</section>
+{% endblock %}

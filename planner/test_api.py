@@ -138,6 +138,26 @@ class MetricsAndLeaderboardTests(TestCase):
         self.assertIn('co2_stats', data)
         self.assertIn('leaderboard', data)
 
+
+    def test_clustering_report_exposes_baseline_elbow_and_stability(self):
+        users = [
+            CustomUser.objects.create_user(f'cluster_{i}', f'cluster{i}@greenmove.tn', 'pass12345!')
+            for i in range(3)
+        ]
+        samples = [
+            [('CAR', 40), ('WALK', 2)],
+            [('BUS', 30), ('BIKE', 8)],
+            [('CAR', 10), ('BUS', 20), ('BIKE', 10)],
+        ]
+        for user, trips in zip(users, samples):
+            for mode, km in trips:
+                TripRecord.objects.create(user=user, date=timezone.now(), mode=mode, distance_km=km)
+        report = clustering_metrics()
+        self.assertEqual(report['status'], 'ok')
+        self.assertIn('baseline', report)
+        self.assertIn('elbow', report)
+        self.assertIn('stability_ari_5_seeds', report)
+
     def test_api_ai_metrics_drf(self):
         resp = self.client.get(reverse('planner:api_ai_metrics'))
         self.assertEqual(resp.status_code, 200)

@@ -1,0 +1,64 @@
+{% load i18n %}
+{% if status == 'running' %}
+  <div hx-get="{% url 'match:ai_metrics_status' %}" hx-trigger="every 2s" hx-swap="outerHTML"
+       class="d-flex align-items-center gap-2 text-muted" role="status">
+    <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+    {% trans "Analyse en cours… (tâche Celery)" %}
+  </div>
+{% elif status == 'error' or not report %}
+  <div class="alert alert-danger" role="alert">
+    <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>
+    {% trans "L'évaluation a échoué. Réessayez avec le bouton « Relancer »." %}
+  </div>
+{% else %}
+  {% with m=report.matching c=report.clustering %}
+  <p class="small text-muted">
+    {% trans "Durée totale du calcul" %} : <strong>{{ report.duration_s }} s</strong> •
+    {% trans "Latence moyenne d'un score" %} : <strong>{{ m.avg_latency_ms }} ms</strong>
+  </p>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card-greenmove p-4 border h-100">
+        <h2 class="h5 fw-bold">{% trans "1. Matching de trajets" %}</h2>
+        <p class="small text-muted mb-3">
+          {{ m.n_samples }} {% trans "paires de test • seuil calibré" %} : {{ m.threshold }} %
+        </p>
+        <table class="table table-sm align-middle">
+          <caption class="small">{% trans "Modèle multi-critères comparé à la baseline « distance de départ < 3 km »" %}</caption>
+          <thead><tr><th scope="col">{% trans "Métrique" %}</th><th scope="col">{% trans "Modèle IA" %}</th><th scope="col">{% trans "Baseline" %}</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">{% trans "Précision" %}</th><td><strong>{{ m.model.precision }}</strong></td><td>{{ m.baseline.precision }}</td></tr>
+            <tr><th scope="row">{% trans "Rappel" %}</th><td><strong>{{ m.model.recall }}</strong></td><td>{{ m.baseline.recall }}</td></tr>
+            <tr><th scope="row">F1</th><td><strong>{{ m.model.f1 }}</strong></td><td>{{ m.baseline.f1 }}</td></tr>
+            <tr><th scope="row">{% trans "Exactitude" %}</th><td><strong>{{ m.model.accuracy }}</strong></td><td>{{ m.baseline.accuracy }}</td></tr>
+          </tbody>
+        </table>
+        <h3 class="h6 fw-bold mt-3">{% trans "Matrice de confusion (modèle IA)" %}</h3>
+        <table class="table table-bordered table-sm text-center w-auto">
+          <thead><tr><th scope="col"></th><th scope="col">{% trans "Prédit : bon" %}</th><th scope="col">{% trans "Prédit : mauvais" %}</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">{% trans "Réel : bon" %}</th><td>{{ m.model.confusion.tp }} (VP)</td><td>{{ m.model.confusion.fn }} (FN)</td></tr>
+            <tr><th scope="row">{% trans "Réel : mauvais" %}</th><td>{{ m.model.confusion.fp }} (FP)</td><td>{{ m.model.confusion.tn }} (VN)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="card-greenmove p-4 border h-100">
+        <h2 class="h5 fw-bold">{% trans "2. Groupes récurrents (DBSCAN)" %}</h2>
+        <p class="small text-muted mb-3">{{ c.n_samples }} {% trans "trajets • latence" %} {{ c.latency_ms }} ms</p>
+        <table class="table table-sm align-middle">
+          <caption class="small">{% trans "DBSCAN 4D comparé à la baseline « grille 0,05° »" %}</caption>
+          <thead><tr><th scope="col">{% trans "Métrique" %}</th><th scope="col">DBSCAN</th><th scope="col">{% trans "Baseline" %}</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Silhouette</th><td><strong>{{ c.model.silhouette }}</strong></td><td>{{ c.baseline.silhouette }}</td></tr>
+            <tr><th scope="row">ARI</th><td><strong>{{ c.model.ari }}</strong></td><td>{{ c.baseline.ari }}</td></tr>
+            <tr><th scope="row">{% trans "Groupes" %}</th><td>{{ c.model.n_clusters }}</td><td>{{ c.baseline.n_clusters }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+{% endif %}

@@ -21,22 +21,22 @@
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3" data-aos="fade-down">
     <div>
       <span class="badge rounded-pill px-3 py-1 mb-1 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
-        <i class="bi bi-magic me-1"></i>MobilityMatch IA
+        <i class="bi bi-magic me-1" aria-hidden="true"></i>MobilityMatch IA
       </span>
-      <h3 class="fw-bold mb-0 text-dark">{% trans "Covoiturage Éco-Intelligent au Grand Tunis" %}</h3>
+      <h1 class="h3 fw-bold mb-0 text-dark">{% trans "Covoiturage Éco-Intelligent au Grand Tunis" %}</h1>
     </div>
     <div class="d-flex flex-wrap gap-2">
       <a href="{% url 'match:meeting_point' %}" class="btn btn-sm btn-green-outline">
-        <i class="bi bi-signpost-split me-1"></i>{% trans "Point de RDV" %}
+        <i class="bi bi-signpost-split me-1" aria-hidden="true"></i>{% trans "Point de RDV" %}
       </a>
       <a href="{% url 'match:groups' %}" class="btn btn-sm btn-green-outline">
-        <i class="bi bi-people me-1"></i>{% trans "Groupes" %}
+        <i class="bi bi-people me-1" aria-hidden="true"></i>{% trans "Groupes" %}
       </a>
       <a href="{% url 'match:split_calculator' %}" class="btn btn-sm btn-green-outline">
-        <i class="bi bi-calculator me-1"></i>{% trans "Frais & CO₂" %}
+        <i class="bi bi-calculator me-1" aria-hidden="true"></i>{% trans "Frais & CO₂" %}
       </a>
       <a href="{% url 'match:create_ride' %}" class="btn btn-green-primary">
-        <i class="bi bi-plus-circle me-1"></i>{% trans "Proposer un trajet" %}
+        <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{% trans "Proposer un trajet" %}
       </a>
     </div>
   </div>
@@ -46,20 +46,25 @@
     <form method="get" action="{% url 'match:search' %}"
           hx-get="{% url 'match:search' %}"
           hx-target="#rides-results-container"
+          hx-indicator="#search-indicator"
+          role="search" aria-label="{% trans 'Rechercher un covoiturage' %}"
           hx-trigger="submit, change from:select, change from:input[type='checkbox']">
+      <div id="search-indicator" class="htmx-indicator small text-muted mb-2" role="status">
+        <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>{% trans "Analyse IA des trajets en cours…" %}
+      </div>
       <div class="row g-3 align-items-end">
         <div class="col-md-4">
           <label class="form-label small fw-semibold text-muted">{% trans "Lieu de départ (ex: Ariana, Marsa)" %}</label>
           <div class="input-group">
-            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-geo-alt"></i></span>
-            <input type="text" name="origin" value="{{ origin_query }}" class="form-control border-start-0 ps-0" placeholder="Quartier de départ">
+            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-geo-alt" aria-hidden="true"></i></span>
+            <input type="text" name="origin" aria-label="{% trans 'Lieu de départ' %}" value="{{ origin_query }}" class="form-control border-start-0 ps-0" placeholder="Quartier de départ">
           </div>
         </div>
 
         <div class="col-md-4">
           <label class="form-label small fw-semibold text-muted">{% trans "Lieu d'arrivée (ex: Lac 2, Centre-ville)" %}</label>
           <div class="input-group">
-            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-geo-alt-fill text-success"></i></span>
+            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-geo-alt-fill text-success" aria-hidden="true"></i></span>
             <input type="text" name="destination" value="{{ dest_query }}" class="form-control border-start-0 ps-0" placeholder="Quartier d'arrivée">
           </div>
         </div>
@@ -71,7 +76,7 @@
 
         <div class="col-md-2">
           <button type="submit" class="btn btn-green-primary w-100 py-2">
-            <i class="bi bi-search me-1"></i>{% trans "Filtrer" %}
+            <i class="bi bi-search me-1" aria-hidden="true"></i>{% trans "Filtrer" %}
           </button>
         </div>
       </div>
@@ -81,7 +86,7 @@
           <div class="form-check form-switch">
             {{ form.only_green_vehicles }}
             <label class="form-check-label small text-muted" for="{{ form.only_green_vehicles.id_for_label }}">
-              <i class="bi bi-lightning-charge text-warning me-1"></i>{% trans "Véhicules 100% Électriques et Hybrides uniquement" %}
+              <i class="bi bi-lightning-charge text-warning me-1" aria-hidden="true"></i>{% trans "Véhicules 100% Électriques et Hybrides uniquement" %}
             </label>
           </div>
         </div>
@@ -92,7 +97,7 @@
   <!-- Carte Interactive des Trajets Actifs -->
   <div class="mb-4" data-aos="zoom-in">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-map me-1 text-success"></i>Visualisation spatiale des départs et arrivées</h6>
+      <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-map me-1 text-success" aria-hidden="true"></i>Visualisation spatiale des départs et arrivées</h6>
       <span class="badge rounded-pill text-muted border bg-white small" style="font-size: 0.72rem;">Grand Tunis</span>
     </div>
     <div id="match-leaflet-map"></div>
@@ -124,7 +129,7 @@
         const startIcon = L.divIcon({
           className: 'marker-start',
           html: `<div style="background-color: #335C45; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
-                   <i class="bi bi-car-front-fill"></i>
+                   <i class="bi bi-car-front-fill" aria-hidden="true"></i>
                  </div>`,
           iconSize: [28, 28],
           iconAnchor: [14, 28]

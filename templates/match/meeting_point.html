@@ -14,20 +14,20 @@
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3" data-aos="fade-down">
     <div>
       <span class="badge rounded-pill px-3 py-1 mb-1 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.8rem;">
-        <i class="bi bi-signpost-split me-1"></i>{% trans "Point de RDV optimal" %}
+        <i class="bi bi-signpost-split me-1" aria-hidden="true"></i>{% trans "Point de RDV optimal" %}
       </span>
-      <h3 class="fw-bold mb-0 text-dark">{% trans "Intersection des isochrones ORS" %}</h3>
+      <h1 class="h3 fw-bold mb-0 text-dark">{% trans "Intersection des isochrones ORS" %}</h1>
       <p class="text-muted small mb-0">{% trans "Le point où les deux conducteurs peuvent se croiser dans le même temps de trajet." %}</p>
     </div>
     <a href="{% url 'match:search' %}" class="btn btn-sm btn-green-outline">
-      <i class="bi bi-arrow-left me-1"></i>{% trans "Retour recherche" %}
+      <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{% trans "Retour recherche" %}
     </a>
   </div>
 
   <div class="row g-4">
     <div class="col-lg-4" data-aos="fade-right">
       <div class="card-greenmove p-4 border shadow-sm mb-4">
-        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-sliders me-1 text-success"></i>{% trans "Paramètres" %}</h6>
+        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-sliders me-1 text-success" aria-hidden="true"></i>{% trans "Paramètres" %}</h6>
         <form method="get">
           <div class="mb-3">
             <label class="form-label small text-muted">{% trans "Trajet A (départ)" %}</label>
@@ -56,13 +56,13 @@
             <input type="number" name="minutes" class="form-control" min="5" max="60" step="5" value="{{ minutes }}">
           </div>
           <button class="btn btn-green-primary w-100">
-            <i class="bi bi-calculator me-1"></i>{% trans "Calculer le point de RDV" %}
+            <i class="bi bi-calculator me-1" aria-hidden="true"></i>{% trans "Calculer le point de RDV" %}
           </button>
         </form>
       </div>
 
       <div class="card-greenmove p-4 border shadow-sm">
-        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle me-1 text-primary"></i>{% trans "Résultat" %}</h6>
+        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-info-circle me-1 text-primary" aria-hidden="true"></i>{% trans "Résultat" %}</h6>
         <div class="p-3 rounded-3 mb-3 text-center border" style="background: var(--gm-green-tint);">
           <div class="small text-muted text-uppercase" style="font-size: 0.68rem;">{% trans "Point de rendez-vous" %}</div>
           <div class="fw-bold font-monospace" style="color: var(--gm-green-primary); font-size: 1.05rem;">
@@ -80,7 +80,7 @@
         <a class="btn btn-sm btn-outline-success w-100 mt-3"
            href="https://www.openstreetmap.org/?mlat={{ result.lat|unlocalize }}&mlon={{ result.lon|unlocalize }}#map=16/{{ result.lat|unlocalize }}/{{ result.lon|unlocalize }}"
            target="_blank" rel="noopener">
-          <i class="bi bi-box-arrow-up-right me-1"></i>{% trans "Ouvrir dans OSM" %}
+          <i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{% trans "Ouvrir dans OSM" %}
         </a>
       </div>
     </div>
@@ -88,7 +88,7 @@
     <div class="col-lg-8" data-aos="fade-left">
       <div class="card-greenmove p-3 border shadow-sm">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h6 class="fw-bold text-dark mb-0"><i class="bi bi-map me-1 text-success"></i>{% trans "Carte des isochrones" %}</h6>
+          <h6 class="fw-bold text-dark mb-0"><i class="bi bi-map me-1 text-success" aria-hidden="true"></i>{% trans "Carte des isochrones" %}</h6>
           <span class="badge rounded-pill text-muted border bg-white small" style="font-size: 0.72rem;">{{ result.source_a }}</span>
         </div>
         <div id="meeting-map"></div>
@@ -121,7 +121,7 @@
     // Point de RDV optimal
     const icon = L.divIcon({
       className: 'meeting-pin',
-      html: `<div style="background:#C05621;color:white;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 3px 8px rgba(0,0,0,.3);"><i class="bi bi-flag-fill"></i></div>`,
+      html: `<div style="background:#C05621;color:white;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 3px 8px rgba(0,0,0,.3);"><i class="bi bi-flag-fill" aria-hidden="true"></i></div>`,
       iconSize: [34, 34], iconAnchor: [17, 17],
     });
     L.marker([result.lat, result.lon], { icon })

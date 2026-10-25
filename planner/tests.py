@@ -2,6 +2,8 @@
 from datetime import time, timedelta
 
 from django.test import TestCase
+from django.core.cache import cache
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -65,3 +67,48 @@ class PlannerTests(TestCase):
         self.assertEqual(self.client.get(reverse('planner:index')).status_code, 200)
         self.assertEqual(self.client.get(reverse('planner:api_plan')).status_code, 200)
         self.assertEqual(self.client.get(reverse('planner:export_calendar')).status_code, 200)
+
+
+@override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}})
+class PlannerAsyncReportTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.user = CustomUser.objects.create_user('report_user', 'report@greenmove.tn', 'pass12345!')
+
+    def test_background_task_stores_plan_report_and_duration(self):
+        from unittest.mock import patch
+        from . import tasks
+
+        plan = {'plan': [], 'co2_saved_kg': 0.0}
+        with patch('planner.tasks.planning.optimize_week', return_value=plan), \
+             patch('planner.services.report.render_report', return_value=(b'pdf', 'application/pdf', 'pdf')):
+            self.assertEqual(tasks.generate_plan_and_report_async(self.user.pk), 'ready')
+        result = cache.get(tasks.REPORT_RESULT_KEY.format(self.user.pk))
+        self.assertEqual(result['plan'], plan)
+        self.assertEqual(result['report'], b'pdf')
+        self.assertIn('duration_ms', result)
+        self.assertEqual(cache.get(tasks.REPORT_STATUS_KEY.format(self.user.pk))['state'], 'ready')
+
+    def test_report_download_is_user_scoped(self):
+        from .tasks import REPORT_RESULT_KEY
+
+        cache.set(REPORT_RESULT_KEY.format(self.user.pk), {
+            'report': b'own', 'mimetype': 'application/pdf', 'extension': 'pdf', 'plan': {},
+        })
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('planner:download_report'))
+        self.assertEqual(response.content, b'own')
+        other = CustomUser.objects.create_user('other_report', 'other@greenmove.tn', 'pass12345!')
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse('planner:download_report')).status_code, 202)
+
+    def test_unavailable_worker_is_reported_without_running_task_inline(self):
+        from unittest.mock import patch
+
+        self.client.force_login(self.user)
+        with patch('planner.views.generate_plan_and_report_async') as task:
+            task.delay.side_effect = ConnectionError
+            response = self.client.post(reverse('planner:generate_report'))
+        self.assertEqual(response.status_code, 302)
+        task.assert_not_called()
+        self.assertEqual(cache.get('planner:bundle:status:{}'.format(self.user.pk))['state'], 'error')

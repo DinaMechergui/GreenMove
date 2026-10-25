@@ -7,6 +7,7 @@ Tout est en Python/ORM pur (pas de dépendance lourde) :
 - typologie : KMeans implémenté localement (déterministe)
 """
 import calendar
+import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 
@@ -142,6 +143,7 @@ def _solve(options_per_trip, weekly_cap_kg):
 def optimize_week(user, weights=None, bad_weather=False):
     """Plan de semaine : mode par trajet minimisant un score pondéré CO2/temps/coût/confort,
     sous la contrainte du budget carbone hebdomadaire (budget mensuel du profil x 7/30)."""
+    started_at = time.perf_counter()
     car_ok = user.vehicle_type != user.VehicleChoices.NONE
     profile = _profile(user)
     budget = CarbonBudget.objects.filter(user=user, month=timezone.localdate().replace(day=1)).first()
@@ -167,11 +169,18 @@ def optimize_week(user, weights=None, bad_weather=False):
             'distance_km': trip.distance_km, 'best': best, 'alternatives': others[:2],
             'co2_saved_kg': round(car_co2 - best['co2_kg'], 3),
         })
+    elapsed_ms = round((time.perf_counter() - started_at) * 1000, 2)
     return {
         'plan': plan, 'total_co2_kg': round(total_co2, 2), 'baseline_car_co2_kg': round(baseline_co2, 2),
         'co2_saved_kg': round(baseline_co2 - total_co2, 2), 'weights': {**DEFAULT_WEIGHTS, **(weights or {})},
         'has_vehicle': car_ok, 'solver': solver_name, 'weekly_cap_kg': round(weekly_cap, 2),
         'cap_respected': cap_ok and total_co2 <= weekly_cap + 1e-9,
+        'performance': {
+            'duration_ms': elapsed_ms,
+            'baseline': 'voiture seule (mêmes trajets récurrents)',
+            'co2_reduction_pct': round((baseline_co2 - total_co2) / baseline_co2 * 100, 1)
+                if baseline_co2 else 0.0,
+        },
     }
 
 
