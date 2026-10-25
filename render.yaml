@@ -33,3 +33,7 @@ services:
         value: skander.bensalah@esprit.tn
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings.prod
+      - key: GPS_ENCRYPTION_KEY
+        value: greenmove-gps-fernet-secret-key-32chars-min-esprit-2026
+      - key: TRANSPORT_MODEL_PATH
+        value: tracker/ml/artifacts/transport_model.joblib
