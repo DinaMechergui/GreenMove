@@ -85,10 +85,17 @@ class UserCouponAdmin(admin.ModelAdmin):
     list_display = ('coupon_code', 'user', 'reward', 'status', 'claimed_at', 'used_at')
     list_filter = ('status', 'claimed_at')
     search_fields = ('coupon_code', 'user__username', 'reward__title')
-    readonly_fields = ('claimed_at', 'qr_code_preview')
+    readonly_fields = ('claimed_at', 'used_at', 'qr_code_preview')
+    fields = ('user', 'reward', 'coupon_code', 'status', 'qr_code_preview', 'claimed_at', 'used_at')
 
     def qr_code_preview(self, obj):
-        if obj.qr_code_image:
-            return format_html('<img src="{}" width="140" height="140" style="border-radius: 8px; border: 1px solid #ccc;" />', obj.qr_code_image)
-        return "Aucun QR Code"
+        if obj and obj.qr_code_image:
+            return format_html(
+                '<div style="text-align:left;">'
+                '<img src="{}" width="160" height="160" style="border-radius: 8px; border: 1px solid #ddd; background:#fff; padding:6px; box-shadow:0 2px 4px rgba(0,0,0,0.08);" /><br>'
+                '<span style="color:#2e7d32; font-weight:600; font-size:12px;">✅ QR Code généré automatiquement</span>'
+                '</div>',
+                obj.qr_code_image
+            )
+        return "⚡ Le code unique et le QR Code seront automatiquement générés lors de l'enregistrement."
     qr_code_preview.short_description = "Aperçu QR Code"

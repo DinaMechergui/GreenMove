@@ -438,8 +438,8 @@ class UserCoupon(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='coupons')
     reward = models.ForeignKey(RewardItem, on_delete=models.CASCADE, related_name='claimed_coupons')
-    coupon_code = models.CharField(_('Code Coupon Unique'), max_length=32, unique=True, db_index=True)
-    qr_code_image = models.TextField(_('QR Code Base64 Data URI'), blank=True)
+    coupon_code = models.CharField(_('Code Coupon Unique'), max_length=32, unique=True, db_index=True, blank=True, help_text=_('Généré automatiquement si laissé vide.'))
+    qr_code_image = models.TextField(_('QR Code Base64 Data URI'), blank=True, editable=False)
     status = models.CharField(_('Statut'), max_length=20, choices=StatusChoices.choices, default=StatusChoices.VALID)
     
     claimed_at = models.DateTimeField(_('Date d\'obtention'), auto_now_add=True)
@@ -453,6 +453,19 @@ class UserCoupon(models.Model):
 
     def __str__(self):
         return f"{self.coupon_code} - {self.reward.title} ({self.user.username}) [{self.get_status_display()}]"
+
+    def save(self, *args, **kwargs):
+        if not self.coupon_code:
+            from .services.qr_service import generate_unique_coupon_code
+            self.coupon_code = generate_unique_coupon_code()
+        if not self.qr_code_image and self.reward_id and self.user_id:
+            from .services.qr_service import generate_coupon_qr_base64
+            self.qr_code_image = generate_coupon_qr_base64(
+                coupon_code=self.coupon_code,
+                reward_title=self.reward.title,
+                user_identifier=self.user.username,
+            )
+        super().save(*args, **kwargs)
 
     def mark_as_used(self):
         self.status = self.StatusChoices.USED
