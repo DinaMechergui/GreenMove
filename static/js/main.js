@@ -234,6 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
         nextEl: '.swiper-button-next',
         prevEl: '.swiper-button-prev',
       },
+      keyboard: {
+        enabled: true,
+        onlyInViewport: true,
+      },
       breakpoints: {
         768: {
           slidesPerView: 2,
@@ -256,4 +260,128 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   initProgressBars();
   document.body.addEventListener('htmx:afterSwap', initProgressBars);
+
+  // ------------------------------------------------------------------------
+  // 11. ACCESSIBILITÉ : NAVIGATION COMPLÈTE AU CLAVIER (TAB / FLÈCHES / ÉCHAP)
+  // ------------------------------------------------------------------------
+
+  const FOCUSABLE_SELECTOR = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+  ].join(', ');
+
+  // Groupes gérés par les flèches : menus, dropdowns, onglets, filtres, boutons groupés
+  const ARROW_GROUPS = [
+    '.navbar-nav',
+    '.dropdown-menu',
+    '.nav-pills',
+    '.nav-tabs',
+    '.btn-group',
+    '[data-arrow-nav]',
+  ].join(', ');
+
+  function visibleFocusables(container) {
+    return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(
+      (el) => el.offsetWidth > 0 || el.offsetHeight > 0 || el === document.activeElement
+    );
+  }
+
+  document.addEventListener('keydown', (event) => {
+    const target = event.target;
+    if (!target || typeof target.closest !== 'function') return;
+
+    // ÉCHAP : ferme les menus dépliants puis le menu mobile
+    if (event.key === 'Escape') {
+      if (typeof bootstrap === 'undefined') return;
+      const openDropdownMenu = document.querySelector('.dropdown-menu.show');
+      if (openDropdownMenu) {
+        const toggle = openDropdownMenu.previousElementSibling;
+        const instance = toggle ? bootstrap.Dropdown.getInstance(toggle) : null;
+        if (instance) {
+          instance.hide();
+        } else {
+          openDropdownMenu.classList.remove('show');
+        }
+        if (toggle) toggle.focus();
+        event.preventDefault();
+        return;
+      }
+      const openCollapse = document.querySelector('.navbar-collapse.show');
+      if (openCollapse) {
+        const collapseToggle = document.querySelector('[data-bs-toggle="collapse"]');
+        const collapseInstance = collapseToggle
+          ? bootstrap.Collapse.getInstance(collapseToggle)
+          : null;
+        if (collapseInstance) collapseInstance.hide();
+        if (collapseToggle) collapseToggle.focus();
+        event.preventDefault();
+      }
+      return;
+    }
+
+    // On n'intercepte pas les flèches pendant la saisie dans un champ
+    const tag = target.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+    const group = target.closest(ARROW_GROUPS);
+    if (!group) return;
+
+    const items = visibleFocusables(group);
+    if (items.length < 2) return;
+
+    const current = items.indexOf(
+      target.closest('a, button, input, select, textarea, [tabindex]')
+    );
+    if (current === -1) return;
+
+    let next = current;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      next = (current + 1) % items.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      next = (current - 1 + items.length) % items.length;
+    } else if (event.key === 'Home') {
+      next = 0;
+    } else if (event.key === 'End') {
+      next = items.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    items[next].focus();
+  });
+
+  // Accessibilité des cartes Leaflet : focusable + flèches pour se déplacer
+  function enhanceMaps() {
+    document.querySelectorAll('.leaflet-container').forEach((map) => {
+      if (!map.hasAttribute('tabindex')) map.setAttribute('tabindex', '0');
+      if (!map.hasAttribute('role')) map.setAttribute('role', 'application');
+      if (!map.hasAttribute('aria-label')) {
+        map.setAttribute(
+          'aria-label',
+          'Carte interactive : flèches pour déplacer la carte, + et - pour zoomer'
+        );
+      }
+    });
+  }
+  enhanceMaps();
+  document.body.addEventListener('htmx:afterSwap', enhanceMaps);
+
+  // Après un chargement HTMX (résultats, calcul, classement) : le focus
+  // atterrit sur le nouveau contenu pour un utilisateur au clavier / lecteur d'écran
+  document.body.addEventListener('htmx:afterSwap', (event) => {
+    const detail = event.detail || {};
+    const swapped = detail.target;
+    if (!swapped) return;
+    const node =
+      (swapped.id && document.getElementById(swapped.id)) ||
+      (swapped.isConnected ? swapped : null);
+    if (!node || !node.hasAttribute || !node.hasAttribute('data-swap-focus')) return;
+    if (!node.hasAttribute('tabindex')) node.setAttribute('tabindex', '-1');
+    node.focus({ preventScroll: false });
+  });
 });
