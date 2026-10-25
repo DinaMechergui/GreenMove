@@ -63,3 +63,12 @@ def predict_all_points(dt, precipitation_mm=0.0):
     preds = _predict(rows)
     return [{'point': p.name, 'lat': p.latitude, 'lon': p.longitude,
              'congestion': round(float(c), 4)} for p, c in zip(points, preds)]
+
+
+def predict_batch(rows):
+    """Prévisions vectorisées. rows = dicts {point_id, dt, precipitation_mm, is_holiday}.
+    Sert à comparer l'historique réel à la prévision (un seul appel au modèle)."""
+    if not rows:
+        return []
+    rows = [{**r, 'dt': _aware(r['dt'])} for r in rows]
+    return [round(float(c), 4) for c in _predict(rows)]
