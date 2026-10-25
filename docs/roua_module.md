@@ -39,7 +39,9 @@ Le map-matching OSRM et Overpass sont des fonctions explicites dans `tracker.ser
 
 `tracker.services.transport_classifier.extract_features` extrait vitesse moyenne/maximale/écart-type, accélération, ratio d'arrêts, précision et volume de points. `predict_transport` charge uniquement un artefact configuré par `TRANSPORT_MODEL_PATH`; si le modèle ou LightGBM manque, il renvoie `status=unavailable` et ne crée aucune prédiction heuristique.
 
-Aucun artefact, dataset Geolife annoté, pipeline d'entraînement, rapport de test ni résultat Precision/Recall/F1 n'est livré dans ce dépôt. Une réponse « modèle indisponible » est donc attendue dans cette configuration. L'inférence est synchrone à ce stade; aucun Celery/Redis worker n'est configuré.
+Aucun artefact ni dataset Geolife annoté n'est livré dans ce dépôt. Le pipeline est maintenant disponible via `python manage.py train_transport_model --data-dir <Geolife> --output <model.joblib>`; il tient les utilisateurs du test à l'écart et écrit les métriques dans un fichier `.metrics.json`. La commande n'a pas été exécutée sur un jeu réel dans cette installation, donc aucune performance ne peut encore être revendiquée. Une réponse « modèle indisponible » demeure attendue tant qu'un artefact réel n'est pas configuré. L'inférence est synchrone à ce stade; aucun Celery/Redis worker n'est configuré.
+
+`GPS_ENCRYPTION_KEY` et `TRANSPORT_MODEL_PATH` sont lus par la configuration Django (variables d'environnement ou source `python-decouple`). Le secret GPS est obligatoire pour écrire/lire des coordonnées; il ne doit pas être versionné. Après avoir défini une clé persistante dans l'environnement local ou de déploiement, redémarrer les processus Django. Une clé nouvellement générée ne déchiffrera jamais des coordonnées qui auraient été chiffrées avec une ancienne clé.
 
 ## Calcul carbone partagé
 

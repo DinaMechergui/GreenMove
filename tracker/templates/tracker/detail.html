@@ -5,13 +5,17 @@
 <link rel="stylesheet" href="{% static 'tracker/tracker.css' %}">
 {% endblock %}
 {% block content %}
-<main class="container py-5 tracker-page">
-  <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-    <div><a href="{% url 'tracker:index' %}">← Mes trajets</a><h1 class="h2 mt-2">{{ trip.title|default:"Trajet" }}</h1>
-      <p class="text-muted">{{ trip.start_time|date:"d/m/Y H:i" }} · {{ trip.distance_km }} km · {{ trip.duration_display }}</p></div>
-    <div class="d-flex flex-wrap gap-2">
+<main class="container py-4 py-lg-5 tracker-page">
+  <header class="trip-hero mb-4">
+    <div class="trip-heading">
+      <a class="trip-back-link" href="{% url 'tracker:index' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Mes trajets</a>
+      <span class="trip-eyebrow">MOBILITY TRACKER</span>
+      <h1>{{ trip.title|default:"Trajet" }}</h1>
+      <p><span><i class="bi bi-calendar3" aria-hidden="true"></i> {{ trip.start_time|date:"d/m/Y · H:i" }}</span><span><i class="bi bi-signpost-2" aria-hidden="true"></i> {{ trip.distance_km }} km</span><span><i class="bi bi-clock" aria-hidden="true"></i> {{ trip.duration_display }}</span></p>
+    </div>
+    <div class="trip-actions">
       <a class="btn btn-outline-secondary" href="{% url 'tracker:update' trip.pk %}">Modifier</a>
-      <a class="btn btn-outline-secondary" href="{% url 'tracker:export-gpx' trip.pk %}">Exporter GPX</a>
+      <a id="export-gpx-link" class="btn btn-outline-secondary{% if not has_gps_points %} disabled{% endif %}" data-export-url="{% url 'tracker:export-gpx' trip.pk %}"{% if has_gps_points %} href="{% url 'tracker:export-gpx' trip.pk %}"{% else %} aria-disabled="true" tabindex="-1" title="Enregistrez au moins un point GPS valide pour exporter."{% endif %}>Exporter GPX</a>
       <a class="btn btn-outline-success" href="{% url 'tracker:compare' trip.pk %}">Et si ?</a>
       <a class="btn btn-outline-danger" href="{% url 'tracker:delete' trip.pk %}">Supprimer</a>
     </div>
@@ -25,25 +29,48 @@
     <form method="post" action="{% url 'tracker:complete' trip.pk %}">{% csrf_token %}<button type="submit" class="btn btn-danger align-self-start">Terminer le trajet</button></form>
   </section>
   {% endif %}
-  <section class="row g-4 mb-4" aria-label="Résumé du trajet">
-    <div class="col-sm-6 col-lg-3"><div class="card card-body h-100"><h2 class="h6">Mode choisi</h2><p>{% if trip.confirmed_transport_mode %}{{ trip.get_confirmed_transport_mode_display }}{% else %}Aucun{% endif %}</p></div></div>
-    <div class="col-sm-6 col-lg-3"><div class="card card-body h-100"><h2 class="h6">Mode détecté</h2><p>{% if trip.detected_transport_mode %}{{ trip.get_detected_transport_mode_display }}{% if prediction_confidence_pct != None %} ({{ prediction_confidence_pct }} %){% endif %}{% elif trip.prediction_status == "unavailable" %}Modèle indisponible{% elif trip.prediction_status == "low_confidence" %}Confiance insuffisante{% elif trip.prediction_status == "failed" %}Analyse échouée{% else %}En attente{% endif %}</p></div></div>
-    <div class="col-sm-6 col-lg-3"><div class="card card-body h-100"><h2 class="h6">Émissions estimées</h2><p>{{ trip.co2_kg }} kg CO₂e</p></div></div>
-    <div class="col-sm-6 col-lg-3"><div class="card card-body h-100"><h2 class="h6">Vérification</h2><p>{{ trip.get_validation_status_display }}</p></div></div>
+  <section class="row g-3 mb-4" aria-label="Résumé du trajet">
+    <div class="col-sm-6 col-lg-3"><div class="trip-stat-card"><span class="trip-stat-icon"><i class="bi bi-person-walking" aria-hidden="true"></i></span><h2>Mode choisi</h2><p>{% if trip.confirmed_transport_mode %}{{ trip.get_confirmed_transport_mode_display }}{% else %}À confirmer{% endif %}</p></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="trip-stat-card"><span class="trip-stat-icon"><i class="bi bi-cpu" aria-hidden="true"></i></span><h2>Mode détecté</h2><p>{% if trip.detected_transport_mode %}{{ trip.get_detected_transport_mode_display }}{% elif trip.prediction_status == "unavailable" %}Indisponible{% elif trip.prediction_status == "low_confidence" %}À confirmer{% elif trip.prediction_status == "failed" %}Échec de l'analyse{% else %}En attente{% endif %}</p>{% if trip.detected_transport_mode and prediction_confidence_pct != None %}<span class="trip-stat-detail">{% if trip.prediction_status == "low_confidence" %}Piste IA · à confirmer{% else %}Confiance{% endif %} {{ prediction_confidence_pct }} %</span>{% endif %}</div></div>
+    <div class="col-sm-6 col-lg-3"><div class="trip-stat-card"><span class="trip-stat-icon"><i class="bi bi-cloud-leaf" aria-hidden="true"></i></span><h2>Émissions estimées</h2><p>{{ trip.co2_kg }} <small>kg CO₂e</small></p></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="trip-stat-card"><span class="trip-stat-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span><h2>Vérification</h2><p>{{ trip.get_validation_status_display }}</p></div></div>
   </section>
   {% if trip.validation_flags %}<p class="alert alert-warning">Points à vérifier : {{ trip.validation_flags|join:", " }}. Une précision GPS faible seule n'invalide pas le trajet.</p>{% endif %}
-  {% if trip.prediction_status == "unavailable" %}<p class="alert alert-info">Aucune prédiction IA n'est disponible dans cette installation. Vous pouvez confirmer le mode manuellement.</p>{% endif %}
   {% if trip.status == "completed" and trip.prediction_status != "complete" %}
-  <form method="post" action="{% url 'tracker:retry-analysis' trip.pk %}" class="mb-3">{% csrf_token %}<button type="submit" class="btn btn-outline-primary">Réessayer l'analyse</button></form>
+  <section class="ai-status-panel mb-4 {% if trip.prediction_status == 'failed' %}ai-status-error{% elif trip.prediction_status == 'low_confidence' %}ai-status-review{% else %}ai-status-unavailable{% endif %}" aria-labelledby="ai-status-title">
+    <div class="ai-status-icon" aria-hidden="true"><i class="bi bi-stars"></i></div>
+    <div class="ai-status-copy">
+      <div class="ai-status-heading"><h2 id="ai-status-title">Détection intelligente</h2><span class="ai-status-badge">{% if trip.prediction_status == "unavailable" %}Modèle non configuré{% elif trip.prediction_status == "low_confidence" %}À confirmer{% elif trip.prediction_status == "failed" %}Analyse interrompue{% else %}En attente{% endif %}</span></div>
+      {% if trip.prediction_status == "unavailable" and not model_artifact_configured %}
+      <p>Aucun modèle LightGBM entraîné n'est installé sur le serveur. La détection automatique ne peut pas démarrer sans cet artefact ; aucun mode n'a été deviné.</p>
+      <p class="ai-status-hint">Un administrateur doit fournir un jeu de trajets étiquetés, entraîner le modèle puis configurer <code>TRANSPORT_MODEL_PATH</code>. Vous pouvez confirmer le mode manuellement en attendant.</p>
+      {% elif trip.prediction_status == "unavailable" %}
+      <p>Le modèle configuré n'est pas disponible pour l'analyse. Vérifiez son chargement côté serveur avant de relancer.</p>
+      {% elif trip.prediction_status == "low_confidence" %}
+      {% if trip.detected_transport_mode %}<p>Le modèle propose <strong>{{ trip.get_detected_transport_mode_display }}</strong> (confiance {{ prediction_confidence_pct }} %), mais le score est trop faible pour valider automatiquement ce mode.</p>{% else %}<p>Les données de ce trajet ne permettent pas de proposer un mode avec suffisamment de confiance.</p>{% endif %}
+      <p class="ai-status-hint">Cette piste n'est pas utilisée pour calculer les émissions. Confirmez le mode pour actualiser les segments et le CO₂.</p>
+      {% elif trip.prediction_status == "failed" %}
+      <p>L'analyse n'a pas abouti. Le trajet est conservé ; vérifiez les journaux du serveur avant une nouvelle tentative.</p>
+      {% else %}
+      <p>L'analyse automatique n'a pas encore été exécutée.</p>
+      {% endif %}
+    </div>
+    <div class="ai-status-actions">
+      <a class="btn btn-outline-success" href="{% url 'tracker:update' trip.pk %}">{% if trip.confirmed_transport_mode %}Modifier le mode{% else %}Confirmer le mode{% endif %}</a>
+      {% if model_artifact_configured %}
+      <form method="post" action="{% url 'tracker:retry-analysis' trip.pk %}">{% csrf_token %}<button type="submit" class="btn btn-primary"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Réessayer l'analyse</button></form>
+      {% endif %}
+    </div>
+  </section>
   {% endif %}
   <section aria-labelledby="route-title" class="mb-4">
-    <h2 id="route-title" class="h4">Parcours</h2>
+    <h2 id="route-title" class="tracker-section-title">Parcours</h2>
     <div id="trip-map" class="tracker-map" role="img" aria-label="Carte du parcours GPS personnel"></div>
     <p class="small text-muted mt-2">Carte privée visible uniquement par le propriétaire du trajet. <span id="route-description">{{ trip.gps_points.count }} point(s) GPS enregistrés.</span></p>
     <ol class="visually-hidden" id="route-text-alternative">{% for point in trip.gps_points.all %}<li>Point {{ point.sequence }}, {{ point.recorded_at|date:"H:i:s" }}. Coordonnées non affichées dans cette liste.</li>{% empty %}<li>Aucun point GPS.</li>{% endfor %}</ol>
   </section>
   <section aria-labelledby="segments-title">
-    <h2 id="segments-title" class="h4">Segments du trajet</h2>
+    <h2 id="segments-title" class="tracker-section-title">Segments du trajet</h2>
     {% if trip.segments.all %}
     <ol class="list-group list-group-numbered">{% for segment in trip.segments.all %}<li class="list-group-item d-flex justify-content-between"><span>{{ segment.get_transport_mode_display }} · {{ segment.distance_km }} km · {{ segment.duration_seconds }} s</span><strong>{{ segment.co2_kg }} kg CO₂e</strong></li>{% endfor %}</ol>
     {% else %}<p class="text-muted">Aucun segment classifié. Confirmez un mode pour calculer les émissions.</p>{% endif %}

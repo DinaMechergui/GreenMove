@@ -4,14 +4,20 @@
   const tracking = document.querySelector("[data-tracker-trip][data-recording='true']");
   const mapElement = document.getElementById("trip-map");
   const pointsElement = document.getElementById("trip-map-points");
+  const exportLink = document.getElementById("export-gpx-link");
   const routeText = document.getElementById("route-text-alternative");
-  const csrfToken = document.cookie.split("; ")
+  const csrfCookie = document.cookie.split("; ")
     .find(item => item.startsWith("csrftoken="))?.split("=")[1];
+  const csrfToken = csrfCookie
+    ? decodeURIComponent(csrfCookie)
+    : document.querySelector("[name=csrfmiddlewaretoken]")?.value;
   let routeMap = null;
   let routeLine = null;
   let routeCoordinates = [];
   let estimatedDistanceKm = 0;
   let queueKeyPromise = null;
+  let captureQueue = Promise.resolve();
+  const displayedSequences = new Set();
 
   function distanceKm(first, second) {
     const radians = value => value * Math.PI / 180;
@@ -30,6 +36,9 @@
       existingPoints = [];
     }
   }
+  existingPoints.forEach(point => {
+    if (Number.isInteger(point.sequence)) displayedSequences.add(point.sequence);
+  });
   if (mapElement) {
     if (routeText && existingPoints.length) {
       routeText.replaceChildren(...existingPoints.map((point, index) => {
@@ -148,6 +157,22 @@
     db.close();
   }
 
+  function responseErrorMessage(payload, statusCode) {
+    if (payload && typeof payload === "object") {
+      const message = payload.detail || payload.error;
+      if (typeof message === "string") return message;
+      const fieldMessages = Object.entries(payload)
+        .flatMap(([field, errors]) => {
+          const values = Array.isArray(errors) ? errors : [errors];
+          return values
+            .filter(value => typeof value === "string")
+            .map(value => `${field} : ${value}`);
+        });
+      if (fieldMessages.length) return fieldMessages.join(" ");
+    }
+    return `Le serveur a refusé le point GPS (HTTP ${statusCode}).`;
+  }
+
   async function sendPoint(tripId, point) {
     const response = await fetch(`/tracker/trips/${tripId}/points/`, {
       method: "POST",
@@ -155,13 +180,58 @@
       body: JSON.stringify(point),
       credentials: "same-origin"
     });
-    if (!response.ok) throw new Error("Le serveur n'a pas accepté le point GPS.");
+    if (response.redirected) {
+      const error = new Error("Votre session a expiré. Reconnectez-vous pour synchroniser le trajet.");
+      error.status = 401;
+      throw error;
+    }
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      console.warn("GreenMove GPS endpoint returned a non-JSON response.", error);
+    }
+    if (!response.ok || payload?.accepted !== true) {
+      const error = new Error(responseErrorMessage(payload, response.status));
+      error.status = response.status;
+      throw error;
+    }
+  }
+
+  function shouldQueue(error) {
+    return !Number.isInteger(error.status)
+      || error.status >= 500
+      || [401, 403, 408, 429].includes(error.status);
+  }
+
+  function enableGpxExport() {
+    if (!exportLink) return;
+    exportLink.href = exportLink.dataset.exportUrl;
+    exportLink.classList.remove("disabled");
+    exportLink.removeAttribute("aria-disabled");
+    exportLink.removeAttribute("tabindex");
+    exportLink.removeAttribute("title");
+  }
+
+  function displayPoint(point) {
+    if (displayedSequences.has(point.sequence)) return;
+    displayedSequences.add(point.sequence);
+    const coordinates = [point.latitude, point.longitude];
+    if (routeCoordinates.length) {
+      estimatedDistanceKm += distanceKm(routeCoordinates[routeCoordinates.length - 1], coordinates);
+    }
+    routeCoordinates.push(coordinates);
+    if (routeLine) routeLine.addLatLng(coordinates);
+    if (routeMap && routeCoordinates.length === 1) routeMap.setView(coordinates, 16);
+    const distanceElement = document.getElementById("trip-distance");
+    if (distanceElement) distanceElement.textContent = `Distance estimée : ${estimatedDistanceKm.toFixed(2)} km`;
   }
 
   async function synchronize() {
     if (!tracking || !navigator.onLine) return;
     const tripId = tracking.dataset.trackerTrip;
-    const points = await pendingPoints(tripId);
+    const points = (await pendingPoints(tripId))
+      .sort((first, second) => first.sequence - second.sequence);
     if (!points.length) {
       if (syncStatus) syncStatus.textContent = "Synchronisé";
       return;
@@ -171,6 +241,8 @@
       try {
         await sendPoint(tripId, point);
         await removePoint(tripId, point.sequence);
+        displayPoint(point);
+        enableGpxExport();
       } catch (error) {
         if (syncStatus) syncStatus.textContent = "Synchronisation différée : " + error.message;
         return;
@@ -196,53 +268,61 @@
       status.textContent = "Géolocalisation non prise en charge par ce navigateur.";
     } else {
       navigator.geolocation.watchPosition(position => {
+        captureQueue = captureQueue.then(async () => {
         status.textContent = `GPS actif (précision ±${Math.round(position.coords.accuracy)} m)`;
-        (async () => {
+        const tripId = tracking.dataset.trackerTrip;
+        if ("indexedDB" in window) {
           try {
-            const tripId = tracking.dataset.trackerTrip;
-            if ("indexedDB" in window) {
-              try {
-                const pending = await pendingPoints(tripId);
-                sequence = Math.max(sequence, ...pending.map(point => point.sequence + 1));
-              } catch (error) {
-                console.warn("GreenMove offline queue is unavailable.", error);
-              }
-            }
-            const point = {
-              sequence: sequence++,
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              recorded_at: new Date(position.timestamp).toISOString(),
-              accuracy_m: position.coords.accuracy,
-              speed_mps: position.coords.speed
-            };
-            const coordinates = [point.latitude, point.longitude];
-            if (routeCoordinates.length) {
-              estimatedDistanceKm += distanceKm(routeCoordinates[routeCoordinates.length - 1], coordinates);
-            }
-            routeCoordinates.push(coordinates);
-            if (routeLine) routeLine.addLatLng(coordinates);
-            if (routeMap && routeCoordinates.length === 1) routeMap.setView(coordinates, 16);
-            const distanceElement = document.getElementById("trip-distance");
-            if (distanceElement) distanceElement.textContent = `Distance estimée : ${estimatedDistanceKm.toFixed(2)} km`;
-            if (navigator.onLine) {
-              try {
-                await sendPoint(tripId, point);
-              } catch (error) {
-                await queuePoint(tripId, point);
-                if (syncStatus) syncStatus.textContent = "Échec réseau — point chiffré localement, nouvel essai prévu.";
-                window.setTimeout(() => synchronize().catch(syncError => {
-                  if (syncStatus) syncStatus.textContent = "Synchronisation différée : " + syncError.message;
-                }), 5000);
-              }
-            } else {
-              await queuePoint(tripId, point);
-            }
-            if (navigator.onLine) await synchronize();
+            const pending = await pendingPoints(tripId);
+            sequence = Math.max(sequence, ...pending.map(point => point.sequence + 1));
           } catch (error) {
-            status.textContent = error.message;
+            console.warn("GreenMove offline queue is unavailable.", error);
           }
-        })();
+        }
+        const point = {
+          sequence,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          recorded_at: new Date(position.timestamp).toISOString(),
+          accuracy_m: position.coords.accuracy,
+          speed_mps: position.coords.speed
+        };
+        if (navigator.onLine) {
+          try {
+            await sendPoint(tripId, point);
+            sequence += 1;
+            displayPoint(point);
+            enableGpxExport();
+          } catch (error) {
+            if (!shouldQueue(error)) {
+              status.textContent = error.message;
+              return;
+            }
+            try {
+              await queuePoint(tripId, point);
+              sequence += 1;
+              displayPoint(point);
+              if (syncStatus) syncStatus.textContent = "Synchronisation différée : " + error.message;
+              window.setTimeout(() => synchronize().catch(syncError => {
+                if (syncStatus) syncStatus.textContent = "Synchronisation différée : " + syncError.message;
+              }), 5000);
+            } catch (queueError) {
+              status.textContent = "Impossible de conserver le point GPS localement : " + queueError.message;
+            }
+          }
+        } else {
+          try {
+            await queuePoint(tripId, point);
+            sequence += 1;
+            displayPoint(point);
+          } catch (error) {
+            status.textContent = "Impossible de conserver le point GPS localement : " + error.message;
+          }
+        }
+        if (navigator.onLine) await synchronize();
+        }).catch(error => {
+          status.textContent = error.message;
+        });
       }, error => {
         status.textContent = error.code === error.PERMISSION_DENIED
           ? "Autorisation de localisation refusée."
