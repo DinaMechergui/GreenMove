@@ -2,6 +2,10 @@
 
 import os
 import time
+from functools import lru_cache
+from pathlib import Path
+
+from django.conf import settings
 
 FEATURE_NAMES = (
     "mean_speed_kmh",
@@ -13,6 +17,39 @@ FEATURE_NAMES = (
     "point_count",
 )
 MIN_CLASSIFICATION_CONFIDENCE = 0.6
+
+
+def model_artifact_configured():
+    """Return whether a model artifact path is configured and points to a file."""
+    model_path = (
+        os.environ.get("TRANSPORT_MODEL_PATH") or settings.TRANSPORT_MODEL_PATH
+    ).strip()
+    return bool(model_path) and Path(model_path).is_file()
+
+
+@lru_cache(maxsize=4)
+def _load_model(model_path, modified_ns, file_size):
+    import joblib
+    import lightgbm
+
+    artifact_stat = os.stat(model_path)
+    if (artifact_stat.st_mtime_ns, artifact_stat.st_size) != (
+        modified_ns,
+        file_size,
+    ):
+        raise OSError("L'artefact LightGBM a changé pendant son chargement.")
+    model = joblib.load(model_path)
+    artifact_stat = os.stat(model_path)
+    if (artifact_stat.st_mtime_ns, artifact_stat.st_size) != (
+        modified_ns,
+        file_size,
+    ):
+        raise OSError("L'artefact LightGBM a changé pendant son chargement.")
+    if not isinstance(model, lightgbm.LGBMClassifier):
+        raise ValueError("L'artefact configuré n'est pas un classifieur LightGBM.")
+    if getattr(model, "n_features_in_", len(FEATURE_NAMES)) != len(FEATURE_NAMES):
+        raise ValueError("Le modèle n'utilise pas les caractéristiques GPS attendues.")
+    return model, lightgbm.__version__
 
 
 def extract_features(points):
@@ -62,35 +99,35 @@ def extract_features(points):
 
 def predict_transport(points):
     """Load a configured LightGBM model for inference, without heuristic fallback."""
-    model_path = os.environ.get("TRANSPORT_MODEL_PATH", "")
-    if not model_path or not os.path.isfile(model_path):
+    model_path = (
+        os.environ.get("TRANSPORT_MODEL_PATH") or settings.TRANSPORT_MODEL_PATH
+    ).strip()
+    if not model_path:
         return {"status": "unavailable", "mode": None, "confidence": None}
     try:
-        import joblib
-        import lightgbm
-    except ImportError:
-        return {"status": "unavailable", "mode": None, "confidence": None}
-    try:
+        model_stat = os.stat(model_path)
+        model, lightgbm_version = _load_model(
+            os.path.realpath(model_path),
+            model_stat.st_mtime_ns,
+            model_stat.st_size,
+        )
         features = extract_features(points)
         started = time.perf_counter()
-        model = joblib.load(model_path)
-        if not isinstance(model, lightgbm.LGBMClassifier):
-            raise ValueError("L'artefact configuré n'est pas un classifieur LightGBM.")
         values = [[features[name] for name in FEATURE_NAMES]]
         probabilities = model.predict_proba(values)[0]
         elapsed_ms = (time.perf_counter() - started) * 1000
         classes = list(model.classes_)
+        if len(classes) != len(probabilities) or not classes:
+            raise ValueError("Les classes du modèle ne correspondent pas aux probabilités.")
         index = max(range(len(probabilities)), key=probabilities.__getitem__)
         confidence = float(probabilities[index])
-        if not classes:
-            raise ValueError("Le modèle ne fournit pas de classes.")
         if confidence < MIN_CLASSIFICATION_CONFIDENCE:
             return {
                 "status": "low_confidence",
-                "mode": None,
+                "mode": str(classes[index]),
                 "confidence": confidence,
                 "inference_ms": elapsed_ms,
-                "model_engine": f"LightGBM {lightgbm.__version__}",
+                "model_engine": f"LightGBM {lightgbm_version}",
                 "features": features,
             }
         return {
@@ -98,9 +135,13 @@ def predict_transport(points):
             "mode": str(classes[index]),
             "confidence": confidence,
             "inference_ms": elapsed_ms,
-            "model_engine": f"LightGBM {lightgbm.__version__}",
+            "model_engine": f"LightGBM {lightgbm_version}",
             "features": features,
         }
+    except FileNotFoundError:
+        return {"status": "unavailable", "mode": None, "confidence": None}
+    except ImportError:
+        return {"status": "unavailable", "mode": None, "confidence": None}
     except Exception:
         import logging
 

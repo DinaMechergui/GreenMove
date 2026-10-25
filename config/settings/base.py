@@ -16,6 +16,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-greenmove-hackathon-2026-fallback-secret-key')
 DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0', cast=Csv())
+GPS_ENCRYPTION_KEY = config('GPS_ENCRYPTION_KEY', default='')
+TRANSPORT_MODEL_PATH = config('TRANSPORT_MODEL_PATH', default='')
 
 # Modèle Utilisateur personnalisé
 AUTH_USER_MODEL = 'accounts.CustomUser'

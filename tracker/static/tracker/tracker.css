@@ -1,7 +1,40 @@
 .tracker-page { max-width: 1120px; }
 .tracker-map { min-height: 320px; width: 100%; border: 1px solid #ced8d0; border-radius: .75rem; background: #eef4ee; }
 .tracker-page :focus-visible { outline: 3px solid #174b2d; outline-offset: 3px; }
+.trip-hero { display: flex; align-items: end; justify-content: space-between; gap: 1.5rem; padding: 1.5rem; border: 1px solid #e1e9e2; border-radius: 1.25rem; background: linear-gradient(120deg, #fff 55%, #f0f7f0); box-shadow: 0 12px 32px rgba(35, 66, 47, .06); }
+.trip-heading { min-width: 0; }
+.trip-back-link { display: inline-flex; align-items: center; gap: .45rem; margin-bottom: 1.1rem; font-weight: 600; }
+.trip-eyebrow { display: block; margin-bottom: .35rem; color: #52796f; font-size: .72rem; font-weight: 800; letter-spacing: .12em; }
+.trip-heading h1 { margin: 0; font-size: clamp(1.65rem, 3vw, 2.35rem); }
+.trip-heading p { display: flex; flex-wrap: wrap; gap: .55rem 1rem; margin: .65rem 0 0; color: #627168; }
+.trip-heading p span { display: inline-flex; align-items: center; gap: .35rem; }
+.trip-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: .5rem; }
+.trip-stat-card { position: relative; height: 100%; min-height: 145px; padding: 1.2rem; overflow: hidden; border: 1px solid #e1e8e2; border-radius: 1rem; background: #fff; box-shadow: 0 8px 24px rgba(35, 66, 47, .045); }
+.trip-stat-card h2 { margin: .8rem 0 .3rem; color: #657269; font-size: .82rem; font-weight: 700; }
+.trip-stat-card p { margin: 0; color: #20392c; font-size: 1.3rem; font-weight: 750; overflow-wrap: anywhere; }
+.trip-stat-card p small { font-size: .78rem; font-weight: 600; }
+.trip-stat-icon { display: inline-grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: .75rem; background: #edf5ee; color: #335c45; font-size: 1.1rem; }
+.trip-stat-detail { display: block; margin-top: .25rem; color: #66766b; font-size: .78rem; }
+.ai-status-panel { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 1rem; padding: 1.25rem; border: 1px solid #e3d6b3; border-radius: 1rem; background: #fffaf0; }
+.ai-status-unavailable { border-color: #ead8ad; background: #fffaf0; }
+.ai-status-review { border-color: #b7d9ca; background: #f3faf6; }
+.ai-status-error { border-color: #e8c0b9; background: #fff6f4; }
+.ai-status-icon { display: grid; width: 2.7rem; height: 2.7rem; place-items: center; border-radius: .85rem; background: rgba(255, 255, 255, .8); color: #52796f; font-size: 1.25rem; }
+.ai-status-heading { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.ai-status-heading h2 { margin: 0; font-size: 1rem; }
+.ai-status-badge { padding: .25rem .6rem; border-radius: 999px; background: #f2ead7; color: #725519; font-size: .72rem; font-weight: 700; }
+.ai-status-copy p { margin: .5rem 0 0; color: #45544a; line-height: 1.55; }
+.ai-status-copy .ai-status-hint { color: #68746c; font-size: .88rem; }
+.ai-status-copy code { color: #335c45; font-weight: 700; }
+.ai-status-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: .5rem; }
+.tracker-section-title { margin-bottom: .85rem; font-size: 1.25rem; }
 @media (max-width: 575.98px) {
   .tracker-map { min-height: 250px; }
   .tracker-page header .btn { width: 100%; }
+  .trip-hero { align-items: stretch; flex-direction: column; padding: 1.1rem; }
+  .trip-actions { justify-content: stretch; }
+  .trip-actions .btn { flex: 1 1 45%; }
+  .ai-status-panel { grid-template-columns: auto minmax(0, 1fr); }
+  .ai-status-actions { grid-column: 1 / -1; justify-content: stretch; }
+  .ai-status-actions .btn { flex: 1 1 100%; }
 }
