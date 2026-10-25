@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import timedelta
 
@@ -110,10 +111,21 @@ def best_time(request):
         return render(request, 'traffic/partials/best_time_result.html', result_ctx)
 
     tomorrow = timezone.localdate() + timedelta(days=1)
+    points = list(_active_points())
+    points_json = json.dumps({
+        str(p.id): {
+            'id': str(p.id),
+            'name': p.name,
+            'lat': float(p.latitude),
+            'lon': float(p.longitude),
+        }
+        for p in points
+    })
     return render(request, 'traffic/best_time.html', {
         'page_title': _('Meilleur moment pour partir'),
         'page_intro': _("Comparez les heures de départ et gagnez du temps grâce à la prévision du trafic."),
-        'points': _active_points(),
+        'points': points,
+        'points_json': points_json,
         'form': {
             'origin': request.GET.get('origin', ''),
             'destination': request.GET.get('destination', ''),

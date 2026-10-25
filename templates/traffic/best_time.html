@@ -6,6 +6,31 @@
 {% block extra_css %}
 <meta name="description" content="{% trans 'Trouvez le meilleur créneau horaire pour votre trajet dans le Grand Tunis afin d éviter les bouchons.' %}">
 <link rel="stylesheet" href="{% static 'traffic/traffic.css' %}">
+<style>
+  #best-time-route-map {
+    height: 300px;
+    min-height: 260px;
+    width: 100%;
+    border-radius: var(--radius-md, 12px);
+    border: 1px solid var(--gm-border-subtle, #e0e0e0);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    z-index: 1;
+    background-color: #f8f9fa;
+  }
+  .route-dist-tooltip {
+    background: rgba(33, 37, 41, 0.88) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 20px !important;
+    padding: 3px 9px !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+  }
+  .route-dist-tooltip::before {
+    display: none !important;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -15,7 +40,7 @@
   <div class="row g-4">
     <!-- Formulaire -->
     <div class="col-lg-5">
-      <div class="tm-card h-100">
+      <div class="tm-card h-100 d-flex flex-column">
         <h2 class="h5 fw-bold mb-3">
           <i class="bi bi-sliders me-2 text-success" aria-hidden="true"></i>{% trans "Paramètres du trajet" %}
         </h2>
@@ -64,7 +89,7 @@
             <div class="form-text small">{% trans "Plage maximale de 12 heures." %}</div>
           </div>
 
-          <div class="d-flex align-items-center justify-content-between gap-2">
+          <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
             <button type="submit" class="btn btn-green-primary px-4" aria-label="{% trans 'Calculer le créneau optimal' %}">
               <i class="bi bi-search me-1" aria-hidden="true"></i>{% trans "Calculer l'horaire optimal" %}
             </button>
@@ -76,6 +101,25 @@
             </div>
           </div>
         </form>
+
+        <!-- Carte de l'itinéraire & Distance (dans l'espace sous le formulaire) -->
+        <div class="mt-2 pt-3 border-top flex-grow-1 d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h3 class="h6 fw-bold mb-0 text-success d-flex align-items-center gap-1">
+              <i class="bi bi-map-fill"></i>
+              <span>{% trans "Aperçu du trajet" %}</span>
+            </h3>
+            <span id="route-distance-badge" class="badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1" style="font-size: 0.8rem;">
+              {% trans "Distance : -- km" %}
+            </span>
+          </div>
+
+          <div id="route-summary-text" class="small text-muted mb-2">
+            {% trans "Sélectionnez un départ et une arrivée pour tracer le trajet." %}
+          </div>
+
+          <div id="best-time-route-map" role="region" aria-label="{% trans 'Carte du trajet et calcul de distance' %}"></div>
+        </div>
       </div>
     </div>
 
@@ -104,4 +148,154 @@
 {% block extra_js %}
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const originSelect = document.getElementById('origin_select');
+  const destSelect = document.getElementById('destination_select');
+  const mapElement = document.getElementById('best-time-route-map');
+  const badgeElement = document.getElementById('route-distance-badge');
+  const summaryElement = document.getElementById('route-summary-text');
+
+  if (!mapElement || !originSelect || !destSelect) return;
+
+  const pointsData = {{ points_json|default:"{}"|safe }};
+
+  const defaultCenter = [36.8065, 10.1815];
+  const map = L.map('best-time-route-map').setView(defaultCenter, 12);
+
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ'
+  }).addTo(map);
+
+  let startMarker = null;
+  let endMarker = null;
+  let routeLine = null;
+  let routeGlow = null;
+
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  const startIcon = L.divIcon({
+    className: 'custom-route-icon start',
+    html: '<div style="background:#2b8a3e;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,0.3);border:2px solid white;font-weight:bold;font-size:13px;">A</div>',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -15]
+  });
+
+  const endIcon = L.divIcon({
+    className: 'custom-route-icon end',
+    html: '<div style="background:#e03131;color:white;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,0.3);border:2px solid white;font-weight:bold;font-size:13px;">B</div>',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -15]
+  });
+
+  function clearRoute() {
+    if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
+    if (endMarker) { map.removeLayer(endMarker); endMarker = null; }
+    if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+    if (routeGlow) { map.removeLayer(routeGlow); routeGlow = null; }
+  }
+
+  function updateRoute() {
+    clearRoute();
+    const origId = originSelect.value;
+    const destId = destSelect.value;
+
+    const p1 = pointsData[origId];
+    const p2 = pointsData[destId];
+
+    if (p1 && p2 && origId !== destId) {
+      startMarker = L.marker([p1.lat, p1.lon], { icon: startIcon })
+        .bindPopup(`<strong>Départ (A) :</strong><br>${p1.name}`)
+        .addTo(map);
+
+      endMarker = L.marker([p2.lat, p2.lon], { icon: endIcon })
+        .bindPopup(`<strong>Arrivée (B) :</strong><br>${p2.name}`)
+        .addTo(map);
+
+      // Trait d'itinéraire (halo + ligne principale)
+      routeGlow = L.polyline([[p1.lat, p1.lon], [p2.lat, p2.lon]], {
+        color: '#1e3a2b',
+        weight: 6,
+        opacity: 0.25,
+        lineCap: 'round'
+      }).addTo(map);
+
+      routeLine = L.polyline([[p1.lat, p1.lon], [p2.lat, p2.lon]], {
+        color: '#2b8a3e',
+        weight: 4,
+        opacity: 0.9,
+        dashArray: '8, 8',
+        lineCap: 'round'
+      }).addTo(map);
+
+      const dist = haversineKm(p1.lat, p1.lon, p2.lat, p2.lon);
+      const estRoute = dist * 1.3;
+
+      routeLine.bindTooltip(`Distance : ${dist.toFixed(1)} km`, {
+        permanent: true,
+        direction: 'center',
+        className: 'route-dist-tooltip'
+      }).openTooltip();
+
+      badgeElement.textContent = `Distance : ${dist.toFixed(1)} km (est. route ${estRoute.toFixed(1)} km)`;
+      badgeElement.className = 'badge bg-success text-white fw-semibold px-2 py-1 shadow-sm';
+
+      summaryElement.innerHTML = `<strong>${p1.name}</strong> <i class="bi bi-arrow-right text-success mx-1"></i> <strong>${p2.name}</strong>`;
+
+      const bounds = L.latLngBounds([[p1.lat, p1.lon], [p2.lat, p2.lon]]);
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    } else if (p1) {
+      startMarker = L.marker([p1.lat, p1.lon], { icon: startIcon })
+        .bindPopup(`<strong>Départ (A) :</strong><br>${p1.name}`)
+        .addTo(map);
+      map.setView([p1.lat, p1.lon], 13);
+      badgeElement.textContent = 'Distance : -- km';
+      badgeElement.className = 'badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1';
+      summaryElement.textContent = 'Sélectionnez un point d\'arrivée pour tracer le trajet.';
+    } else if (p2) {
+      endMarker = L.marker([p2.lat, p2.lon], { icon: endIcon })
+        .bindPopup(`<strong>Arrivée (B) :</strong><br>${p2.name}`)
+        .addTo(map);
+      map.setView([p2.lat, p2.lon], 13);
+      badgeElement.textContent = 'Distance : -- km';
+      badgeElement.className = 'badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1';
+      summaryElement.textContent = 'Sélectionnez un point de départ pour tracer le trajet.';
+    } else {
+      map.setView(defaultCenter, 12);
+      badgeElement.textContent = 'Distance : -- km';
+      badgeElement.className = 'badge bg-success-subtle text-success border border-success-subtle fw-semibold px-2 py-1';
+      summaryElement.textContent = 'Sélectionnez un départ et une arrivée pour tracer le trajet.';
+    }
+
+    setTimeout(() => { map.invalidateSize(); }, 200);
+    setTimeout(() => { map.invalidateSize(); }, 600);
+  }
+
+  originSelect.addEventListener('change', updateRoute);
+  destSelect.addEventListener('change', updateRoute);
+  window.addEventListener('resize', () => { map.invalidateSize(); });
+
+  document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail && evt.detail.target && evt.detail.target.id === 'best-time-results') {
+      updateRoute();
+    }
+  });
+
+  // Initialisation au chargement
+  updateRoute();
+  setTimeout(() => { map.invalidateSize(); }, 300);
+});
+</script>
 {% endblock %}

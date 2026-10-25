@@ -239,3 +239,27 @@ class TrafficCrudAuthAndPermissionTests(TestCase):
         self.assertEqual(res_filter.status_code, 200)
         for s in res_filter.context['snapshots']:
             self.assertEqual(s.point_id, other_point.id)
+
+    def test_point_create_renders_geolocation_elements(self):
+        self.client.login(username='admin_traffic', password='password123')
+        response = self.client.get(reverse('traffic:point_create'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('id="btn-my-location"', content)
+        self.assertIn('aria-label="Utiliser ma position actuelle"', content)
+        self.assertIn('id="geo-status-message"', content)
+        self.assertIn('aria-live="polite"', content)
+        self.assertIn('id="btn-recenter-tunis"', content)
+        self.assertIn('data-is-create="true"', content)
+
+    def test_point_update_renders_geolocation_elements_and_edit_mode(self):
+        self.client.login(username='admin_traffic', password='password123')
+        response = self.client.get(reverse('traffic:point_update', kwargs={'pk': self.point.pk}))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('id="btn-my-location"', content)
+        self.assertIn('aria-label="Utiliser ma position actuelle"', content)
+        self.assertIn('id="geo-status-message"', content)
+        self.assertIn('aria-live="polite"', content)
+        self.assertIn('id="btn-recenter-tunis"', content)
+        self.assertIn('data-is-create="false"', content)

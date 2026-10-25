@@ -25,8 +25,8 @@ class MonitoringPointForm(forms.ModelForm):
         }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': _('Ex. Avenue Habib Bourguiba')}),
-            'latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.0001', 'min': '30.0', 'max': '38.0'}),
-            'longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.0001', 'min': '7.0', 'max': '12.0'}),
+            'latitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001', 'min': '30.0', 'max': '38.0'}),
+            'longitude': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.000001', 'min': '7.0', 'max': '12.0'}),
             'profile': forms.Select(attrs={'class': 'form-select'}),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
