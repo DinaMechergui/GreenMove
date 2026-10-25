@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Points de surveillance" %} | Traffic | GreenMove{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'traffic/traffic.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 tm-page">
+  {% include "traffic/_module_header.html" with page_title="Points de surveillance du trafic" page_intro="Gestion et configuration des capteurs et axes routiers surveillés." active="points" %}
+
+  <div class="tm-card shadow-sm mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <div>
+        <h2 class="h5 fw-bold mb-1">
+          <i class="bi bi-geo-alt-fill text-success me-2" aria-hidden="true"></i>{% trans "Liste des axes surveillés" %}
+        </h2>
+        <span class="text-muted small">
+          {% blocktrans count count=paginator.count %}1 point enregistré au total{% plural %}{{ count }} points enregistrés au total{% endblocktrans %}
+        </span>
+      </div>
+
+      <div class="d-flex gap-2">
+        {% if perms.traffic.add_monitoringpoint %}
+          <a href="{% url 'traffic:point_create' %}" class="btn btn-green-primary" aria-label="{% trans 'Ajouter un nouveau point de surveillance' %}">
+            <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{% trans "Nouveau point" %}
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <caption class="visually-hidden">{% trans "Liste des points de surveillance du trafic avec coordonnées et profil" %}</caption>
+        <thead class="table-light">
+          <tr>
+            <th scope="col">{% trans "Nom de l'axe" %}</th>
+            <th scope="col">{% trans "Latitude" %}</th>
+            <th scope="col">{% trans "Longitude" %}</th>
+            <th scope="col">{% trans "Profil de trafic" %}</th>
+            <th scope="col">{% trans "Statut" %}</th>
+            <th scope="col" class="text-end">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in points %}
+            <tr>
+              <th scope="row">
+                <a href="{% url 'traffic:point_detail' p.pk %}" class="fw-bold text-dark text-decoration-none">
+                  {{ p.name }}
+                </a>
+              </th>
+              <td><code>{{ p.latitude|floatformat:4 }}</code></td>
+              <td><code>{{ p.longitude|floatformat:4 }}</code></td>
+              <td><span class="badge bg-light text-dark border">{{ p.get_profile_display }}</span></td>
+              <td>
+                {% if p.is_active %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>{% trans "Actif" %}</span>
+                {% else %}
+                  <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">{% trans "Inactif" %}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'traffic:point_detail' p.pk %}" class="btn btn-outline-secondary" title="{% trans 'Voir le détail' %}" aria-label="{% trans 'Voir le détail de' %} {{ p.name }}">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
+                  </a>
+                  {% if perms.traffic.change_monitoringpoint %}
+                    <a href="{% url 'traffic:point_update' p.pk %}" class="btn btn-outline-primary" title="{% trans 'Modifier' %}" aria-label="{% trans 'Modifier' %} {{ p.name }}">
+                      <i class="bi bi-pencil" aria-hidden="true"></i>
+                    </a>
+                  {% endif %}
+                  {% if perms.traffic.delete_monitoringpoint %}
+                    <a href="{% url 'traffic:point_delete' p.pk %}" class="btn btn-outline-danger" title="{% trans 'Supprimer' %}" aria-label="{% trans 'Supprimer' %} {{ p.name }}">
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">
+                <i class="bi bi-geo-alt display-6 d-block mb-2" aria-hidden="true"></i>
+                {% trans "Aucun point de surveillance enregistré." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if is_paginated %}
+      <nav aria-label="{% trans 'Pagination des points' %}" class="mt-4 d-flex justify-content-center">
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="{% trans 'Page précédente' %}">
+                &laquo;
+              </a>
+            </li>
+          {% endif %}
+          <li class="page-item disabled">
+            <span class="page-link">{% trans "Page" %} {{ page_obj.number }} / {{ paginator.num_pages }}</span>
+          </li>
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="{% trans 'Page suivante' %}">
+                &raquo;
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

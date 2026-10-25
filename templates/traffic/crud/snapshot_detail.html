@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Mesure de trafic" %} #{{ snapshot.pk }} | Traffic | GreenMove{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'traffic/traffic.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 tm-page">
+  {% include "traffic/_module_header.html" with page_title="Détail de la mesure" page_intro="Relevé ponctuel de vitesse, de fluidité et d environnement." active="snapshots" %}
+
+  <div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+      <div class="tm-card shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+          <div>
+            <span class="badge bg-light text-dark border mb-1">{{ snapshot.get_source_display }}</span>
+            <h2 class="h5 fw-bold mb-0 text-success">
+              {{ snapshot.point.name }}
+            </h2>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{% url 'traffic:snapshot_list' %}" class="btn btn-sm btn-outline-secondary rounded-pill">
+              <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{% trans "Toutes les mesures" %}
+            </a>
+          </div>
+        </div>
+
+        <dl class="row small mb-4">
+          <dt class="col-sm-5 text-muted">{% trans "Point de surveillance" %}</dt>
+          <dd class="col-sm-7 fw-bold">
+            <a href="{% url 'traffic:point_detail' snapshot.point.pk %}" class="text-decoration-none">
+              {{ snapshot.point.name }} &rarr;
+            </a>
+          </dd>
+
+          <dt class="col-sm-5 text-muted">{% trans "Date & Heure exacte" %}</dt>
+          <dd class="col-sm-7"><code>{{ snapshot.timestamp|date:"d/m/Y H:i:s" }}</code></dd>
+
+          <dt class="col-sm-5 text-muted">{% trans "Indice de congestion" %}</dt>
+          <dd class="col-sm-7">
+            <span class="badge fs-6 {% if snapshot.congestion < 0.3 %}bg-success text-white{% elif snapshot.congestion < 0.6 %}bg-warning text-dark{% else %}bg-danger text-white{% endif %}">
+              {{ snapshot.congestion|floatformat:2 }} ({{ snapshot.congestion|floatformat:0 }} %)
+            </span>
+          </dd>
+
+          <dt class="col-sm-5 text-muted">{% trans "Vitesse actuelle observée" %}</dt>
+          <dd class="col-sm-7 fw-bold">{{ snapshot.current_speed|floatformat:1 }} km/h</dd>
+
+          <dt class="col-sm-5 text-muted">{% trans "Vitesse fluide de référence" %}</dt>
+          <dd class="col-sm-7">{{ snapshot.free_flow_speed|floatformat:0 }} km/h</dd>
+
+          <dt class="col-sm-5 text-muted">{% trans "Précipitations météo" %}</dt>
+          <dd class="col-sm-7">
+            {% if snapshot.precipitation_mm > 0 %}
+              <span class="text-primary fw-bold"><i class="bi bi-cloud-rain me-1"></i>{{ snapshot.precipitation_mm|floatformat:1 }} mm</span>
+            {% else %}
+              <span class="text-muted">{% trans "Aucune pluie (0 mm)" %}</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-5 text-muted">{% trans "Jour férié" %}</dt>
+          <dd class="col-sm-7">
+            {% if snapshot.is_holiday %}
+              <span class="badge bg-warning text-dark">{% trans "Oui (Férié officiel)" %}</span>
+            {% else %}
+              <span class="text-muted">{% trans "Non (Jour régulier)" %}</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-5 text-muted">{% trans "Source de la mesure" %}</dt>
+          <dd class="col-sm-7">{{ snapshot.get_source_display }}</dd>
+        </dl>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+          {% if perms.traffic.change_trafficsnapshot %}
+            <a href="{% url 'traffic:snapshot_update' snapshot.pk %}" class="btn btn-outline-primary px-3">
+              <i class="bi bi-pencil me-1" aria-hidden="true"></i>{% trans "Modifier" %}
+            </a>
+          {% endif %}
+          {% if perms.traffic.delete_trafficsnapshot %}
+            <a href="{% url 'traffic:snapshot_delete' snapshot.pk %}" class="btn btn-outline-danger px-3">
+              <i class="bi bi-trash me-1" aria-hidden="true"></i>{% trans "Supprimer" %}
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
