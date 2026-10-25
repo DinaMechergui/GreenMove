@@ -13,6 +13,7 @@ celery
 redis
 weasyprint
 python-decouple
+psycopg[binary]
 requests
 pillow
 polib
