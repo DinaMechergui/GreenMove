@@ -1,5 +1,5 @@
 [run]
-source = accounts, planner
+source = accounts, match, planner, tracker, traffic, rewards, core, carbon_service, weather_service
 omit =
     */migrations/*
     */tests*

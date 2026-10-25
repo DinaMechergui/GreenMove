@@ -28,6 +28,7 @@ def extract_features(points):
     speeds = []
     accelerations = []
     accuracies = []
+    previous_speed_mps = None
     for first, second in zip(ordered, ordered[1:]):
         start = first["timestamp"]
         end = second["timestamp"]
@@ -38,7 +39,7 @@ def extract_features(points):
         end_coords = validate_coordinate(second["latitude"], second["longitude"])
         speed_mps = haversine_km(start_coords, end_coords) * 1000 / seconds
         speeds.append(speed_mps * 3.6)
-        if len(speeds) > 1:
+        if previous_speed_mps is not None:
             accelerations.append((speed_mps - previous_speed_mps) / seconds)
         previous_speed_mps = speed_mps
     accuracies = [max(0.0, float(point.get("accuracy_m", 0))) for point in ordered]

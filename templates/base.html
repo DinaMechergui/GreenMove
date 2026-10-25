@@ -30,6 +30,9 @@
 </head>
 <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
 
+  <!-- Accessibilité : lien d'évitement (navigation clavier WCAG 2.4.1) -->
+  <a class="skip-link" href="#main-content">Aller au contenu principal</a>
+
   <!-- 1. Barre de progression de lecture au scroll -->
   <div id="reading-progress-bar"></div>
 
@@ -178,7 +181,7 @@
   </nav>
 
   <!-- 5. Contenu Principal Injecté -->
-  <main style="min-height: calc(100vh - 280px);">
+  <main id="main-content" tabindex="-1" style="min-height: calc(100vh - 280px);">
     {% block content %}{% endblock %}
   </main>
 

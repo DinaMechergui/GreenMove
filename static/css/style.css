@@ -631,3 +631,40 @@ a:hover {
     display: none !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   16. ACCESSIBILITÉ : LIEN D'ÉVITEMENT & FOCUS VISIBLE (WCAG 2.4.1 / 2.4.7)
+   -------------------------------------------------------------------------- */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 3000;
+  padding: 0.75rem 1.25rem;
+  background: var(--gm-green-primary, #335C45);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 0 0 10px 0;
+}
+
+.skip-link:focus {
+  left: 0;
+  top: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--gm-green-primary, #335C45);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--gm-warm-sand, #E9C46A);
+  outline-offset: 3px;
+}
