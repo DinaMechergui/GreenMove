@@ -28,6 +28,8 @@ urlpatterns = [
     # API Documentation (Swagger / OpenAPI 3)
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/traffic/', include('traffic.api.urls', namespace='traffic_api')),
+    path('api/weather/', include('weather_service.urls', namespace='weather_api')),
 ]
 
 handler404 = 'core.views.handler404'

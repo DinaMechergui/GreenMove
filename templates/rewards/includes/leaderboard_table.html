@@ -1,0 +1,136 @@
+{% load i18n static %}
+
+<!-- Podium Top 3 si applicable -->
+{% if ranked_users|length >= 3 %}
+  <div class="row g-3 mb-4 justify-content-center text-center">
+    <!-- 2ème Place (Argent) -->
+    <div class="col-md-4 col-sm-6 order-2 order-md-1">
+      <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface); border: 2px solid #C0C0C0 !important;">
+        <div class="badge rounded-pill bg-secondary text-white px-3 py-1 mb-2 d-inline-block">
+          <i class="bi bi-award-fill me-1"></i>#2 Argent
+        </div>
+        <div class="my-2">
+          {% with u=ranked_users.1 %}
+            <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center shadow-sm" style="width: 58px; height: 58px; background: #EDF2F4; border: 3px solid #C0C0C0;">
+              <span class="fs-4 fw-bold text-secondary">{{ u.first_name|default:u.username|slice:":1"|upper }}</span>
+            </div>
+            <div class="fw-bold text-dark mt-2">{{ u.get_full_name|default:u.username }}</div>
+            <div class="text-muted small">{{ u.gamification_profile.district|default:"Grand Tunis" }}</div>
+            <div class="mt-2 fw-extrabold text-success fs-5">{{ u.eco_points }} pts</div>
+            <div class="text-muted small">{{ u.gamification_profile.total_co2_saved_kg|floatformat:1 }} kg CO₂ évités</div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <!-- 1ère Place (Or) -->
+    <div class="col-md-4 col-sm-6 order-1 order-md-2">
+      <div class="card border-0 rounded-4 p-4 shadow h-100 position-relative" style="background: linear-gradient(145deg, #FFFDF5, #FFF9E6); border: 2px solid #E9C46A !important; transform: scale(1.04);">
+        <span class="position-absolute top-0 start-50 translate-middle badge rounded-pill px-3 py-2 shadow" style="background: #E9C46A; color: #1D2A22; font-size: 0.85rem;">
+          <i class="bi bi-trophy-fill me-1"></i>#1 Champion Climat
+        </span>
+        <div class="my-3">
+          {% with u=ranked_users.0 %}
+            <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center shadow-sm" style="width: 72px; height: 72px; background: #FFF3CD; border: 4px solid #E9C46A;">
+              <span class="fs-3 fw-bold text-warning-emphasis">{{ u.first_name|default:u.username|slice:":1"|upper }}</span>
+            </div>
+            <div class="fw-extrabold text-dark mt-2 fs-5">{{ u.get_full_name|default:u.username }}</div>
+            <div class="badge rounded-pill bg-success-subtle text-success small mb-2">{{ u.gamification_profile.organization|default:"ESPRIT" }}</div>
+            <div class="text-muted small">{{ u.gamification_profile.district|default:"Les Berges du Lac 2" }}</div>
+            <div class="mt-2 display-6 fw-extrabold text-success" style="font-size: 1.8rem;">{{ u.eco_points }} <span class="fs-6 text-muted">pts</span></div>
+            <div class="text-success fw-bold small"><i class="bi bi-cloud-slash-fill me-1"></i>{{ u.gamification_profile.total_co2_saved_kg|floatformat:1 }} kg CO₂ évités</div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+
+    <!-- 3ème Place (Bronze) -->
+    <div class="col-md-4 col-sm-6 order-3 order-md-3">
+      <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface); border: 2px solid #CD7F32 !important;">
+        <div class="badge rounded-pill text-white px-3 py-1 mb-2 d-inline-block" style="background: #CD7F32;">
+          <i class="bi bi-award-fill me-1"></i>#3 Bronze
+        </div>
+        <div class="my-2">
+          {% with u=ranked_users.2 %}
+            <div class="rounded-circle mx-auto d-flex align-items-center justify-content-center shadow-sm" style="width: 58px; height: 58px; background: #FDF0E6; border: 3px solid #CD7F32;">
+              <span class="fs-4 fw-bold" style="color: #CD7F32;">{{ u.first_name|default:u.username|slice:":1"|upper }}</span>
+            </div>
+            <div class="fw-bold text-dark mt-2">{{ u.get_full_name|default:u.username }}</div>
+            <div class="text-muted small">{{ u.gamification_profile.district|default:"Ariana" }}</div>
+            <div class="mt-2 fw-extrabold text-success fs-5">{{ u.eco_points }} pts</div>
+            <div class="text-muted small">{{ u.gamification_profile.total_co2_saved_kg|floatformat:1 }} kg CO₂ évités</div>
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Table du Classement Complet -->
+<div class="card border-0 rounded-4 shadow-sm p-4" style="background: var(--gm-surface);">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light small text-muted">
+        <tr>
+          <th style="width: 80px;" class="text-center">{% trans "Rang" %}</th>
+          <th>{% trans "Citoyen Éco-Mobile" %}</th>
+          <th>{% trans "Quartier / Délégation" %}</th>
+          <th>{% trans "Établissement" %}</th>
+          <th class="text-center">{% trans "CO₂ Évité (kg)" %}</th>
+          <th class="text-end">{% trans "EcoPoints" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in ranked_users %}
+          <tr {% if request.user == u %}class="table-success"{% endif %}>
+            <td class="text-center">
+              {% if forloop.counter == 1 %}
+                <span class="badge rounded-pill bg-warning text-dark px-2 py-1"><i class="bi bi-trophy-fill"></i> 1</span>
+              {% elif forloop.counter == 2 %}
+                <span class="badge rounded-pill bg-secondary text-white px-2 py-1"><i class="bi bi-award-fill"></i> 2</span>
+              {% elif forloop.counter == 3 %}
+                <span class="badge rounded-pill text-white px-2 py-1" style="background: #CD7F32;"><i class="bi bi-award-fill"></i> 3</span>
+              {% else %}
+                <span class="fw-bold text-muted">#{{ forloop.counter }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 38px; height: 38px; background: var(--gm-green-tint);">
+                  <span class="fw-bold text-success" style="font-size: 0.85rem;">{{ u.first_name|default:u.username|slice:":1"|upper }}</span>
+                </div>
+                <div>
+                  <div class="fw-bold text-dark">
+                    {{ u.get_full_name|default:u.username }}
+                    {% if request.user == u %}<span class="badge bg-success ms-1 small">{% trans "Vous" %}</span>{% endif %}
+                  </div>
+                  <div class="text-muted small" style="font-size: 0.75rem;">
+                    <i class="bi {{ u.gamification_profile.current_level_icon }} me-1 text-success"></i>{{ u.gamification_profile.current_level_name }}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="small text-muted">
+              <i class="bi bi-geo-alt me-1 text-danger"></i>{{ u.gamification_profile.district|default:"Grand Tunis" }}
+            </td>
+            <td class="small text-muted">
+              <span class="badge bg-light text-secondary border rounded-pill">{{ u.gamification_profile.organization|default:"ESPRIT" }}</span>
+            </td>
+            <td class="text-center fw-bold text-success small">
+              {{ u.gamification_profile.total_co2_saved_kg|floatformat:1 }} kg
+            </td>
+            <td class="text-end fw-extrabold text-dark fs-6">
+              {{ u.eco_points }} <span class="fs-6 text-muted fw-normal">pts</span>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted">
+              {% trans "Aucun utilisateur trouvé pour ce filtre." %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

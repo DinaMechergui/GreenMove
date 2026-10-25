@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{{ title }} | Traffic | GreenMove{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'traffic/traffic.css' %}">
+<style>
+  #point-picker-map {
+    height: 380px;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--gm-border-subtle);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    cursor: crosshair;
+    z-index: 1;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 tm-page">
+  {% include "traffic/_module_header.html" with page_title=title page_intro="Saisie et validation des paramètres selon les contraintes géographiques et physiques." active="points" %}
+
+  <div class="row justify-content-center">
+    <div class="col-lg-9 col-md-11">
+      <div class="tm-card shadow-sm p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+          <div>
+            <h2 class="h5 fw-bold mb-1 text-success">
+              <i class="bi bi-geo-alt-fill me-2" aria-hidden="true"></i>{{ title }}
+            </h2>
+            <p class="small text-muted mb-0">{% trans "Complétez les informations ou positionnez le point directement sur la carte." %}</p>
+          </div>
+          {% if back_url %}
+            <a href="{{ back_url }}" class="btn btn-sm btn-outline-secondary rounded-pill">
+              <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{% trans "Retour" %}
+            </a>
+          {% endif %}
+        </div>
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-4 rounded-3" role="alert">
+            <h3 class="h6 fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1" aria-hidden="true"></i>{% trans "Erreurs de validation" %}</h3>
+            <ul class="mb-0 small ps-3">
+              {% for err in form.non_field_errors %}
+                <li>{{ err }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        <form method="post" novalidate aria-label="{{ title }}" id="traffic-crud-form">
+          {% csrf_token %}
+
+          {# Si le formulaire concerne un point géographique (latitude + longitude) #}
+          {% if form.latitude and form.longitude %}
+            <!-- Nom du point -->
+            <div class="mb-3">
+              <label for="{{ form.name.id_for_label }}" class="form-label fw-semibold">
+                {{ form.name.label }} <span class="text-danger">*</span>
+              </label>
+              {{ form.name }}
+              {% if form.name.help_text %}
+                <div class="form-text text-muted small">{{ form.name.help_text }}</div>
+              {% endif %}
+              {% if form.name.errors %}
+                <div class="text-danger small mt-1" role="alert">
+                  {% for error in form.name.errors %}<div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Carte interactive Leaflet de sélection -->
+            <div class="mb-4">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label fw-bold mb-0">
+                  <i class="bi bi-pin-map-fill text-danger me-1"></i>{% trans "Positionnement précis sur la carte (Grand Tunis)" %}
+                </label>
+                <div class="d-flex gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-primary rounded-pill py-0 px-2" id="btn-my-location" aria-label="{% trans 'Utiliser ma position actuelle' %}" style="font-size: 0.78rem;">
+                    <i class="bi bi-geo-alt me-1" aria-hidden="true"></i>{% trans "Ma position" %}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-success rounded-pill py-0 px-2" id="btn-recenter-tunis" aria-label="{% trans 'Recentrer sur Tunis' %}" style="font-size: 0.78rem;">
+                    <i class="bi bi-crosshair me-1" aria-hidden="true"></i>{% trans "Recentrer sur Tunis" %}
+                  </button>
+                </div>
+              </div>
+
+              <div id="geo-status-message" class="alert py-2 px-3 small rounded-3 d-none mb-2" role="status" aria-live="polite"></div>
+
+              <div class="p-2 rounded-3 bg-light border small text-muted mb-2 d-flex align-items-center gap-2">
+                <i class="bi bi-info-circle-fill text-primary fs-6"></i>
+                <span>{% trans "Cliquez n'importe où sur la carte ou déplacez le curseur rouge pour définir l'emplacement exact de l'axe routier." %}</span>
+              </div>
+
+              <div id="point-picker-map" data-is-create="{% if form.instance.pk %}false{% else %}true{% endif %}" role="region" aria-label="{% trans 'Carte de sélection des coordonnées géographiques' %}"></div>
+
+              <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+                <span>{% trans "Coordonnées sélectionnées :" %} <strong id="picker-coords-text" class="text-dark">--</strong></span>
+                <span class="badge bg-success-subtle text-success border">{% trans "Synchronisation automatique" %}</span>
+              </div>
+            </div>
+
+            <!-- Coordonnées numériques (mises à jour par la carte) -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label for="{{ form.latitude.id_for_label }}" class="form-label fw-semibold">
+                  {{ form.latitude.label }} <span class="text-danger">*</span>
+                </label>
+                {{ form.latitude }}
+                {% if form.latitude.help_text %}
+                  <div class="form-text text-muted small">{{ form.latitude.help_text }}</div>
+                {% endif %}
+                {% if form.latitude.errors %}
+                  <div class="text-danger small mt-1" role="alert">
+                    {% for error in form.latitude.errors %}<div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label for="{{ form.longitude.id_for_label }}" class="form-label fw-semibold">
+                  {{ form.longitude.label }} <span class="text-danger">*</span>
+                </label>
+                {{ form.longitude }}
+                {% if form.longitude.help_text %}
+                  <div class="form-text text-muted small">{{ form.longitude.help_text }}</div>
+                {% endif %}
+                {% if form.longitude.errors %}
+                  <div class="text-danger small mt-1" role="alert">
+                    {% for error in form.longitude.errors %}<div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Profil de trafic -->
+            <div class="mb-3">
+              <label for="{{ form.profile.id_for_label }}" class="form-label fw-semibold">
+                {{ form.profile.label }} <span class="text-danger">*</span>
+              </label>
+              {{ form.profile }}
+              {% if form.profile.help_text %}
+                <div class="form-text text-muted small">{{ form.profile.help_text }}</div>
+              {% endif %}
+              {% if form.profile.errors %}
+                <div class="text-danger small mt-1" role="alert">
+                  {% for error in form.profile.errors %}<div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Case actif -->
+            <div class="form-check form-switch mb-3 mt-3">
+              {{ form.is_active }}
+              <label class="form-check-label fw-semibold" for="{{ form.is_active.id_for_label }}">
+                {{ form.is_active.label }}
+              </label>
+            </div>
+
+          {% else %}
+            {# Formulaire générique (pour TrafficSnapshot) #}
+            {% for field in form %}
+              <div class="mb-3">
+                <label for="{{ field.id_for_label }}" class="form-label fw-semibold mb-1">
+                  {{ field.label }}
+                  {% if field.field.required %}<span class="text-danger" aria-hidden="true">*</span>{% endif %}
+                </label>
+                {{ field }}
+                {% if field.help_text %}
+                  <div class="form-text text-muted small">{{ field.help_text }}</div>
+                {% endif %}
+                {% if field.errors %}
+                  <div class="text-danger small mt-1" role="alert">
+                    {% for error in field.errors %}<div><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top mt-4">
+            {% if back_url %}
+              <a href="{{ back_url }}" class="btn btn-outline-secondary px-4">
+                {% trans "Annuler" %}
+              </a>
+            {% endif %}
+            <button type="submit" class="btn btn-green-primary px-4">
+              <i class="bi bi-check-circle me-1" aria-hidden="true"></i>{% trans "Enregistrer" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const latInput = document.getElementById('id_latitude');
+  const lonInput = document.getElementById('id_longitude');
+  const mapContainer = document.getElementById('point-picker-map');
+  const coordsText = document.getElementById('picker-coords-text');
+  const btnRecenter = document.getElementById('btn-recenter-tunis');
+  const btnMyLocation = document.getElementById('btn-my-location');
+  const geoStatusMsg = document.getElementById('geo-status-message');
+
+  if (!latInput || !lonInput || !mapContainer) return;
+
+  const isCreateMode = mapContainer.dataset.isCreate === 'true';
+
+  // Coordonnées par défaut : Centre de Tunis
+  const defaultLat = 36.8065;
+  const defaultLon = 10.1815;
+
+  let initialLat = parseFloat(latInput.value);
+  let initialLon = parseFloat(lonInput.value);
+
+  const hasInitialCoords = (!isNaN(initialLat) && !isNaN(initialLon));
+  let currentLat = hasInitialCoords ? initialLat : defaultLat;
+  let currentLon = hasInitialCoords ? initialLon : defaultLon;
+
+  // 1. Initialiser la carte Leaflet
+  const map = L.map('point-picker-map').setView([currentLat, currentLon], hasInitialCoords ? 14 : 12);
+
+  // Tuiles Esri World Street Map (sans clé, sans 403)
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ'
+  }).addTo(map);
+
+  // Marqueur déplaçable (draggable)
+  const marker = L.marker([currentLat, currentLon], {
+    draggable: true,
+    autoPan: true
+  }).addTo(map);
+
+  let accuracyCircle = null;
+
+  function setAccuracyCircle(lat, lon, accuracy) {
+    if (accuracyCircle) {
+      map.removeLayer(accuracyCircle);
+      accuracyCircle = null;
+    }
+    if (accuracy && accuracy > 0) {
+      accuracyCircle = L.circle([lat, lon], {
+        radius: accuracy,
+        color: '#198754',
+        fillColor: '#198754',
+        fillOpacity: 0.12,
+        weight: 1.5,
+        dashArray: '4, 4'
+      }).addTo(map);
+    }
+  }
+
+  function clearAccuracyCircle() {
+    if (accuracyCircle) {
+      map.removeLayer(accuracyCircle);
+      accuracyCircle = null;
+    }
+  }
+
+  function showGeoMessage(message, bsType = 'info') {
+    if (!geoStatusMsg) return;
+    let iconClass = 'bi-info-circle-fill text-info';
+    if (bsType === 'success') iconClass = 'bi-check-circle-fill text-success';
+    else if (bsType === 'warning') iconClass = 'bi-exclamation-triangle-fill text-warning';
+    else if (bsType === 'danger') iconClass = 'bi-exclamation-octagon-fill text-danger';
+
+    geoStatusMsg.className = `alert alert-${bsType} py-2 px-3 small rounded-3 mb-2 d-flex align-items-center gap-2`;
+    geoStatusMsg.innerHTML = `<i class="bi ${iconClass}" aria-hidden="true"></i><span>${message}</span>`;
+    geoStatusMsg.classList.remove('d-none');
+  }
+
+  function clearGeoMessage() {
+    if (!geoStatusMsg) return;
+    geoStatusMsg.textContent = '';
+    geoStatusMsg.className = 'alert py-2 px-3 small rounded-3 d-none mb-2';
+  }
+
+  function updateCoords(lat, lon, syncInputs = true) {
+    const latFixed = parseFloat(lat).toFixed(6);
+    const lonFixed = parseFloat(lon).toFixed(6);
+
+    if (syncInputs) {
+      latInput.value = latFixed;
+      lonInput.value = lonFixed;
+    }
+    if (coordsText) {
+      coordsText.textContent = `${latFixed}°N, ${lonFixed}°E`;
+    }
+  }
+
+  // Initialisation de l'affichage
+  updateCoords(currentLat, currentLon, hasInitialCoords);
+
+  // Déplacement du marqueur (Drag & Drop)
+  marker.on('dragend', function(e) {
+    const pos = e.target.getLatLng();
+    updateCoords(pos.lat, pos.lng, true);
+  });
+
+  // Clic sur la carte -> déplace le marqueur
+  map.on('click', function(e) {
+    marker.setLatLng(e.latlng);
+    updateCoords(e.latlng.lat, e.latlng.lng, true);
+  });
+
+  // Synchronisation si l'utilisateur tape manuellement dans les inputs
+  function onInputsChange() {
+    const l = parseFloat(latInput.value);
+    const g = parseFloat(lonInput.value);
+    if (!isNaN(l) && !isNaN(g) && l >= 30 && l <= 38 && g >= 7 && g <= 12) {
+      marker.setLatLng([l, g]);
+      map.panTo([l, g]);
+      if (coordsText) {
+        coordsText.textContent = `${l.toFixed(6)}°N, ${g.toFixed(6)}°E`;
+      }
+    }
+  }
+  latInput.addEventListener('input', onInputsChange);
+  lonInput.addEventListener('input', onInputsChange);
+
+  // Bouton recentrer sur Tunis
+  if (btnRecenter) {
+    btnRecenter.addEventListener('click', function() {
+      map.setView([defaultLat, defaultLon], 13);
+      marker.setLatLng([defaultLat, defaultLon]);
+      updateCoords(defaultLat, defaultLon, true);
+      clearAccuracyCircle();
+      clearGeoMessage();
+    });
+  }
+
+  // Géolocalisation
+  const geoOptions = {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 0
+  };
+
+  function requestGeolocation() {
+    if (!navigator.geolocation) {
+      showGeoMessage("La géolocalisation n'est pas supportée par votre navigateur.", 'warning');
+      return;
+    }
+
+    if (btnMyLocation) {
+      btnMyLocation.disabled = true;
+    }
+    showGeoMessage("Détection de votre position en cours...", 'info');
+
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        if (btnMyLocation) btnMyLocation.disabled = false;
+        try {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+
+          // Grand Tunis : lat 36.6–37.1, lon 9.9–10.5
+          if (lat >= 36.6 && lat <= 37.1 && lon >= 9.9 && lon <= 10.5) {
+            map.setView([lat, lon], 16);
+            marker.setLatLng([lat, lon]);
+            updateCoords(lat, lon, true);
+            setAccuracyCircle(lat, lon, accuracy);
+            const accRounded = Math.round(accuracy || 0);
+            showGeoMessage(`Position actuelle détectée (précision ≈ ${accRounded} m)`, 'success');
+          } else {
+            // Reste sur Tunis
+            showGeoMessage("Votre position est hors du Grand Tunis, cliquez sur la carte pour choisir le point.", 'warning');
+          }
+        } catch (e) {
+          showGeoMessage("Erreur lors de l'application de votre position.", 'warning');
+        }
+      },
+      function(error) {
+        if (btnMyLocation) btnMyLocation.disabled = false;
+        let msg = "Impossible d'obtenir votre position. Cliquez sur la carte pour choisir le point.";
+        if (error) {
+          switch (error.code) {
+            case error.PERMISSION_DENIED: // 1
+              msg = "Permission refusée pour la géolocalisation. Cliquez sur la carte pour choisir le point.";
+              break;
+            case error.POSITION_UNAVAILABLE: // 2
+              msg = "Position indisponible. Cliquez sur la carte pour choisir le point.";
+              break;
+            case error.TIMEOUT: // 3
+              msg = "Délai dépassé pour la géolocalisation. Cliquez sur la carte pour choisir le point.";
+              break;
+          }
+        }
+        showGeoMessage(msg, 'warning');
+      },
+      geoOptions
+    );
+  }
+
+  if (btnMyLocation) {
+    btnMyLocation.addEventListener('click', requestGeolocation);
+  }
+
+  // 1. À l'ouverture du formulaire de CRÉATION d'un point uniquement :
+  if (isCreateMode) {
+    requestGeolocation();
+  }
+
+  // Correction du rendu Leaflet
+  setTimeout(function() {
+    map.invalidateSize();
+  }, 300);
+});
+</script>
+{% endblock %}

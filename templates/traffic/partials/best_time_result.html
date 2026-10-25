@@ -1,0 +1,135 @@
+{% load i18n %}
+{% if error %}
+  <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-5" aria-hidden="true"></i>
+    <div>{{ error }}</div>
+  </div>
+{% elif result %}
+  <div class="tm-card mb-4" id="best-time-results-container">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <span class="badge bg-light text-dark border">
+        <i class="bi bi-geo-alt me-1 text-success" aria-hidden="true"></i>{{ result.origin }} &rarr; {{ result.destination }}
+      </span>
+      <span class="small text-muted">
+        {% trans "Durée de base :" %} <strong>{{ result.base_duration_min }} min</strong> (source : {{ result.duration_source }})
+      </span>
+    </div>
+
+    <!-- Message principal -->
+    <div class="p-3 rounded-4 mb-4" style="background: var(--gm-green-tint); border: 1px solid var(--gm-green-accent);">
+      <div class="tm-best-message mb-1">
+        <i class="bi bi-stars text-warning me-1" aria-hidden="true"></i>{{ result.message }}
+      </div>
+      <div class="small text-muted">
+        {% trans "Temps gagné estimé en évitant le pire créneau :" %} <strong class="text-success">{{ result.time_saved_min }} minutes</strong>.
+      </div>
+    </div>
+
+    <!-- Indicateurs clés -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6">
+        <div class="tm-kpi border border-success border-opacity-25 h-100">
+          <span class="tm-kpi-label text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>{% trans "Meilleur départ" %}</span>
+          <span class="tm-kpi-value text-success">{{ result.best.departure|slice:"11:" }}</span>
+          <span class="small text-muted">{{ result.best.duration_min }} min (congestion {{ result.best.congestion|floatformat:2 }})</span>
+        </div>
+      </div>
+      <div class="col-sm-6">
+        <div class="tm-kpi border border-danger border-opacity-25 h-100">
+          <span class="tm-kpi-label text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>{% trans "Pire départ (à éviter)" %}</span>
+          <span class="tm-kpi-value text-danger">{{ result.worst.departure|slice:"11:" }}</span>
+          <span class="small text-muted">{{ result.worst.duration_min }} min (congestion {{ result.worst.congestion|floatformat:2 }})</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Graphique Chart.js -->
+    <div class="mb-4">
+      <h3 class="h6 fw-bold mb-3">{% trans "Évolution de la durée du trajet selon l'heure de départ" %}</h3>
+      <div class="tm-chart-box">
+        <canvas id="bestTimeChart" role="img" aria-label="{% trans 'Graphique des durées de trajet prévues selon l heure de départ' %}"></canvas>
+      </div>
+    </div>
+
+    <!-- Tableau détaillé accessible -->
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <caption class="small text-muted">{% trans "Créneaux calculés toutes les 15 minutes." %}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{% trans "Départ" %}</th>
+            <th scope="col">{% trans "Congestion" %}</th>
+            <th scope="col">{% trans "Durée estimée" %}</th>
+            <th scope="col">{% trans "Pluie" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for opt in result.options %}
+          <tr {% if opt.departure == result.best.departure %}class="table-success fw-bold"{% elif opt.departure == result.worst.departure %}class="table-danger"{% endif %}>
+            <td>
+              {{ opt.departure|slice:"11:" }}
+              {% if opt.departure == result.best.departure %}<span class="badge bg-success ms-1">{% trans "Optimal" %}</span>{% endif %}
+            </td>
+            <td>{{ opt.congestion }}</td>
+            <td>{{ opt.duration_min }} min</td>
+            <td>{{ opt.precipitation_mm }} mm</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {{ chart_data|json_script:"best-time-chart-data" }}
+    <script>
+      (function() {
+        const raw = document.getElementById('best-time-chart-data')?.textContent;
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        const ctx = document.getElementById('bestTimeChart')?.getContext('2d');
+        if (!ctx) return;
+
+        if (window._bestTimeChartInstance) {
+          window._bestTimeChartInstance.destroy();
+        }
+
+        const bgColors = data.durations.map((_, idx) =>
+          idx === data.bestIndex ? '#198754' : (idx === data.worstIndex ? '#dc3545' : '#84A98C')
+        );
+
+        window._bestTimeChartInstance = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: data.strings.duration || 'Durée (min)',
+              data: data.durations,
+              backgroundColor: bgColors,
+              borderRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(c) { return `${c.raw} min (congestion : ${data.congestion[c.dataIndex]}%)`; }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: false,
+                title: { display: true, text: data.strings.minutes || 'Minutes' }
+              },
+              x: {
+                title: { display: true, text: data.strings.departure || 'Heure de départ' }
+              }
+            }
+          }
+        });
+      })();
+    </script>
+  </div>
+{% endif %}

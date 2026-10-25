@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block title %}Boutique des Récompenses & Partenaires | GreenMove{% endblock %}
+
+{% block content %}
+<div class="py-4" style="background: var(--gm-bg);">
+  <div class="container">
+
+    <!-- En-tête Boutique & Solde Utilisateur -->
+    <div class="card border-0 rounded-4 shadow-sm p-4 mb-4" style="background: var(--gm-surface); border: 1px solid var(--gm-border-subtle) !important;">
+      <div class="row align-items-center g-3">
+        <div class="col-lg-8">
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2" style="background: var(--gm-green-tint); border: 1px solid var(--gm-border-subtle);">
+            <i class="bi bi-shop" style="color: var(--gm-green-primary);"></i>
+            <span class="small fw-bold" style="color: var(--gm-green-primary);">{% trans "Commerces Partenaires Grand Tunis" %}</span>
+          </div>
+          <h2 class="display-6 fw-extrabold text-dark mb-1">{% trans "Boutique EcoRewards" %}</h2>
+          <p class="text-muted small mb-0">{% trans "Convertissez vos kilomètres propres en cafés offerts, recharges gratuites et remises en magasin" %}</p>
+        </div>
+
+        <div class="col-lg-4 text-lg-end">
+          <div class="d-inline-flex flex-column align-items-lg-end bg-light p-3 rounded-4 border">
+            <span class="text-muted small">{% trans "Votre Solde Éco-Points :" %}</span>
+            <span class="display-6 fw-extrabold text-success mb-1">{{ user_points }} <span class="fs-6 text-muted fw-normal">pts</span></span>
+            <a href="{% url 'rewards:my_coupons' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+              <i class="bi bi-qr-code me-1"></i>{% trans "Voir mes Coupons Actifs" %}
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtres par Catégorie de Partenaires -->
+    <div class="d-flex align-items-center gap-2 overflow-x-auto pb-2 mb-4" style="white-space: nowrap;">
+      <a href="{% url 'rewards:catalog' %}?cat=ALL" class="btn rounded-pill px-4 py-2 fw-semibold {% if current_category == 'ALL' %}btn-green-primary{% else %}btn-white border text-dark{% endif %} shadow-sm">
+        <i class="bi bi-grid-fill me-1"></i>{% trans "Toutes les offres" %}
+      </a>
+      <a href="{% url 'rewards:catalog' %}?cat=COFFEE_FOOD" class="btn rounded-pill px-4 py-2 fw-semibold {% if current_category == 'COFFEE_FOOD' %}btn-green-primary{% else %}btn-white border text-dark{% endif %} shadow-sm">
+        <i class="bi bi-cup-hot-fill me-1"></i>{% trans "Cafés & Restauration" %}
+      </a>
+      <a href="{% url 'rewards:catalog' %}?cat=MOBILITY" class="btn rounded-pill px-4 py-2 fw-semibold {% if current_category == 'MOBILITY' %}btn-green-primary{% else %}btn-white border text-dark{% endif %} shadow-sm">
+        <i class="bi bi-ev-station-fill me-1"></i>{% trans "Recharges & Mobilité" %}
+      </a>
+      <a href="{% url 'rewards:catalog' %}?cat=ECO_SHOP" class="btn rounded-pill px-4 py-2 fw-semibold {% if current_category == 'ECO_SHOP' %}btn-green-primary{% else %}btn-white border text-dark{% endif %} shadow-sm">
+        <i class="bi bi-basket3-fill me-1"></i>{% trans "Bio & Zéro Déchet" %}
+      </a>
+    </div>
+
+    <!-- Grille des Offres -->
+    <div class="row g-4">
+      {% for item in items %}
+        <div class="col-md-6 col-lg-4">
+          <div class="card border-0 rounded-4 shadow-sm p-4 h-100 d-flex flex-column" style="background: var(--gm-surface); border: 1px solid var(--gm-border-subtle) !important;">
+            
+            <!-- En-tête Partenaire -->
+            <div class="d-flex align-items-center justify-content-between mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; background: var(--gm-green-tint);">
+                  <i class="bi {{ item.partner.icon }} fs-5" style="color: var(--gm-green-primary);"></i>
+                </div>
+                <div>
+                  <div class="fw-bold text-dark small">{{ item.partner.name }}</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">
+                    <i class="bi bi-geo-alt text-danger me-1"></i>{{ item.partner.location_name|truncatewords:4 }}
+                  </div>
+                </div>
+              </div>
+
+              <span class="badge rounded-pill bg-warning text-dark fw-bold px-2 py-1 small">
+                {{ item.discount_label }}
+              </span>
+            </div>
+
+            <!-- Titre et description de l'offre -->
+            <h5 class="fw-bold text-dark mb-2">{{ item.title }}</h5>
+            <p class="text-muted small mb-3 flex-grow-1" style="font-size: 0.82rem; line-height: 1.5;">
+              {{ item.description }}
+            </p>
+
+            <!-- Pied de carte : Coût en points & Bouton d'échange -->
+            <div class="pt-3 border-top mt-auto">
+              <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="fw-extrabold text-success fs-5">
+                  {{ item.points_cost }} <span class="fs-6 text-muted fw-normal">EcoPoints</span>
+                </div>
+                <div class="text-muted small" style="font-size: 0.75rem;">
+                  <i class="bi bi-box-seam me-1"></i>{{ item.stock }} restant{{ item.stock|pluralize }}
+                </div>
+              </div>
+
+              {% if user.is_authenticated %}
+                {% if user_points >= item.points_cost and item.stock > 0 %}
+                  <form action="{% url 'rewards:redeem' item.id %}" method="post" onsubmit="return confirm('Confirmez-vous l\'échange de {{ item.points_cost }} EcoPoints contre ce coupon ?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-green-primary w-100 rounded-pill py-2 shadow-sm fw-semibold">
+                      <i class="bi bi-qr-code me-1"></i>{% trans "Obtenir mon Coupon QR Code" %}
+                    </button>
+                  </form>
+                {% elif item.stock <= 0 %}
+                  <button class="btn btn-light border w-100 rounded-pill py-2 text-muted small" disabled>
+                    {% trans "Rupture de stock" %}
+                  </button>
+                {% else %}
+                  <button class="btn btn-light border w-100 rounded-pill py-2 text-muted small" disabled title="Il vous manque {{ item.points_cost|add:'-'|add:user_points }} points">
+                    <i class="bi bi-lock-fill me-1"></i>Points insuffisants ({{ item.points_cost }} pts)
+                  </button>
+                {% endif %}
+              {% else %}
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline-secondary w-100 rounded-pill py-2 small">
+                  {% trans "Connectez-vous pour échanger" %}
+                </a>
+              {% endif %}
+            </div>
+
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-12 text-center py-5">
+          <i class="bi bi-inbox fs-1 text-muted"></i>
+          <h5 class="fw-bold text-dark mt-2">{% trans "Aucune offre disponible dans cette catégorie." %}</h5>
+          <a href="{% url 'rewards:catalog' %}" class="btn btn-outline-secondary rounded-pill px-4 mt-2">
+            {% trans "Afficher toutes les offres" %}
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

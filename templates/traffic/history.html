@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Historique de congestion" %} | Traffic | GreenMove{% endblock %}
+
+{% block extra_css %}
+<meta name="description" content="{% trans 'Visualisez l historique de congestion d un axe routier à Tunis et comparez-le aux prédictions du modèle.' %}">
+<link rel="stylesheet" href="{% static 'traffic/traffic.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 tm-page" id="traffic-history-app" data-history-url="{% url 'traffic_api:history' %}">
+  {% include "traffic/_module_header.html" with active="history" %}
+
+  <div class="tm-card mb-4">
+    <h2 class="h5 fw-bold mb-3">
+      <i class="bi bi-graph-up me-2 text-success" aria-hidden="true"></i>{% trans "Explorer l'historique d'un point" %}
+    </h2>
+
+    <form id="history-form" class="row g-3 align-items-end" aria-label="{% trans 'Sélection du point et de la durée pour l historique' %}">
+      <div class="col-md-6">
+        <label for="history_point_select" class="form-label fw-semibold">{% trans "Point de surveillance" %}</label>
+        <select id="history_point_select" name="point" class="form-select" required aria-required="true">
+          {% for p in points %}
+            <option value="{{ p.id }}">{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-4">
+        <label for="history_days_select" class="form-label fw-semibold">{% trans "Période d'analyse" %}</label>
+        <select id="history_days_select" name="days" class="form-select">
+          <option value="1">{% trans "Dernières 24 heures (1 jour)" %}</option>
+          <option value="2" selected>{% trans "Derniers 2 jours" %}</option>
+          <option value="3">{% trans "Derniers 3 jours" %}</option>
+          <option value="7">{% trans "Dernière semaine (7 jours)" %}</option>
+          <option value="14">{% trans "2 semaines (14 jours)" %}</option>
+        </select>
+      </div>
+
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-green-primary w-100" aria-label="{% trans 'Afficher les données' %}">
+          <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>{% trans "Afficher" %}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div id="history-loading" class="tm-loading mb-3">
+    <div class="spinner-border spinner-border-sm text-success" role="status">
+      <span class="visually-hidden">{% trans "Chargement de l'historique..." %}</span>
+    </div>
+    <span class="small">{% trans "Chargement des snapshots..." %}</span>
+  </div>
+
+  <div id="history-error" class="alert alert-danger d-none" role="alert"></div>
+
+  <!-- Résumé KPIs -->
+  <div class="row g-3 mb-4 d-none" id="history-kpis">
+    <div class="col-sm-4">
+      <div class="tm-kpi border">
+        <span class="tm-kpi-label">{% trans "Congestion moyenne" %}</span>
+        <span class="tm-kpi-value text-success" id="kpi-avg">--</span>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="tm-kpi border">
+        <span class="tm-kpi-label">{% trans "Pic maximal" %}</span>
+        <span class="tm-kpi-value text-danger" id="kpi-max">--</span>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="tm-kpi border">
+        <span class="tm-kpi-label">{% trans "Mesures analysées" %}</span>
+        <span class="tm-kpi-value" id="kpi-count">--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphique Chart.js -->
+  <div class="tm-card mb-4 d-none" id="history-chart-card">
+    <h3 class="h6 fw-bold mb-3" id="chart-title">{% trans "Congestion enregistrée vs prévision du modèle LightGBM" %}</h3>
+    <div class="tm-chart-box">
+      <canvas id="historyChart" role="img" aria-label="{% trans 'Graphique temporel de la congestion' %}"></canvas>
+    </div>
+  </div>
+
+  <!-- Tableau textuel accessible -->
+  <div class="tm-card d-none" id="history-table-card">
+    <h3 class="h6 fw-bold mb-2">{% trans "Détail chronologique des mesures" %}</h3>
+    <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+      <table class="table table-sm align-middle mb-0">
+        <caption class="small text-muted">{% trans "Échantillon des dernières observations enregistrées." %}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{% trans "Date & Heure" %}</th>
+            <th scope="col">{% trans "Vitesse" %}</th>
+            <th scope="col">{% trans "Congestion réelle" %}</th>
+            <th scope="col">{% trans "Prévision IA" %}</th>
+            <th scope="col">{% trans "Pluie" %}</th>
+          </tr>
+        </thead>
+        <tbody id="history-table-body">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{ js_strings|json_script:"history-i18n" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="{% static 'traffic/traffic_history.js' %}"></script>
+{% endblock %}

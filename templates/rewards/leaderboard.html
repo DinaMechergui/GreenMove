@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block title %}Classements Éco-Citoyens en Direct | GreenMove{% endblock %}
+
+{% block content %}
+<div class="py-4" style="background: var(--gm-bg);">
+  <div class="container">
+
+    <!-- En-tête Classement avec Statut WebSocket -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+      <div>
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2" style="background: var(--gm-green-tint); border: 1px solid var(--gm-border-subtle);">
+          <span class="spinner-grow spinner-grow-sm text-success" role="status" aria-hidden="true" style="width: 8px; height: 8px;"></span>
+          <span class="small fw-bold text-success" id="ws-status-text">{% trans "Flux WebSocket en direct" %}</span>
+        </div>
+        <h2 class="display-6 fw-extrabold text-dark mb-1">{% trans "Ligue Éco-Mobilité Grand Tunis" %}</h2>
+        <p class="text-muted small mb-0">{% trans "Classement en temps réel basé sur les kilogrammes de CO₂ réellement économisés" %}</p>
+      </div>
+
+      {% if user_rank %}
+        <div class="card border-0 rounded-4 shadow-sm p-3 d-flex flex-row align-items-center gap-3" style="background: var(--gm-surface); border: 1px solid var(--gm-border-subtle) !important;">
+          <div class="rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; background: var(--gm-green-tint);">
+            <i class="bi bi-person-badge fs-4" style="color: var(--gm-green-primary);"></i>
+          </div>
+          <div>
+            <div class="text-muted small" style="font-size: 0.75rem;">{% trans "Votre Position Actuelle" %}</div>
+            <div class="fw-extrabold fs-5 text-dark">Rang <span class="text-success">#{{ user_rank }}</span> ({{ request.user.eco_points }} pts)</div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Filtres & Onglets : Global / Quartier / Établissement -->
+    <div class="card border-0 rounded-4 shadow-sm p-3 mb-4" style="background: var(--gm-surface);">
+      <div class="row align-items-center g-3">
+        <div class="col-md-7">
+          <ul class="nav nav-pills gap-2" id="leaderboard-tabs">
+            <li class="nav-item">
+              <a class="nav-link rounded-pill px-3 py-2 fw-semibold {% if category == 'global' %}active bg-success{% else %}text-dark bg-light{% endif %}" href="{% url 'rewards:leaderboard' %}?cat=global" hx-get="{% url 'rewards:leaderboard' %}?cat=global" hx-target="#leaderboard-container" hx-push-url="true">
+                <i class="bi bi-globe me-1"></i>{% trans "Grand Tunis (Global)" %}
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link rounded-pill px-3 py-2 fw-semibold {% if category == 'district' %}active bg-success{% else %}text-dark bg-light{% endif %}" href="{% url 'rewards:leaderboard' %}?cat=district" hx-get="{% url 'rewards:leaderboard' %}?cat=district" hx-target="#leaderboard-container" hx-push-url="true">
+                <i class="bi bi-geo-alt me-1"></i>{% trans "Par Quartier" %}
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link rounded-pill px-3 py-2 fw-semibold {% if category == 'organization' %}active bg-success{% else %}text-dark bg-light{% endif %}" href="{% url 'rewards:leaderboard' %}?cat=organization" hx-get="{% url 'rewards:leaderboard' %}?cat=organization" hx-target="#leaderboard-container" hx-push-url="true">
+                <i class="bi bi-building me-1"></i>{% trans "Par Établissement" %}
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Sous-filtres contextuels -->
+        <div class="col-md-5 text-md-end">
+          {% if category == 'district' %}
+            <div class="dropdown d-inline-block">
+              <button class="btn btn-sm btn-outline-secondary rounded-pill dropdown-toggle px-3 py-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-pin-map-fill me-1 text-danger"></i>{{ current_filter }}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4">
+                {% for d in districts %}
+                  <li>
+                    <a class="dropdown-item small py-2 {% if d == current_filter %}active bg-success{% endif %}" href="{% url 'rewards:leaderboard' %}?cat=district&val={{ d }}" hx-get="{% url 'rewards:leaderboard' %}?cat=district&val={{ d }}" hx-target="#leaderboard-container" hx-push-url="true">
+                      {{ d }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% elif category == 'organization' %}
+            <div class="dropdown d-inline-block">
+              <button class="btn btn-sm btn-outline-secondary rounded-pill dropdown-toggle px-3 py-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-mortarboard-fill me-1 text-primary"></i>{{ current_filter }}
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4">
+                {% for o in organizations %}
+                  <li>
+                    <a class="dropdown-item small py-2 {% if o == current_filter %}active bg-success{% endif %}" href="{% url 'rewards:leaderboard' %}?cat=organization&val={{ o }}" hx-get="{% url 'rewards:leaderboard' %}?cat=organization&val={{ o }}" hx-target="#leaderboard-container" hx-push-url="true">
+                      {{ o }}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Conteneur HTMX pour rechargement dynamique -->
+    <div id="leaderboard-container">
+      {% include 'rewards/includes/leaderboard_table.html' %}
+    </div>
+
+  </div>
+</div>
+
+<!-- Script WebSocket pour mise à jour instantanée du classement -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsUrl = `${wsScheme}://${window.location.host}/ws/rewards/leaderboard/`;
+    let socket = null;
+
+    function connectLeaderboardWS() {
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = function() {
+        console.log("WebSocket EcoRewards connecté au classement direct !");
+        const statusEl = document.getElementById('ws-status-text');
+        if (statusEl) {
+          statusEl.innerText = "Connecté en Direct (WebSocket)";
+        }
+      };
+
+      socket.onmessage = function(event) {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'leaderboard_updated') {
+            console.log("Mise à jour du classement reçue :", data.message);
+            // Rafraîchir dynamiquement le tableau via HTMX
+            const container = document.getElementById('leaderboard-container');
+            if (container && window.htmx) {
+              htmx.ajax('GET', window.location.href, { target: '#leaderboard-container', swap: 'innerHTML' });
+            }
+          }
+        } catch (e) {
+          console.error("Erreur parsing WebSocket message:", e);
+        }
+      };
+
+      socket.onerror = function() {
+        const statusEl = document.getElementById('ws-status-text');
+        if (statusEl) {
+          statusEl.innerText = "Mode HTTP (reconnexion...)";
+        }
+      };
+
+      socket.onclose = function() {
+        // Tentative de reconnexion automatique après 4s
+        setTimeout(connectLeaderboardWS, 4000);
+      };
+    }
+
+    connectLeaderboardWS();
+  });
+</script>
+{% endblock %}

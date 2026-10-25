@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block title %}EcoRewards & Gamification | GreenMove{% endblock %}
+
+{% block content %}
+<div class="py-5" style="background: radial-gradient(circle at top right, rgba(132, 169, 140, 0.15), transparent 70%);">
+  <div class="container py-4">
+    <!-- Hero Banner -->
+    <div class="row align-items-center g-5 mb-5">
+      <div class="col-lg-7" data-aos="fade-up">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background: var(--gm-green-tint); border: 1px solid var(--gm-border-subtle);">
+          <i class="bi bi-stars" style="color: var(--gm-green-primary);"></i>
+          <span class="small fw-bold" style="color: var(--gm-green-primary);">{% trans "Hackathon Climat & IA 2026 • Grand Tunis" %}</span>
+        </div>
+        <h1 class="display-5 fw-extrabold text-dark mb-3" style="letter-spacing: -0.5px;">
+          {% trans "Chaque gramme de CO₂ évité devient" %} <span style="color: var(--gm-green-primary);">{% trans "une Récompense" %}</span>.
+        </h1>
+        <p class="lead text-muted mb-4" style="font-size: 1.15rem; line-height: 1.6;">
+          {% trans "Chez GreenMove, vos points ne récompensent pas seulement le nombre de trajets, mais la réduction réelle de votre empreinte carbone calculée selon votre véhicule et vos passagers." %}
+        </p>
+
+        <div class="d-flex flex-wrap gap-3">
+          <a href="{% url 'accounts:login' %}" class="btn btn-green-primary px-4 py-2 rounded-pill shadow-sm">
+            <i class="bi bi-box-arrow-in-right me-2"></i>{% trans "Accéder à mon Espace Récompenses" %}
+          </a>
+          <a href="{% url 'rewards:leaderboard' %}" class="btn btn-outline-secondary px-4 py-2 rounded-pill">
+            <i class="bi bi-trophy me-2"></i>{% trans "Voir les Classements en Direct" %}
+          </a>
+          <a href="{% url 'rewards:admin_dashboard' %}" class="btn btn-light border px-4 py-2 rounded-pill">
+            <i class="bi bi-speedometer2 me-2 text-warning"></i>{% trans "Dashboard Impact Global" %}
+          </a>
+        </div>
+      </div>
+
+      <div class="col-lg-5" data-aos="fade-left">
+        <!-- Carte Démo Gamification -->
+        <div class="card border-0 rounded-4 shadow p-4" style="background: var(--gm-surface-glass); backdrop-filter: blur(12px); border: 1px solid var(--gm-border-subtle) !important;">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-circle p-2 d-flex align-items-center justify-content-center" style="background: var(--gm-green-tint); width: 44px; height: 44px;">
+                <i class="bi bi-trophy-fill fs-5" style="color: var(--gm-green-primary);"></i>
+              </div>
+              <div>
+                <div class="fw-bold text-dark small">{% trans "Ligue Éco-Citoyenne" %}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">{% trans "Tunis • Lac 2 • Ariana" %}</div>
+              </div>
+            </div>
+            <span class="badge rounded-pill px-3 py-2" style="background: #E9C46A; color: #1D2A22;">
+              <i class="bi bi-lightning-fill me-1"></i>{% trans "Temps Réel" %}
+            </span>
+          </div>
+
+          <div class="p-3 rounded-3 mb-3" style="background: var(--gm-surface-muted);">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span>{% trans "Progression Niveau 3" %}</span>
+              <span class="fw-bold text-dark">780 / 1200 XP</span>
+            </div>
+            <div class="progress rounded-pill" style="height: 10px;">
+              <div class="progress-bar rounded-pill" role="progressbar" style="width: 65%; background: var(--gm-green-primary);" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mt-2 small">
+              <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                <i class="bi bi-bicycle me-1"></i>{% trans "Éco-Navetteur" %}
+              </span>
+              <span class="text-muted" style="font-size: 0.8rem;">420 pts avant Niveau 4</span>
+            </div>
+          </div>
+
+          <!-- Mini Top 3 -->
+          <div class="small fw-bold text-secondary mb-2 text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">
+            {% trans "Top Citoyens Décarbonés" %}
+          </div>
+          <div class="list-group list-group-flush">
+            {% for u in top_users %}
+              <div class="list-group-item d-flex align-items-center justify-content-between px-0 py-2 border-0 bg-transparent">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="fw-bold" style="width: 20px; color: var(--gm-green-primary);">#{{ forloop.counter }}</span>
+                  <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    <i class="bi bi-person-fill text-muted"></i>
+                  </div>
+                  <div>
+                    <div class="fw-semibold text-dark" style="font-size: 0.85rem;">{{ u.get_full_name|default:u.username }}</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">{{ u.gamification_profile.district|default:"Grand Tunis" }}</div>
+                  </div>
+                </div>
+                <div class="text-end">
+                  <div class="fw-bold text-dark" style="font-size: 0.85rem;">{{ u.eco_points }} pts</div>
+                  <div class="text-success" style="font-size: 0.72rem;">{{ u.gamification_profile.total_co2_saved_kg|default:0 }} kg CO₂</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 Piliers Clés de la Gamification -->
+    <div class="row g-4 mb-5">
+      <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="card h-100 border-0 rounded-4 p-4 shadow-sm" style="background: var(--gm-surface);">
+          <div class="rounded-circle p-3 mb-3 d-inline-flex" style="background: var(--gm-green-tint); width: 54px; height: 54px;">
+            <i class="bi bi-cloud-slash-fill fs-4" style="color: var(--gm-green-primary);"></i>
+          </div>
+          <h5 class="fw-bold text-dark">1. Points Calculés au CO₂ Réel</h5>
+          <p class="text-muted small mb-0">
+            Fini le simple comptage de trajets. Vos gains d'éco-points s'adaptent selon l'énergie de votre véhicule (électrique, hybride, thermique éco) et le nombre de passagers qui désengorgent la ville.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="card h-100 border-0 rounded-4 p-4 shadow-sm" style="background: var(--gm-surface);">
+          <div class="rounded-circle p-3 mb-3 d-inline-flex" style="background: var(--gm-warm-tint); width: 54px; height: 54px;">
+            <i class="bi bi-cpu-fill fs-4" style="color: #D4A373;"></i>
+          </div>
+          <h5 class="fw-bold text-dark">2. Défis Personnalisés par IA (KMeans)</h5>
+          <p class="text-muted small mb-0">
+            L'algorithme de clustering KMeans analyse vos habitudes réelles de mobilité et génère automatiquement des défis progressifs (Facile, Moyen, Expert) parfaitement calibrés à votre quotidien.
+          </p>
+        </div>
+      </div>
+
+      <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="card h-100 border-0 rounded-4 p-4 shadow-sm" style="background: var(--gm-surface);">
+          <div class="rounded-circle p-3 mb-3 d-inline-flex" style="background: #E8F4F8; width: 54px; height: 54px;">
+            <i class="bi bi-qr-code-scan fs-4" style="color: #0284C7;"></i>
+          </div>
+          <h5 class="fw-bold text-dark">3. Coupons & QR Codes Validables</h5>
+          <p class="text-muted small mb-0">
+            Échangez vos points contre des avantages chez nos commerces partenaires à Tunis (Cosmitto Lac 2, Recharges Électriques, Jardin Bio Marsa) scannables instantanément par QR Code.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Jauge Défi Communautaire Global -->
+    {% if collective_challenges %}
+      <div class="card border-0 rounded-4 p-4 shadow-sm mb-5" style="background: linear-gradient(135deg, #264634 0%, #335C45 100%); color: #fff;">
+        <div class="row align-items-center g-4">
+          <div class="col-lg-8">
+            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2" style="background: rgba(255, 255, 255, 0.15);">
+              <i class="bi bi-globe-americas"></i>
+              <span class="small fw-semibold">{% trans "Défi Collectif en Cours" %}</span>
+            </div>
+            <h3 class="fw-bold mb-2">{{ collective_challenges.0.title }}</h3>
+            <p class="text-light mb-3 opacity-90 small" style="max-width: 600px;">
+              {{ collective_challenges.0.description }}
+            </p>
+
+            <div class="mb-2 d-flex justify-content-between small fw-bold">
+              <span>{{ collective_challenges.0.current_co2_kg|floatformat:0 }} kg CO₂ évités</span>
+              <span>Objectif : {{ collective_challenges.0.target_co2_kg|floatformat:0 }} kg CO₂</span>
+            </div>
+            <div class="progress rounded-pill" style="height: 14px; background: rgba(255, 255, 255, 0.25);">
+              <div class="progress-bar progress-bar-striped progress-bar-animated rounded-pill bg-warning" role="progressbar" data-progress="{{ collective_challenges.0.progress_percentage }}" aria-valuenow="{{ collective_challenges.0.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          </div>
+          <div class="col-lg-4 text-lg-end">
+            <div class="p-3 rounded-4" style="background: rgba(255, 255, 255, 0.1);">
+              <div class="small text-light opacity-75">Récompense finale :</div>
+              <div class="fw-bold mt-1 mb-3 small">{{ collective_challenges.0.reward_description }}</div>
+              <a href="{% url 'accounts:login' %}" class="btn btn-warning rounded-pill px-4 py-2 fw-semibold text-dark shadow-sm">
+                <i class="bi bi-people-fill me-1"></i>{% trans "Participer au Défi" %}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.progress-bar[data-progress]').forEach(function(bar) {
+      bar.style.width = bar.getAttribute('data-progress') + '%';
+    });
+  });
+</script>
+{% endblock %}

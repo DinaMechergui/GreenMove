@@ -244,4 +244,16 @@ document.addEventListener('DOMContentLoaded', () => {
       },
     });
   }
+
+  // ------------------------------------------------------------------------
+  // 7. PROGRESS BARS AUTOMATIQUES (DATA-PROGRESS) & SUPPORT HTMX
+  // ------------------------------------------------------------------------
+  function initProgressBars() {
+    document.querySelectorAll('.progress-bar[data-progress]').forEach((bar) => {
+      const val = bar.getAttribute('data-progress') || '0';
+      bar.style.width = val + '%';
+    });
+  }
+  initProgressBars();
+  document.body.addEventListener('htmx:afterSwap', initProgressBars);
 });

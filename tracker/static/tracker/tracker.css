@@ -1,0 +1,7 @@
+.tracker-page { max-width: 1120px; }
+.tracker-map { min-height: 320px; width: 100%; border: 1px solid #ced8d0; border-radius: .75rem; background: #eef4ee; }
+.tracker-page :focus-visible { outline: 3px solid #174b2d; outline-offset: 3px; }
+@media (max-width: 575.98px) {
+  .tracker-map { min-height: 250px; }
+  .tracker-page header .btn { width: 100%; }
+}

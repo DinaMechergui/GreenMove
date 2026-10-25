@@ -1,0 +1,17 @@
+[Unit]
+Description=Daphne ASGI Daemon pour GreenMove (WebSockets)
+After=network.target
+
+[Service]
+User=greenmove
+Group=www-data
+WorkingDirectory=/var/www/greenmove
+ExecStart=/var/www/greenmove/venv/bin/daphne \
+          -b 127.0.0.1 \
+          -p 8001 \
+          config.asgi:application
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

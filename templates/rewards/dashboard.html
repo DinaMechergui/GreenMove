@@ -1,0 +1,394 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+
+{% block title %}Mon Espace EcoRewards & Gamification | GreenMove{% endblock %}
+
+{% block content %}
+<div class="py-4" style="background: var(--gm-bg);">
+  <div class="container">
+
+    <!-- En-tête Utilisateur & Statut Gamification -->
+    <div class="card border-0 rounded-4 shadow-sm p-4 mb-4" style="background: var(--gm-surface); border: 1px solid var(--gm-border-subtle) !important;">
+      <div class="row align-items-center g-4">
+        
+        <!-- Info Profil & Niveau -->
+        <div class="col-lg-7">
+          <div class="d-flex align-items-center gap-3">
+            <div class="position-relative">
+              {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="rounded-circle shadow-sm" width="70" height="70" style="object-fit: cover; border: 3px solid var(--gm-green-soft);">
+              {% else %}
+                <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 70px; height: 70px; background: var(--gm-green-tint); border: 3px solid var(--gm-green-soft);">
+                  <i class="bi bi-person-fill fs-2" style="color: var(--gm-green-primary);"></i>
+                </div>
+              {% endif %}
+              <span class="position-absolute bottom-0 end-0 badge rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm {% if profile.current_level == 5 %}bg-warning text-dark{% elif profile.current_level == 4 %}bg-info text-white{% elif profile.current_level == 3 %}bg-success text-white{% else %}bg-secondary text-white{% endif %}" style="width: 26px; height: 26px;" title="{{ profile.current_level_name }}">
+                <i class="bi {{ profile.current_level_icon }}" style="font-size: 0.75rem;"></i>
+              </span>
+            </div>
+
+            <div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h3 class="fw-extrabold text-dark mb-0">{{ user.get_full_name|default:user.username }}</h3>
+                <span class="badge rounded-pill px-3 py-1 fw-bold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); border: 1px solid var(--gm-border-subtle);">
+                  <i class="bi {{ profile.current_level_icon }} me-1"></i>Niveau {{ profile.current_level }} : {{ profile.current_level_name }}
+                </span>
+                <span class="badge rounded-pill px-3 py-1 fw-semibold bg-light text-secondary border">
+                  <i class="bi bi-geo-alt-fill me-1 text-danger"></i>{{ profile.district }}
+                </span>
+              </div>
+              <div class="text-muted small mt-1 d-flex align-items-center gap-3 flex-wrap">
+                <span><i class="bi bi-building me-1"></i>{{ profile.organization }}</span>
+                <span>•</span>
+                <span class="text-warning-emphasis fw-semibold">
+                  <i class="bi bi-fire text-danger me-1"></i>Série : {{ profile.streak_days }} jour{{ profile.streak_days|pluralize }} consécutif{{ profile.streak_days|pluralize }}
+                </span>
+                <span>•</span>
+                <span class="badge bg-secondary-subtle text-secondary rounded-pill" title="Cluster IA">
+                  <i class="bi bi-cpu me-1"></i>Profil IA : {{ profile.kmeans_cluster_label }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+            <a href="{% url 'rewards:challenges' %}" class="btn btn-outline-success rounded-pill px-3 py-2">
+              <i class="bi bi-cpu-fill me-1"></i>{% trans "Mes Défis IA" %}
+            </a>
+            <a href="{% url 'rewards:catalog' %}" class="btn btn-green-primary rounded-pill px-3 py-2 shadow-sm">
+              <i class="bi bi-bag-check-fill me-1"></i>{% trans "Boutique Récompenses" %}
+            </a>
+            <a href="{% url 'rewards:my_coupons' %}" class="btn btn-outline-secondary rounded-pill px-3 py-2">
+              <i class="bi bi-qr-code me-1"></i>{% trans "Mes Coupons" %}
+              {% if active_coupons_count > 0 %}
+                <span class="badge rounded-pill bg-success ms-1">{{ active_coupons_count }}</span>
+              {% endif %}
+            </a>
+            <a href="{% url 'rewards:leaderboard' %}" class="btn btn-light border rounded-pill px-3 py-2">
+              <i class="bi bi-trophy-fill text-warning me-1"></i>{% trans "Classement" %}
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Barre de Progression du Niveau -->
+      <div class="mt-4 pt-3 border-top">
+        <div class="d-flex justify-content-between align-items-center small mb-2">
+          <div class="fw-semibold text-dark">
+            <span class="fs-5 fw-bold" style="color: var(--gm-green-primary);">{{ user.eco_points }}</span> <span class="text-muted">EcoPoints cumulés</span>
+          </div>
+          <div class="text-muted">
+            {% if profile.points_to_next_level > 0 %}
+              Plus que <span class="fw-bold text-dark">{{ profile.points_to_next_level }} pts</span> pour atteindre le Niveau {{ profile.current_level|add:1 }}
+            {% else %}
+              <span class="text-warning fw-bold"><i class="bi bi-trophy-fill me-1"></i>Niveau Maximal Atteint !</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="progress rounded-pill shadow-inner" style="height: 12px; background: var(--gm-surface-muted);">
+          <div class="progress-bar rounded-pill" role="progressbar" data-progress="{{ profile.level_progress_percent }}" aria-valuenow="{{ profile.level_progress_percent }}" aria-valuemin="0" aria-valuemax="100" style="background: linear-gradient(90deg, var(--gm-green-soft), var(--gm-green-primary));"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Cartes Métriques d'Impact Réel -->
+    <div class="row g-3 mb-4">
+      <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface);">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="text-muted small">{% trans "CO₂ Réel Évité" %}</div>
+            <div class="rounded-circle p-2" style="background: var(--gm-green-tint);">
+              <i class="bi bi-cloud-slash-fill fs-5" style="color: var(--gm-green-primary);"></i>
+            </div>
+          </div>
+          <div class="display-6 fw-bold text-dark mt-2">{{ profile.total_co2_saved_kg|floatformat:1 }} <span class="fs-6 text-muted fw-normal">kg</span></div>
+          <div class="small text-success mt-1">
+            <i class="bi bi-arrow-up-right me-1"></i>+{{ profile.monthly_co2_saved_kg|floatformat:1 }} kg ce mois
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface);">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="text-muted small">{% trans "Équivalent Arbres" %}</div>
+            <div class="rounded-circle p-2" style="background: var(--gm-warm-tint);">
+              <i class="bi bi-tree-fill fs-5" style="color: #52796F;"></i>
+            </div>
+          </div>
+          <div class="display-6 fw-bold text-dark mt-2">{{ profile.trees_equivalent }} <span class="fs-6 text-muted fw-normal">arbres</span></div>
+          <div class="small text-muted mt-1">
+            {% trans "Poumon vert annuel absorbé" %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface);">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="text-muted small">{% trans "Solde EcoPoints" %}</div>
+            <div class="rounded-circle p-2" style="background: #E8F4F8;">
+              <i class="bi bi-coin fs-5" style="color: #0284C7;"></i>
+            </div>
+          </div>
+          <div class="display-6 fw-bold text-dark mt-2">{{ user.eco_points }} <span class="fs-6 text-muted fw-normal">pts</span></div>
+          <div class="small text-muted mt-1">
+            <a href="{% url 'rewards:catalog' %}" class="text-decoration-none" style="color: var(--gm-green-primary);">
+              {% trans "Échanger en coupons" %} <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 rounded-4 p-3 shadow-sm h-100" style="background: var(--gm-surface);">
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="text-muted small">{% trans "Badges Débloqués" %}</div>
+            <div class="rounded-circle p-2" style="background: #FDF8EC;">
+              <i class="bi bi-award-fill fs-5 text-warning"></i>
+            </div>
+          </div>
+          <div class="display-6 fw-bold text-dark mt-2">{{ unlocked_badges.count }} <span class="fs-6 text-muted fw-normal">/ {{ unlocked_badges.count|add:locked_badges.count }}</span></div>
+          <div class="small text-muted mt-1">
+            {{ locked_badges.count }} {% trans "badges restants à conquérir" %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section Principale : Défis Personnalisés & Défis Collectifs -->
+    <div class="row g-4 mb-4">
+      
+      <!-- Colonne Gauche : Défis Personnalisés IA (KMeans) -->
+      <div class="col-lg-8">
+        <div class="card border-0 rounded-4 shadow-sm p-4 h-100" style="background: var(--gm-surface);">
+          <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <div>
+              <div class="d-inline-flex align-items-center gap-2 mb-1">
+                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                  <i class="bi bi-cpu-fill me-1"></i>{% trans "Génération par IA (KMeans)" %}
+                </span>
+                <span class="small text-muted">{{ cluster_info.name }}</span>
+              </div>
+              <h4 class="fw-bold text-dark mb-0">{% trans "Mes Défis Éco-Responsables" %}</h4>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <a href="{% url 'rewards:ai_evaluation' %}" class="btn btn-sm btn-outline-success rounded-pill px-3 shadow-none">
+                <i class="bi bi-graph-up-arrow me-1"></i>{% trans "Métriques IA" %}
+              </a>
+              <a href="{% url 'rewards:challenges' %}" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm">
+                <i class="bi bi-arrow-right me-1"></i>{% trans "Voir Tous les Défis" %}
+              </a>
+              <form action="{% url 'rewards:refresh_challenges' %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-none">
+                  <i class="bi bi-arrow-clockwise me-1"></i>{% trans "Réactualiser IA" %}
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <p class="text-muted small mb-4">
+            Défis sur-mesure calibrés selon votre profil de mobilité. Accomplissez les étapes de manière progressive pour multiplier vos EcoPoints.
+          </p>
+
+          <!-- Liste des Défis -->
+          <div class="d-flex flex-column gap-3">
+            {% for challenge in active_challenges %}
+              <div class="p-3 rounded-4 border {% if challenge.status == 'COMPLETED' %}border-warning bg-warning-subtle{% else %}border-light bg-light{% endif %}" id="challenge-card-{{ challenge.id }}">
+                <div class="d-flex align-items-start justify-content-between gap-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm {% if challenge.status == 'COMPLETED' %}bg-warning-subtle{% else %}bg-success-subtle{% endif %}" style="width: 44px; height: 44px;">
+                      <i class="bi {% if challenge.category == 'CO2' %}bi-cloud-slash{% elif challenge.category == 'PEAK_HOURS' %}bi-lightning-charge{% else %}bi-car-front{% endif %} fs-5" style="color: var(--gm-green-primary);"></i>
+                    </div>
+                    <div>
+                      <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="fw-bold text-dark">{{ challenge.title }}</span>
+                        <span class="badge rounded-pill px-2 py-1 {% if challenge.difficulty == 'EASY' %}bg-success-subtle text-success{% elif challenge.difficulty == 'MEDIUM' %}bg-info-subtle text-info{% else %}bg-danger-subtle text-danger{% endif %}" style="font-size: 0.7rem;">
+                          {{ challenge.get_difficulty_display }}
+                        </span>
+                      </div>
+                      <div class="text-muted small mt-1">{{ challenge.description }}</div>
+                    </div>
+                  </div>
+
+                  <div class="text-end">
+                    <span class="badge rounded-pill px-3 py-2 fw-bold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.85rem;">
+                      +{{ challenge.points_reward }} pts
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Jauge de Progression -->
+                <div class="mt-3">
+                  <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Progression : <strong class="text-dark">{{ challenge.current_value|floatformat:1 }} / {{ challenge.target_value|floatformat:1 }} {{ challenge.unit }}</strong></span>
+                    <span class="fw-bold {% if challenge.status == 'COMPLETED' %}text-success{% else %}text-secondary{% endif %}">{{ challenge.progress_percentage }}%</span>
+                  </div>
+                  <div class="progress rounded-pill" style="height: 8px;">
+                    <div class="progress-bar rounded-pill {% if challenge.status == 'COMPLETED' %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" data-progress="{{ challenge.progress_percentage }}" aria-valuenow="{{ challenge.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                  </div>
+                </div>
+
+                <!-- Action Réclamer -->
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                  <span class="small text-muted" style="font-size: 0.75rem;">
+                    <i class="bi bi-clock me-1"></i>Expire le {{ challenge.end_date|date:"d/m/Y" }}
+                  </span>
+
+                  {% if challenge.status == 'COMPLETED' %}
+                    <form action="{% url 'rewards:claim_challenge' challenge.id %}" method="post" hx-post="{% url 'rewards:claim_challenge' challenge.id %}" hx-target="#challenge-card-{{ challenge.id }}" hx-swap="outerHTML">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm fw-bold">
+                        <i class="bi bi-gift-fill me-1"></i>{% trans "Réclamer mes points" %}
+                      </button>
+                    </form>
+                  {% elif challenge.status == 'CLAIMED' %}
+                    <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2">
+                      <i class="bi bi-check-circle-fill me-1"></i>{% trans "Récompensé" %}
+                    </span>
+                  {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1 small">
+                      <i class="bi bi-hourglass-split me-1"></i>{% trans "En cours" %}
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+            {% empty %}
+              <div class="text-center py-4 text-muted">
+                <i class="bi bi-check2-circle fs-2 text-success"></i>
+                <div class="mt-2">{% trans "Aucun défi en cours. Cliquez sur 'Réactualiser IA' pour générer vos défis." %}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Colonne Droite : Défi Collectif & Jauge Communautaire -->
+      <div class="col-lg-4">
+        <div class="card border-0 rounded-4 shadow-sm p-4 h-100" style="background: var(--gm-surface);">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="fw-bold text-dark mb-0">{% trans "Jauge Communautaire" %}</h5>
+            <span class="badge rounded-pill bg-primary-subtle text-primary small">
+              <i class="bi bi-people-fill me-1"></i>{% trans "Collectif" %}
+            </span>
+          </div>
+
+          {% for col in collective_challenges %}
+            <div class="p-3 rounded-4 mb-3" style="background: var(--gm-surface-muted); border: 1px solid var(--gm-border-subtle);">
+              <div class="fw-bold text-dark small mb-1">{{ col.title }}</div>
+              <p class="text-muted small mb-2" style="font-size: 0.8rem;">{{ col.description|truncatewords:14 }}</p>
+
+              <div class="d-flex justify-content-between small fw-bold mb-1">
+                <span class="text-success">{{ col.current_co2_kg|floatformat:0 }} kg CO₂</span>
+                <span class="text-muted">{{ col.target_co2_kg|floatformat:0 }} kg</span>
+              </div>
+              <div class="progress rounded-pill mb-2" style="height: 10px;">
+                <div class="progress-bar rounded-pill bg-success progress-bar-striped progress-bar-animated" role="progressbar" data-progress="{{ col.progress_percentage }}" aria-valuenow="{{ col.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+
+              <div class="d-flex align-items-center justify-content-between small text-muted" style="font-size: 0.75rem;">
+                <span><i class="bi bi-flag-fill text-warning me-1"></i>{{ col.target_entity_name }}</span>
+                <span class="fw-bold">{{ col.progress_percentage }}%</span>
+              </div>
+            </div>
+          {% endfor %}
+
+          <!-- Galerie de Badges Débloqués -->
+          <div class="mt-3 pt-3 border-top">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="fw-bold text-dark mb-0">{% trans "Mes Trophées & Badges" %}</h6>
+              <span class="small text-muted">{{ unlocked_badges.count }} débloqué{{ unlocked_badges.count|pluralize }}</span>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 pt-1">
+              {% for ub in unlocked_badges %}
+                <div class="rounded-circle p-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 42px; height: 42px; background-color: var(--gm-green-primary);" title="{{ ub.badge.name }} : {{ ub.badge.description }} (Débloqué le {{ ub.earned_at|date:'d/m/Y' }})">
+                  <i class="bi {{ ub.badge.icon }} text-white fs-6"></i>
+                </div>
+              {% endfor %}
+
+              {% for lb in locked_badges|slice:":4" %}
+                <div class="rounded-circle p-2 d-flex align-items-center justify-content-center border" style="width: 42px; height: 42px; background: rgba(0,0,0,0.04); opacity: 0.45;" title="Verrouillé : {{ lb.name }} ({{ lb.description }})">
+                  <i class="bi {{ lb.icon }} text-muted fs-6"></i>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Historique des Transactions Éco-Points (Transparence & Audit) -->
+    <div class="card border-0 rounded-4 shadow-sm p-4" style="background: var(--gm-surface);">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+          <h5 class="fw-bold text-dark mb-0">{% trans "Journal d'Impact & Historique des Points" %}</h5>
+          <p class="text-muted small mb-0">{% trans "Traçabilité intégrale de chaque gramme de CO₂ économisé et des points crédités" %}</p>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light small text-muted">
+            <tr>
+              <th>{% trans "Date & Heure" %}</th>
+              <th>{% trans "Type d'Action" %}</th>
+              <th>{% trans "Détails" %}</th>
+              <th class="text-center">{% trans "CO₂ Évité" %}</th>
+              <th class="text-end">{% trans "Variation Points" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tx in recent_transactions %}
+              <tr>
+                <td class="small text-muted">{{ tx.created_at|date:"d/m/Y H:i" }}</td>
+                <td>
+                  <span class="badge rounded-pill px-2 py-1 small" style="background: var(--gm-surface-muted); color: var(--gm-text-main);">
+                    {{ tx.get_transaction_type_display }}
+                  </span>
+                </td>
+                <td class="small text-dark fw-medium">{{ tx.description }}</td>
+                <td class="text-center small">
+                  {% if tx.co2_saved_kg > 0 %}
+                    <span class="text-success fw-bold">+{{ tx.co2_saved_kg|floatformat:2 }} kg</span>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </td>
+                <td class="text-end fw-bold">
+                  {% if tx.points > 0 %}
+                    <span class="text-success">+{{ tx.points }} pts</span>
+                  {% else %}
+                    <span class="text-danger">{{ tx.points }} pts</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-center py-4 text-muted small">
+                  {% trans "Aucune transaction enregistrée pour le moment. Réalisez un covoiturage pour cumuler vos premiers EcoPoints !" %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.progress-bar[data-progress]').forEach(function(bar) {
+      bar.style.width = bar.getAttribute('data-progress') + '%';
+    });
+  });
+</script>
+{% endblock %}
