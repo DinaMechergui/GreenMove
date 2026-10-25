@@ -255,7 +255,7 @@ def join_collective_challenge(request, challenge_id):
     """Permet à l'utilisateur de s'engager dans un défi collectif."""
     col = get_object_or_404(CollectiveChallenge, id=challenge_id, is_active=True)
     col.participants.add(request.user)
-    messages.success(request, _(f"Vous avez rejoint le défi collectif '{col.title}' ! Vous pouvez maintenant valider vos trajets pour faire grimper la jauge."))
+    messages.success(request, _(f"Vous avez rejoint le défi collectif '{col.title}' ! Vos prochains trajets vérifiés feront grimper la jauge communautaire."))
     return redirect('rewards:challenges')
 
 

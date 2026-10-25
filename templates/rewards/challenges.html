@@ -120,16 +120,13 @@
                 </div>
 
                 {% if request.user in col.participants.all %}
-                  <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 small">
+                  <div class="text-end">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 small fw-semibold">
                       <i class="bi bi-check-circle-fill me-1"></i>{% trans "Membre Engagé" %}
                     </span>
-                    <form action="{% url 'rewards:contribute_collective' col.id %}" method="post" class="d-inline">
-                      {% csrf_token %}
-                      <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm py-1 fw-bold" style="font-size: 0.75rem;" title="Enregistrer une action éco (marche, vélo, covoiturage)">
-                        <i class="bi bi-plus-circle me-1"></i>{% trans "+5 kg CO₂ (Action)" %}
-                      </button>
-                    </form>
+                    <div class="text-muted small mt-1" style="font-size: 0.72rem;">
+                      <i class="bi bi-shield-check text-success me-1"></i>{% trans "Trajets vérifiés comptabilisés" %}
+                    </div>
                   </div>
                 {% else %}
                   <form action="{% url 'rewards:join_collective' col.id %}" method="post">
