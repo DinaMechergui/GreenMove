@@ -5,7 +5,9 @@ Contient les réglages communs à tous les environnements (développement et pro
 
 from pathlib import Path
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ImproperlyConfigured
 from decouple import config, Csv
+import dj_database_url
 
 # Répertoire racine du projet (dossier greenmove/)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -63,6 +65,7 @@ INSTALLED_APPS = [
 # Middlewares
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',  # Gestion i18n
     'django.middleware.common.CommonMiddleware',
@@ -98,9 +101,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Configuration Base de Données
-DB_ENGINE = config('DB_ENGINE', default='sqlite').lower()
+DB_ENGINE = config('DB_ENGINE', default='postgres').lower()
+DATABASE_URL = config('DATABASE_URL', default='').strip()
 
-if DB_ENGINE == 'postgres':
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
+    }
+elif DB_ENGINE == 'postgres':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -111,13 +119,17 @@ if DB_ENGINE == 'postgres':
             'PORT': config('DB_PORT', default='5432'),
         }
     }
-else:
+elif DB_ENGINE == 'sqlite':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+else:
+    raise ImproperlyConfigured(
+        "DB_ENGINE must be either 'postgres' or 'sqlite'."
+    )
 
 # Validation des mots de passe
 AUTH_PASSWORD_VALIDATORS = [

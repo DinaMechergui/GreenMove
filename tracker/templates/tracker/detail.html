@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ trip }} | Mobility Tracker{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tracker/tracker.css' %}">
+{% endblock %}
+{% block content %}
+<main class="container py-5 tracker-page">
+  <header class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div><a href="{% url 'tracker:index' %}">← Mes trajets</a><h1 class="h2 mt-2">{{ trip.title|default:"Trajet" }}</h1>
+      <p class="text-muted">{{ trip.start_time|date:"d/m/Y H:i" }} · {{ trip.distance_km }} km · {{ trip.duration_display }}</p></div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'tracker:update' trip.pk %}">Modifier</a>
+      <a class="btn btn-outline-secondary" href="{% url 'tracker:export-gpx' trip.pk %}">Exporter GPX</a>
+      <a class="btn btn-outline-success" href="{% url 'tracker:compare' trip.pk %}">Et si ?</a>
+      <a class="btn btn-outline-danger" href="{% url 'tracker:delete' trip.pk %}">Supprimer</a>
+    </div>
+  </header>
+  {% if trip.status == "recording" %}
+  <section class="card card-body border-success mb-4" data-tracker-trip="{{ trip.pk }}" data-next-sequence="{{ next_sequence }}" data-start-time="{{ trip.start_time|date:'c' }}" data-recording="true">
+    <h2 class="h5">Enregistrement en cours</h2>
+    <p>Durée : <span id="trip-clock">--:--:--</span> · GPS : <span id="gps-status" role="status" aria-live="polite">En attente</span></p>
+    <p id="sync-status" role="status" aria-live="polite">Synchronisé</p>
+    <p id="trip-distance">Distance estimée : {{ trip.distance_km }} km</p>
+    <form method="post" action="{% url 'tracker:complete' trip.pk %}">{% csrf_token %}<button type="submit" class="btn btn-danger align-self-start">Terminer le trajet</button></form>
+  </section>
+  {% endif %}
+  <section class="row g-4 mb-4" aria-label="Résumé du trajet">
+    <div class="col-sm-6 col-lg-3"><div class="card card-body h-100"><h2 class="h6">Mode choisi</h2><p>{% if trip.confirmed_transport_mode %}{{ trip.get_confirmed_transport_mode_display }}{% else %}Aucun{% endif %}</p></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card card-body h-100"><h2 class="h6">Mode détecté</h2><p>{% if trip.detected_transport_mode %}{{ trip.get_detected_transport_mode_display }}{% if prediction_confidence_pct != None %} ({{ prediction_confidence_pct }} %){% endif %}{% elif trip.prediction_status == "unavailable" %}Modèle indisponible{% elif trip.prediction_status == "low_confidence" %}Confiance insuffisante{% elif trip.prediction_status == "failed" %}Analyse échouée{% else %}En attente{% endif %}</p></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card card-body h-100"><h2 class="h6">Émissions estimées</h2><p>{{ trip.co2_kg }} kg CO₂e</p></div></div>
+    <div class="col-sm-6 col-lg-3"><div class="card card-body h-100"><h2 class="h6">Vérification</h2><p>{{ trip.get_validation_status_display }}</p></div></div>
+  </section>
+  {% if trip.validation_flags %}<p class="alert alert-warning">Points à vérifier : {{ trip.validation_flags|join:", " }}. Une précision GPS faible seule n'invalide pas le trajet.</p>{% endif %}
+  {% if trip.prediction_status == "unavailable" %}<p class="alert alert-info">Aucune prédiction IA n'est disponible dans cette installation. Vous pouvez confirmer le mode manuellement.</p>{% endif %}
+  {% if trip.status == "completed" and trip.prediction_status != "complete" %}
+  <form method="post" action="{% url 'tracker:retry-analysis' trip.pk %}" class="mb-3">{% csrf_token %}<button type="submit" class="btn btn-outline-primary">Réessayer l'analyse</button></form>
+  {% endif %}
+  <section aria-labelledby="route-title" class="mb-4">
+    <h2 id="route-title" class="h4">Parcours</h2>
+    <div id="trip-map" class="tracker-map" role="img" aria-label="Carte du parcours GPS personnel"></div>
+    <p class="small text-muted mt-2">Carte privée visible uniquement par le propriétaire du trajet. <span id="route-description">{{ trip.gps_points.count }} point(s) GPS enregistrés.</span></p>
+    <ol class="visually-hidden" id="route-text-alternative">{% for point in trip.gps_points.all %}<li>Point {{ point.sequence }}, {{ point.recorded_at|date:"H:i:s" }}. Coordonnées non affichées dans cette liste.</li>{% empty %}<li>Aucun point GPS.</li>{% endfor %}</ol>
+  </section>
+  <section aria-labelledby="segments-title">
+    <h2 id="segments-title" class="h4">Segments du trajet</h2>
+    {% if trip.segments.all %}
+    <ol class="list-group list-group-numbered">{% for segment in trip.segments.all %}<li class="list-group-item d-flex justify-content-between"><span>{{ segment.get_transport_mode_display }} · {{ segment.distance_km }} km · {{ segment.duration_seconds }} s</span><strong>{{ segment.co2_kg }} kg CO₂e</strong></li>{% endfor %}</ol>
+    {% else %}<p class="text-muted">Aucun segment classifié. Confirmez un mode pour calculer les émissions.</p>{% endif %}
+  </section>
+</main>
+{{ map_points|json_script:"trip-map-points" }}
+<script src="{% static 'tracker/tracker.js' %}" defer></script>
+{% endblock %}
