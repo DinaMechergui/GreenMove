@@ -1,0 +1,155 @@
+#
+msgid ""
+msgstr ""
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;\n"
+
+msgid ""
+"Votre semaine optimisée : moins de CO₂, du temps et de l'argent gagnés."
+msgstr "أسبوعك المحسّن: انبعاثات أقل ووقت ومال أوفر."
+
+msgid "Pluie prévue"
+msgstr "أمطار متوقعة"
+
+msgid "Export .ics"
+msgstr "تصدير .ics"
+
+msgid "Rapport PDF"
+msgstr "تقرير PDF"
+
+msgid "Recevoir par e-mail"
+msgstr "إرسال بالبريد"
+
+msgid "Mes données"
+msgstr "بياناتي"
+
+msgid "Type d'utilisateur"
+msgstr "نوع المستخدم"
+
+msgid "CO₂ économisé / semaine"
+msgstr "ثاني أكسيد الكربون الموفَّر / أسبوع"
+
+msgid "vs tout en voiture"
+msgstr "مقابل السيارة فقط"
+
+msgid "Budget carbone du mois"
+msgstr "الميزانية الكربونية للشهر"
+
+msgid "Projection"
+msgstr "التوقع"
+
+msgid "Si vous suivez ce plan 1 an"
+msgstr "إذا اتبعت هذه الخطة لمدة سنة"
+
+msgid "arbres"
+msgstr "أشجار"
+
+msgid "Plan de la semaine"
+msgstr "خطة الأسبوع"
+
+msgid "Temps"
+msgstr "الوقت"
+
+msgid "Coût"
+msgstr "التكلفة"
+
+msgid "Confort"
+msgstr "الراحة"
+
+msgid "Météo auto"
+msgstr "طقس تلقائي"
+
+msgid "Pluie"
+msgstr "مطر"
+
+msgid "Beau temps"
+msgstr "طقس صحو"
+
+msgid "Recalculer"
+msgstr "إعادة الحساب"
+
+msgid "Partir à"
+msgstr "المغادرة عند"
+
+msgid "arriver"
+msgstr "الوصول"
+
+msgid "Supprimer"
+msgstr "حذف"
+
+msgid ""
+"Aucun trajet habituel : ajoutez-en ci-dessous ou importez un calendrier "
+".ics."
+msgstr "لا توجد رحلات معتادة: أضف رحلات أدناه أو استورد تقويم .ics."
+
+msgid "Explications"
+msgstr "تفسيرات"
+
+msgid "Ajouter un trajet habituel"
+msgstr "إضافة رحلة معتادة"
+
+msgid "Cours, réunion…"
+msgstr "درس، اجتماع…"
+
+msgid "Importer .ics"
+msgstr "استيراد .ics"
+
+msgid "CO₂ par semaine (8 dernières)"
+msgstr "ثاني أكسيد الكربون أسبوعيًا (آخر 8)"
+
+msgid "CO₂ par jour de la semaine"
+msgstr "ثاني أكسيد الكربون حسب اليوم"
+
+msgid "Heures de pointe"
+msgstr "ساعات الذروة"
+
+msgid "Économies cumulées (simulateur)"
+msgstr "المدخرات التراكمية (المحاكي)"
+
+msgid "Lun"
+msgstr "إثن"
+
+msgid "Mar"
+msgstr "ثلا"
+
+msgid "Mer"
+msgstr "أرب"
+
+msgid "Jeu"
+msgstr "خمي"
+
+msgid "Ven"
+msgstr "جمع"
+
+msgid "Sam"
+msgstr "سبت"
+
+msgid "Dim"
+msgstr "أحد"
+
+msgid "ou"
+msgstr "أو"
+
+msgid "Continuer avec Google"
+msgstr "المتابعة مع Google"
+
+#, python-format
+msgid ""
+"%(day)s : prenez %(mode)s pour « %(label)s » (%(min)s min, %(co2)s kg de "
+"CO₂, %(cost)s TND). Partez à %(leave)s pour arriver à %(arrival)s."
+msgstr ""
+"%(day)s: استخدم %(mode)s لـ «%(label)s» (%(min)s د، %(co2)s كغ CO₂، %(cost)s"
+" دينار). غادر عند %(leave)s للوصول عند %(arrival)s."
+
+#, python-format
+msgid "Vous évitez %(kg)s kg de CO₂ par rapport à la voiture."
+msgstr "تتجنب %(kg)s كغ من CO₂ مقارنة بالسيارة."
+
+#, python-format
+msgid ""
+"Votre plan évite %(kg)s kg de CO₂ cette semaine par rapport à un usage "
+"exclusif de la voiture."
+msgstr "تتجنب خطتك %(kg)s كغ من CO₂ هذا الأسبوع مقارنة باستخدام السيارة فقط."

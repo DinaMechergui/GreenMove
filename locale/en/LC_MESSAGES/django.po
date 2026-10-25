@@ -1,0 +1,157 @@
+#
+msgid ""
+msgstr ""
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid ""
+"Votre semaine optimisée : moins de CO₂, du temps et de l'argent gagnés."
+msgstr "Your optimised week: less CO₂, time and money saved."
+
+msgid "Pluie prévue"
+msgstr "Rain expected"
+
+msgid "Export .ics"
+msgstr "Export .ics"
+
+msgid "Rapport PDF"
+msgstr "PDF report"
+
+msgid "Recevoir par e-mail"
+msgstr "Send by e-mail"
+
+msgid "Mes données"
+msgstr "My data"
+
+msgid "Type d'utilisateur"
+msgstr "User type"
+
+msgid "CO₂ économisé / semaine"
+msgstr "CO₂ saved / week"
+
+msgid "vs tout en voiture"
+msgstr "vs all by car"
+
+msgid "Budget carbone du mois"
+msgstr "Monthly carbon budget"
+
+msgid "Projection"
+msgstr "Projection"
+
+msgid "Si vous suivez ce plan 1 an"
+msgstr "If you follow this plan for 1 year"
+
+msgid "arbres"
+msgstr "trees"
+
+msgid "Plan de la semaine"
+msgstr "Weekly plan"
+
+msgid "Temps"
+msgstr "Time"
+
+msgid "Coût"
+msgstr "Cost"
+
+msgid "Confort"
+msgstr "Comfort"
+
+msgid "Météo auto"
+msgstr "Auto weather"
+
+msgid "Pluie"
+msgstr "Rain"
+
+msgid "Beau temps"
+msgstr "Fine weather"
+
+msgid "Recalculer"
+msgstr "Recalculate"
+
+msgid "Partir à"
+msgstr "Leave at"
+
+msgid "arriver"
+msgstr "arrive"
+
+msgid "Supprimer"
+msgstr "Delete"
+
+msgid ""
+"Aucun trajet habituel : ajoutez-en ci-dessous ou importez un calendrier "
+".ics."
+msgstr "No usual trips: add some below or import an .ics calendar."
+
+msgid "Explications"
+msgstr "Explanations"
+
+msgid "Ajouter un trajet habituel"
+msgstr "Add a usual trip"
+
+msgid "Cours, réunion…"
+msgstr "Class, meeting…"
+
+msgid "Importer .ics"
+msgstr "Import .ics"
+
+msgid "CO₂ par semaine (8 dernières)"
+msgstr "CO₂ per week (last 8)"
+
+msgid "CO₂ par jour de la semaine"
+msgstr "CO₂ per weekday"
+
+msgid "Heures de pointe"
+msgstr "Peak hours"
+
+msgid "Économies cumulées (simulateur)"
+msgstr "Cumulative savings (simulator)"
+
+msgid "Lun"
+msgstr "Mon"
+
+msgid "Mar"
+msgstr "Tue"
+
+msgid "Mer"
+msgstr "Wed"
+
+msgid "Jeu"
+msgstr "Thu"
+
+msgid "Ven"
+msgstr "Fri"
+
+msgid "Sam"
+msgstr "Sat"
+
+msgid "Dim"
+msgstr "Sun"
+
+msgid "ou"
+msgstr "or"
+
+msgid "Continuer avec Google"
+msgstr "Continue with Google"
+
+#, python-format
+msgid ""
+"%(day)s : prenez %(mode)s pour « %(label)s » (%(min)s min, %(co2)s kg de "
+"CO₂, %(cost)s TND). Partez à %(leave)s pour arriver à %(arrival)s."
+msgstr ""
+"%(day)s: take %(mode)s for “%(label)s” (%(min)s min, %(co2)s kg CO₂, "
+"%(cost)s TND). Leave at %(leave)s to arrive at %(arrival)s."
+
+#, python-format
+msgid "Vous évitez %(kg)s kg de CO₂ par rapport à la voiture."
+msgstr "You avoid %(kg)s kg of CO₂ compared with driving."
+
+#, python-format
+msgid ""
+"Votre plan évite %(kg)s kg de CO₂ cette semaine par rapport à un usage "
+"exclusif de la voiture."
+msgstr ""
+"Your plan avoids %(kg)s kg of CO₂ this week compared with using only the "
+"car."

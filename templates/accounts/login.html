@@ -52,6 +52,13 @@
           </button>
         </form>
 
+        {% if GOOGLE_LOGIN_ENABLED %}
+        <div class="text-center text-muted small mb-2">{% trans "ou" %}</div>
+        <a href="{% url 'google_login' %}?process=login" class="btn btn-outline-secondary w-100 py-2 mb-3">
+          <i class="bi bi-google me-2"></i>{% trans "Continuer avec Google" %}
+        </a>
+        {% endif %}
+
         <!-- Comptes de démonstration rapide -->
         <div class="p-3 bg-light rounded-3 small border mb-3">
           <div class="fw-bold mb-1" style="color: var(--gm-green-primary);"><i class="bi bi-info-circle me-1"></i>Accès Démonstration :</div>

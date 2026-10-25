@@ -2,6 +2,7 @@
 Modèles pour l'application Accounts.
 Définit le CustomUser enrichi pour l'éco-mobilité dans le Grand Tunis.
 """
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
@@ -113,3 +114,55 @@ class CustomUser(AbstractUser):
             return self.avatar.url
         # Générateur d'avatar déterministe et élégant
         return f"https://api.dicebear.com/7.x/bottts/svg?seed={self.username}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf"
+
+
+class AuditLog(models.Model):
+    """Journal d'audit : connexions, modifications de profil, accès aux données GPS, RGPD."""
+
+    class Action(models.TextChoices):
+        LOGIN = 'LOGIN', _('Connexion')
+        LOGOUT = 'LOGOUT', _('Déconnexion')
+        LOGIN_FAILED = 'LOGIN_FAILED', _('Échec de connexion')
+        PROFILE_UPDATE = 'PROFILE_UPDATE', _('Modification du profil')
+        GPS_ACCESS = 'GPS_ACCESS', _('Accès aux données GPS')
+        DATA_EXPORT = 'DATA_EXPORT', _('Export RGPD')
+        ACCOUNT_DELETE = 'ACCOUNT_DELETE', _('Suppression du compte')
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='audit_logs',
+    )
+    username = models.CharField(max_length=150, blank=True)
+    action = models.CharField(max_length=20, choices=Action.choices, db_index=True)
+    detail = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+        verbose_name = _("Entrée du journal d'audit")
+        verbose_name_plural = _("Journal d'audit")
+
+    def __str__(self):
+        return f"{self.created_at:%Y-%m-%d %H:%M} {self.action} {self.username}"
+
+
+class Profile(models.Model):
+    """Préférences de mobilité liées à l'utilisateur (ville, mode préféré, objectif carbone, langue)."""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+    city = models.CharField(_('Ville'), max_length=100, blank=True, default='Tunis')
+    preferred_mode = models.CharField(_('Mode préféré'), max_length=10, blank=True, default='',
+                                      choices=[('WALK', _('Marche')), ('BIKE', _('Vélo')), ('BUS', _('Bus')),
+                                               ('METRO', _('Métro / TGM')), ('CARPOOL', _('Covoiturage')),
+                                               ('CAR', _('Voiture'))])
+    carbon_goal_kg = models.FloatField(_('Objectif carbone mensuel (kg CO2)'), default=60.0)
+    language = models.CharField(_('Langue'), max_length=5, default='fr',
+                                choices=[('fr', 'Français'), ('en', 'English'), ('ar', 'العربية')])
+
+    class Meta:
+        verbose_name = _('Profil de mobilité')
+        verbose_name_plural = _('Profils de mobilité')
+
+    def __str__(self):
+        return f'Profil de {self.user}'

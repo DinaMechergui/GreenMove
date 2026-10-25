@@ -17,6 +17,8 @@ urlpatterns = [
     # Applications Métier GreenMove
     path('', include('core.urls', namespace='core')),
     path('accounts/', include('accounts.urls', namespace='accounts')),
+    # Connexion Google (django-allauth) : callback /auth/google/login/callback/
+    path('auth/', include('allauth.urls')),
     path('match/', include('match.urls', namespace='match')),
     path('tracker/', include('tracker.urls', namespace='tracker')),
     path('traffic/', include('traffic.urls', namespace='traffic')),

@@ -2,7 +2,7 @@
 Sérialiseurs REST Framework pour l'application Accounts.
 """
 from rest_framework import serializers
-from .models import CustomUser
+from .models import CustomUser, Profile
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -75,3 +75,16 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """Préférences de mobilité de l'utilisateur connecté."""
+
+    class Meta:
+        model = Profile
+        fields = ('city', 'preferred_mode', 'carbon_goal_kg', 'language')
+
+    def validate_carbon_goal_kg(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('L objectif doit être positif.')
+        return value

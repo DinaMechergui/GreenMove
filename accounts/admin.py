@@ -3,7 +3,7 @@ Administration Django pour le CustomUser de GreenMove.
 """
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser
+from .models import CustomUser, AuditLog
 
 
 @admin.register(CustomUser)
@@ -38,3 +38,18 @@ class CustomUserAdmin(UserAdmin):
             )
         }),
     )
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'action', 'username', 'ip_address', 'detail')
+    list_filter = ('action',)
+    search_fields = ('username', 'detail', 'ip_address')
+    date_hierarchy = 'created_at'
+    readonly_fields = ('user', 'username', 'action', 'detail', 'ip_address', 'created_at')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

@@ -6,14 +6,22 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse
+from django.views.decorators.http import require_POST
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import CustomUser
-from .forms import CustomUserCreationForm, CustomLoginForm, ProfileEditForm
-from .serializers import UserSerializer, RegisterSerializer
+from .forms import CustomUserCreationForm, CustomLoginForm, ProfileEditForm, ProfilePrefsForm
+from .serializers import UserSerializer, RegisterSerializer, ProfileSerializer
+from .models import AuditLog, Profile
+from django.conf import settings
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
+from .audit import log_event
+from . import gdpr
+from .permissions import IsAdminRole
 
 
 def register_view(request):
@@ -48,7 +56,9 @@ def login_view(request):
             login(request, user)
             messages.success(request, f"Ravi de vous revoir, {user.first_name or user.username} !")
             next_url = request.GET.get('next') or 'match:search'
-            return redirect(next_url)
+            from .prefs_views import apply_language
+            profile = Profile.objects.get_or_create(user=user)[0]
+            return apply_language(redirect(next_url), profile.language)
         else:
             messages.error(request, "Identifiants invalides. Veuillez réessayer.")
     else:
@@ -117,3 +127,76 @@ class APIProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+# ==========================================
+# RGPD : export et suppression des données
+# ==========================================
+
+def _export_response(user, fmt, request):
+    log_event(AuditLog.Action.DATA_EXPORT, user, detail=fmt, request=request)
+    if fmt == 'zip':
+        resp = HttpResponse(gdpr.export_zip_bytes(user), content_type='application/zip')
+        resp['Content-Disposition'] = 'attachment; filename="greenmove_data.zip"'
+    else:
+        resp = HttpResponse(gdpr.export_json_bytes(user), content_type='application/json')
+        resp['Content-Disposition'] = 'attachment; filename="greenmove_data.json"'
+    return resp
+
+
+@login_required
+def export_data_view(request):
+    """Téléchargement des données personnelles (?format=json|zip)."""
+    fmt = 'zip' if request.GET.get('format') == 'zip' else 'json'
+    return _export_response(request.user, fmt, request)
+
+
+@login_required
+@require_POST
+def delete_account_view(request):
+    """Suppression du compte avec anonymisation (confirmation par mot de passe)."""
+    if not request.user.check_password(request.POST.get('password', '')):
+        messages.error(request, "Mot de passe incorrect : le compte n'a pas été supprimé.")
+        return redirect('accounts:profile')
+    user = request.user
+    log_event(AuditLog.Action.ACCOUNT_DELETE, user, request=request)
+    logout(request)
+    gdpr.delete_account(user)
+    messages.info(request, "Votre compte a été supprimé et vos données anonymisées.")
+    return redirect('core:home')
+
+
+class APIExportDataView(APIView):
+    """Export RGPD de l'utilisateur connecté (JSON ou ZIP via ?format=zip)."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        fmt = 'zip' if request.query_params.get('export') == 'zip' else 'json'
+        return _export_response(request.user, fmt, request._request)
+
+
+class APIDeleteAccountView(APIView):
+    """Suppression du compte connecté (corps : {"password": "..."})."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if not request.user.check_password(request.data.get('password', '')):
+            return Response({'detail': 'Mot de passe incorrect.'}, status=status.HTTP_403_FORBIDDEN)
+        log_event(AuditLog.Action.ACCOUNT_DELETE, request.user, request=request._request)
+        gdpr.delete_account(request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class APIAuditLogView(generics.ListAPIView):
+    """Journal d'audit complet (réservé au rôle Admin)."""
+    permission_classes = [IsAdminRole]
+
+    def get_queryset(self):
+        return AuditLog.objects.select_related('user')[:200]
+
+    def list(self, request, *args, **kwargs):
+        rows = [
+            {'at': a.created_at, 'user': a.username, 'action': a.action, 'detail': a.detail, 'ip': a.ip_address}
+            for a in self.get_queryset()
+        ]
+        return Response(rows)
