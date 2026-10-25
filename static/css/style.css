@@ -668,3 +668,18 @@ textarea:focus-visible {
   outline: 3px solid var(--gm-warm-sand, #E9C46A);
   outline-offset: 3px;
 }
+
+/* La navbar fixe ne doit jamais masquer l'élément atteint par Tab */
+html {
+  scroll-padding-top: 100px;
+}
+
+/* Focus posé programmatiquement (contenus rechargés) : pas de contour parasite */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+.leaflet-container:focus-visible {
+  outline: 3px solid var(--gm-warm-sand, #E9C46A);
+  outline-offset: 3px;
+}

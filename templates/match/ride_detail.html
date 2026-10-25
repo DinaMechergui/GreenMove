@@ -149,7 +149,7 @@
       </div>
 
       <!-- Section Réservation Interactive HTMX -->
-      <div id="booking-section" class="card-greenmove p-4 border shadow-sm">
+      <div id="booking-section" class="card-greenmove p-4 border shadow-sm" tabindex="-1" data-swap-focus>
         {% if ride.status == 'CANCELLED' %}
           <div class="alert alert-danger border-0 shadow-sm p-3 rounded-4 mb-0" role="alert">
             <i class="bi bi-slash-circle-fill me-2 fs-5" aria-hidden="true"></i>

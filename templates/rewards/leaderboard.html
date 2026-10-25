@@ -92,7 +92,7 @@
     </div>
 
     <!-- Conteneur HTMX pour rechargement dynamique -->
-    <div id="leaderboard-container">
+    <div id="leaderboard-container" tabindex="-1" data-swap-focus aria-live="polite">
       {% include 'rewards/includes/leaderboard_table.html' %}
     </div>
 

@@ -125,7 +125,7 @@
 
     <!-- Zone de résultat (HTMX) -->
     <div class="col-lg-7">
-      <div id="best-time-results" aria-live="polite">
+      <div id="best-time-results" aria-live="polite" tabindex="-1" data-swap-focus>
         {% if submitted %}
           {% include "traffic/partials/best_time_result.html" %}
         {% else %}
