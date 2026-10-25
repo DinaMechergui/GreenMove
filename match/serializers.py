@@ -11,6 +11,11 @@ class RideSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     distance_km = serializers.FloatField(read_only=True)
     estimated_co2_saved = serializers.FloatField(read_only=True)
+    road_distance_km = serializers.SerializerMethodField()
+
+    def get_road_distance_km(self, obj) -> float:
+        from .services.costs import ride_effective_distance_km
+        return ride_effective_distance_km(obj)
 
     class Meta:
         model = Ride
@@ -32,10 +37,11 @@ class RideSerializer(serializers.ModelSerializer):
             'recurring_days',
             'description',
             'distance_km',
+            'road_distance_km',
             'estimated_co2_saved',
             'created_at',
         )
-        read_only_fields = ('id', 'user', 'distance_km', 'estimated_co2_saved', 'created_at')
+        read_only_fields = ('id', 'user', 'distance_km', 'road_distance_km', 'estimated_co2_saved', 'created_at')
 
 
 class RideBookingSerializer(serializers.ModelSerializer):

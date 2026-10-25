@@ -16,6 +16,7 @@ urlpatterns = [
     path('<int:pk>/review/', views.create_review, name='create_review'),
     path('<int:pk>/tracking-link/', views.create_tracking_link, name='create_tracking_link'),
     path('<int:pk>/sos/', views.trigger_sos, name='trigger_sos'),
+    path('<int:pk>/cancel/', views.cancel_ride, name='cancel_ride'),
     path('my-rides/', views.my_rides, name='my_rides'),
 
     # Temps réel

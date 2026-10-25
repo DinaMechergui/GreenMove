@@ -23,16 +23,14 @@ class CoreInitializationTests(TestCase):
         self.assertEqual(response.context['PLATFORM_NAME'], 'GreenMove')
         self.assertIn('IS_RTL', response.context)
 
-    def test_placeholder_views(self):
-        """Vérifie que les modules vides 'Bientôt disponible' s'affichent correctement."""
+    def test_modules_pages(self):
+        """Vérifie que les modules Traffic et Rewards sont bien développés (plus des placeholders)."""
         for app in ['traffic:index', 'rewards:index']:
             res = self.client.get(reverse(app))
             self.assertEqual(res.status_code, 200)
-            self.assertContains(res, "Bientôt disponible")
+            self.assertNotContains(res, "Bientôt disponible")
         planner_response = self.client.get(reverse('planner:index'))
         self.assertEqual(planner_response.status_code, 302)
-        tracker_response = self.client.get(reverse('tracker:index'))
-        self.assertEqual(tracker_response.status_code, 302)
         tracker_response = self.client.get(reverse('tracker:index'))
         self.assertEqual(tracker_response.status_code, 302)
 

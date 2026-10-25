@@ -1,5 +1,4 @@
 """
-Évaluation chiffrée de l'IA MobilityMatch (exigence « IA : métriques » de la grille).
 
 1. Matching (classification binaire « bon covoiturage / mauvais ») :
    - Modèle  : score multi-critères `compute_ride_match_score` (seuil 50 %).

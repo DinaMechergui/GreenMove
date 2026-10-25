@@ -69,3 +69,43 @@
   </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+(function () {
+  const rideSelect = document.getElementById('id_ride');
+  const distanceInput = document.getElementById('id_distance_km');
+  const costInput = document.getElementById('id_total_cost');
+  if (!rideSelect || !distanceInput) return;
+
+  let loadedRideId = null;
+
+  async function prefillFromRide() {
+    const rideId = rideSelect.value;
+    if (!rideId) { loadedRideId = null; return; }
+    try {
+      const response = await fetch(`/match/api/rides/${rideId}/`);
+      if (!response.ok) return;
+      const ride = await response.json();
+      const km = ride.road_distance_km || ride.distance_km;
+      if (km) {
+        distanceInput.value = Number(km).toFixed(1);
+      }
+      if (ride.price_tnd !== undefined && ride.price_tnd !== null && Number(ride.price_tnd) > 0) {
+        costInput.value = ride.price_tnd;
+      }
+      if (loadedRideId !== rideId && window.htmx) {
+        loadedRideId = rideId;
+        htmx.trigger(rideSelect.form, 'submit');
+      }
+    } catch (err) {
+      console.warn('Pré-remplissage du trajet impossible :', err);
+    }
+  }
+
+  rideSelect.addEventListener('change', prefillFromRide);
+  if (rideSelect.value) prefillFromRide();
+})();
+</script>
+{% endblock %}

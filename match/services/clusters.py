@@ -170,15 +170,15 @@ def join_group(ride_ids: Sequence[int], user) -> Optional[object]:
     return group
 
 
-def compute_and_persist_groups(eps_m: float = 1500.0, min_samples: int = 2) -> List[object]:
+def _persist_clusters(clusters: List[Dict]) -> List:
     """
-    Recalcule les clusters et les persiste en base (cache dérivé).
-    Les groupes dont aucun membre n'est resté sont supprimés.
+    Persiste les clusters en groupes (RideGroup) et applique l'adhésion
+    automatique : chaque conducteur d'un trajet du cluster rejoint le groupe
+    et quitte les autres groupes (règle « un seul groupe par utilisateur »).
     """
     from ..models import RideGroup
 
-    clusters = cluster_recurring_rides(eps_m=eps_m, min_samples=min_samples)
-    kept_ids = []
+    groups = []
     for c in clusters:
         cluster_key = _cluster_key(c['origin'][0], c['origin'][1])
         group, _ = RideGroup.objects.update_or_create(
@@ -193,6 +193,52 @@ def compute_and_persist_groups(eps_m: float = 1500.0, min_samples: int = 2) -> L
             },
         )
         group.rides.set(c['rides'])
-        kept_ids.append(group.id)
-    RideGroup.objects.exclude(id__in=kept_ids).delete()
-    return list(RideGroup.objects.filter(id__in=kept_ids))
+        for owner in {r.user for r in c['rides']}:
+            for other in RideGroup.objects.filter(members=owner).exclude(pk=group.pk):
+                other.members.remove(owner)
+            group.members.add(owner)
+        groups.append(group)
+    return groups
+
+
+def sync_groups_with_rides(user=None, eps_m: float = 1500.0, min_samples: int = 2):
+    """
+    Adhésion automatique aux groupes DBSCAN.
+
+    - Recalcule les clusters des trajets récurrents.
+    - Le propriétaire d'un trajet du cluster rejoint automatiquement SON groupe
+      (et quitte les autres) : quand une nouvelle personne publie un trajet
+      similaire, elle rejoint le groupe sans action manuelle.
+    - Si `user` est fourni, seuls ses clusters sont traités et son groupe
+      (ou son groupe actuel) est retourné.
+    """
+    from ..models import RideGroup
+
+    clusters = cluster_recurring_rides(eps_m=eps_m, min_samples=min_samples)
+    if user is not None:
+        clusters = [
+            c for c in clusters
+            if any(r.user_id == user.pk for r in c['rides'])
+        ]
+
+    groups = _persist_clusters(clusters)
+
+    if user is None:
+        return groups
+    for group in groups:
+        if group.members.filter(pk=user.pk).exists():
+            return group
+    return RideGroup.objects.filter(members=user).first()
+
+
+def compute_and_persist_groups(eps_m: float = 1500.0, min_samples: int = 2) -> List[object]:
+    """
+    Recalcule les clusters, les persiste en base (cache dérivé) et y associe
+    automatiquement leurs conducteurs. Les groupes orphelins sont supprimés.
+    """
+    from ..models import RideGroup
+
+    clusters = cluster_recurring_rides(eps_m=eps_m, min_samples=min_samples)
+    groups = _persist_clusters(clusters)
+    RideGroup.objects.exclude(id__in=[g.pk for g in groups]).delete()
+    return list(RideGroup.objects.filter(id__in=[g.pk for g in groups]))
