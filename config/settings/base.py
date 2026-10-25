@@ -220,7 +220,8 @@ CACHES = {
 NOMINATIM_USER_AGENT = config('NOMINATIM_USER_AGENT', default='GreenMove-Platform/1.0 (contact@greenmove.tn)')
 ORS_API_KEY = config('ORS_API_KEY', default='')
 OPEN_METEO_API_URL = config('OPEN_METEO_API_URL', default='https://api.open-meteo.com/v1/forecast')
-
+TOMTOM_API_KEY = config('TOMTOM_API_KEY', default='')
+TRAFFIC_SOURCE = config('TRAFFIC_SOURCE', default='synthetic')  # 'synthetic' ou 'tomtom'
 # Notifications Telegram Bot (gratuites) — no-op si token vide
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
 TELEGRAM_CHAT_ID = config('TELEGRAM_CHAT_ID', default='')
@@ -267,6 +268,10 @@ CELERY_BEAT_SCHEDULE = {
     'planner-weekly-report': {
         'task': 'planner.tasks.send_weekly_reports',
         'schedule': 60 * 60 * 24 * 7,  # hebdomadaire
+    },
+    'traffic-collect-snapshots': {
+        'task': 'traffic.tasks.collect_traffic_snapshots',
+        'schedule': 15 * 60,
     },
 }
 
