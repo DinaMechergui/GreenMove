@@ -20,3 +20,7 @@ polib
 icalendar
 scikit-learn
 coverage
+lightgbm
+pandas
+scikit-learn
+joblib
