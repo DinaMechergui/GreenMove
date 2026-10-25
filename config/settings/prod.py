@@ -26,6 +26,9 @@ else:
         }
     }
 
+# Celery : mode eager synchrone si pas de Redis pour éviter tout blocage
+CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=not bool(redis_url), cast=bool)
+
 # Clé secrète de production (avec repli robuste pour le premier déploiement Render)
 if not SECRET_KEY or SECRET_KEY.startswith('django-insecure-') or len(SECRET_KEY) < 50:
     SECRET_KEY = config(
@@ -34,7 +37,7 @@ if not SECRET_KEY or SECRET_KEY.startswith('django-insecure-') or len(SECRET_KEY
     )
 
 render_hostname = config('RENDER_EXTERNAL_HOSTNAME', default='').strip()
-allowed_hosts_default = f'{render_hostname},.onrender.com,localhost,127.0.0.1' if render_hostname else '.onrender.com,localhost,127.0.0.1'
+allowed_hosts_default = f'{render_hostname},.onrender.com,localhost,127.0.0.1,*' if render_hostname else '.onrender.com,localhost,127.0.0.1,*'
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default=allowed_hosts_default, cast=Csv())
 
 csrf_default = f'https://{render_hostname},https://*.onrender.com' if render_hostname else 'https://*.onrender.com'
@@ -57,6 +60,9 @@ CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=True, cast=bool)
+SECURE_HSTS_PRELOAD = False
+# La redirection SSL est assurée directement par le reverse proxy Render en amont.
+# Laisser à False dans Django évite les boucles de redirection (301) lors des health checks internes de Render.
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True

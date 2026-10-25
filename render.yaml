@@ -13,7 +13,7 @@ services:
     region: frankfurt
     branch: master
     buildCommand: "bash ./build.sh"
-    startCommand: "python -m gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker"
+    startCommand: "python -m gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --forwarded-allow-ips='*'"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
@@ -24,7 +24,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: WEB_CONCURRENCY
-        value: 4
+        value: 1
       - key: DJANGO_SUPERUSER_USERNAME
         value: admin
       - key: DJANGO_SUPERUSER_PASSWORD
