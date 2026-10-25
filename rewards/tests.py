@@ -287,11 +287,6 @@ class RewardsViewsAccessibilityTests(TestCase):
         resp_cat = self.client.get(reverse('rewards:catalog'))
         self.assertEqual(resp_cat.status_code, 200)
 
-        # La page d'évaluation scientifique IA est accessible
-        resp_ai = self.client.get(reverse('rewards:ai_evaluation'))
-        self.assertEqual(resp_ai.status_code, 200)
-        self.assertContains(resp_ai, "Silhouette Score")
-
     def test_admin_dashboard_access_control(self):
         """Le dashboard admin doit interdire l'accès direct par URL aux non-staff."""
         # Non connecté -> redirection 302

@@ -446,16 +446,6 @@ def delete_user_coupon(request, coupon_id):
     return redirect('rewards:my_coupons')
 
 
-def ai_evaluation_view(request):
-    """
-    Vue dédiée d'évaluation du modèle IA KMeans (Critère 5.2 de la grille 5TWIN) :
-    Affiche le score Silhouette, la méthode du coude (Elbow Method), et la distribution.
-    """
-    metrics = get_kmeans_clustering_metrics()
-    return render(request, 'rewards/ai_evaluation.html', {
-        'metrics': metrics,
-    })
-
 
 @login_required
 @user_passes_test(lambda u: u.is_staff or u.is_superuser, login_url='rewards:index')

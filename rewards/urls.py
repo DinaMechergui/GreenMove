@@ -28,8 +28,6 @@ urlpatterns = [
     path('coupons/delete/<int:coupon_id>/', views.delete_user_coupon, name='delete_coupon'),
     path('coupons/verify/', views.verify_coupon_view, name='verify_coupon'),
 
-    # Évaluation & Métriques Scientifiques IA KMeans (Grille 5TWIN)
-    path('ai-evaluation/', views.ai_evaluation_view, name='ai_evaluation'),
 
     # Dashboard Administrateur d'Impact Global & Carte Leaflet
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
