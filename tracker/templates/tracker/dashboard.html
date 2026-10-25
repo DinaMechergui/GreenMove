@@ -1,110 +1,431 @@
 {% extends "base.html" %}
 {% load static %}
 {% block title %}Mobility Tracker | GreenMove{% endblock %}
+
 {% block extra_css %}
 <link rel="manifest" href="{% url 'tracker:manifest' %}">
 <link rel="stylesheet" href="{% static 'tracker/tracker.css' %}">
+<style>
+  .tracker-hero {
+    background: linear-gradient(135deg, rgba(51, 92, 69, 0.06) 0%, rgba(255, 255, 255, 0.95) 100%);
+    border: 1px solid rgba(51, 92, 69, 0.1);
+  }
+  .tracker-kpi-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(51, 92, 69, 0.08) !important;
+  }
+  .tracker-kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(35, 66, 47, 0.08) !important;
+  }
+  .trip-list-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(51, 92, 69, 0.08) !important;
+  }
+  .trip-list-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(35, 66, 47, 0.08) !important;
+  }
+  .hover-green:hover {
+    color: var(--gm-green-primary, #335c45) !important;
+  }
+  .live-pulse-dot {
+    width: 10px;
+    height: 10px;
+    background-color: #2e7d32;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 rgba(46, 125, 50, 0.4);
+    animation: livePulse 1.6s infinite;
+  }
+  @keyframes livePulse {
+    0% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0.6); }
+    70% { box-shadow: 0 0 0 8px rgba(46, 125, 50, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(46, 125, 50, 0); }
+  }
+</style>
 {% endblock %}
+
 {% block content %}
 <main class="container py-4 py-lg-5 tracker-page">
-  <header class="tracker-hero mb-4">
-    <div class="tracker-hero-copy">
-      <a class="tracker-back-link" href="/"><i class="bi bi-arrow-left" aria-hidden="true"></i> GreenMove</a>
-      <span class="tracker-eyebrow">VOTRE MOBILITÉ, EN CLAIR</span>
-      <h1>Eco-Tracker</h1>
-      <p>Retrouvez vos trajets et suivez leur empreinte carbone, dans un espace personnel et privé.</p>
-    </div>
-    <div class="tracker-hero-actions">
-      {% if active_trip %}
-      <a class="btn btn-success btn-lg" href="{% url 'tracker:detail' active_trip.pk %}"><i class="bi bi-record-circle me-2" aria-hidden="true"></i>Reprendre le trajet</a>
-      {% else %}
-      <form method="post" action="{% url 'tracker:start' %}">
-        {% csrf_token %}
-        <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
-        <button class="btn btn-success btn-lg" type="submit"><i class="bi bi-play-circle me-2" aria-hidden="true"></i>Nouveau trajet</button>
-      </form>
-      {% endif %}
-      <a class="btn btn-outline-success" href="{% url 'tracker:import-gpx' %}"><i class="bi bi-upload me-1" aria-hidden="true"></i>Importer GPX</a>
+
+  <!-- En-tête / Hero Section -->
+  <header class="card border-0 rounded-4 p-4 p-md-5 mb-4 tracker-hero shadow-sm">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+      <div>
+        <nav aria-label="Fil d'Ariane" class="mb-2">
+          <a class="text-success text-decoration-none small fw-semibold d-inline-flex align-items-center gap-1" href="/">
+            <i class="bi bi-arrow-left"></i> GreenMove
+          </a>
+          <span class="mx-2 text-muted">•</span>
+          <span class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.08em;">
+            VOTRE MOBILITÉ, EN CLAIR
+          </span>
+        </nav>
+        <h1 class="display-5 fw-extrabold text-dark mb-2">Eco-Tracker</h1>
+        <p class="text-muted mb-0" style="max-width: 580px;">
+          Retrouvez vos trajets et suivez votre empreinte carbone en temps réel, dans un espace personnel et sécurisé.
+        </p>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        {% if active_trip %}
+        <a class="btn btn-success btn-lg rounded-pill px-4 shadow-sm fw-semibold" href="{% url 'tracker:detail' active_trip.pk %}">
+          <i class="bi bi-record-circle me-2"></i>Reprendre le trajet
+        </a>
+        {% else %}
+        <form method="post" action="{% url 'tracker:start' %}" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+          <button class="btn btn-success btn-lg rounded-pill px-4 shadow-sm fw-semibold" type="submit">
+            <i class="bi bi-play-circle-fill me-2"></i>Nouveau trajet
+          </button>
+        </form>
+        {% endif %}
+        <a class="btn btn-outline-success rounded-pill px-3 py-2 fw-medium" href="{% url 'tracker:import-gpx' %}">
+          <i class="bi bi-upload me-1"></i>Importer GPX
+        </a>
+      </div>
     </div>
   </header>
 
+  <!-- 4 Indicateurs Clés de Mobilité (KPI Cards) -->
   <section class="row g-3 mb-4" aria-label="Indicateurs de mobilité">
-    <div class="col-6 col-xl-3"><article class="tracker-kpi"><span class="tracker-kpi-icon"><i class="bi bi-signpost-2" aria-hidden="true"></i></span><span class="tracker-kpi-label">Trajets terminés</span><strong>{{ summary.trip_count|default:0 }}</strong><span class="tracker-kpi-note">sur votre compte</span></article></div>
-    <div class="col-6 col-xl-3"><article class="tracker-kpi"><span class="tracker-kpi-icon"><i class="bi bi-speedometer2" aria-hidden="true"></i></span><span class="tracker-kpi-label">Distance parcourue</span><strong>{{ summary.distance_km|default:"0.000" }} <small>km</small></strong><span class="tracker-kpi-note">distance GPS enregistrée</span></article></div>
-    <div class="col-6 col-xl-3"><article class="tracker-kpi"><span class="tracker-kpi-icon"><i class="bi bi-clock-history" aria-hidden="true"></i></span><span class="tracker-kpi-label">Temps en déplacement</span><strong>{{ summary.duration_seconds|default:0|floatformat:0 }} <small>sec</small></strong><span class="tracker-kpi-note">durée totale enregistrée</span></article></div>
-    <div class="col-6 col-xl-3"><article class="tracker-kpi"><span class="tracker-kpi-icon"><i class="bi bi-cloud-leaf" aria-hidden="true"></i></span><span class="tracker-kpi-label">CO₂ estimé</span><strong>{{ summary.co2_kg|default:"0.00" }} <small>kg</small></strong><span class="tracker-kpi-note">calculé avec les modes confirmés ou validés</span></article></div>
+    <!-- Card 1: Trajets terminés -->
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 rounded-4 shadow-sm p-3 h-100 bg-white tracker-kpi-card">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 d-flex align-items-center justify-content-center text-success" style="background: var(--gm-green-tint, #edf5ee); width: 50px; height: 50px; min-width: 50px;">
+            <i class="bi bi-signpost-2 fs-4"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-medium">Trajets terminés</div>
+            <div class="fs-4 fw-bold text-dark lh-1 my-1">{{ summary.trip_count|default:0 }}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">sur votre compte</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Distance parcourue -->
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 rounded-4 shadow-sm p-3 h-100 bg-white tracker-kpi-card">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 d-flex align-items-center justify-content-center text-primary" style="background: rgba(13, 110, 253, 0.08); width: 50px; height: 50px; min-width: 50px;">
+            <i class="bi bi-speedometer2 fs-4"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-medium">Distance parcourue</div>
+            <div class="fs-4 fw-bold text-dark lh-1 my-1">{{ summary.distance_km|default:"0.00"|floatformat:2 }} <small class="fs-6 text-muted fw-normal">km</small></div>
+            <div class="text-muted" style="font-size: 0.75rem;">distance GPS totale</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Temps en déplacement -->
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 rounded-4 shadow-sm p-3 h-100 bg-white tracker-kpi-card">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 d-flex align-items-center justify-content-center text-warning" style="background: rgba(255, 193, 7, 0.15); width: 50px; height: 50px; min-width: 50px;">
+            <i class="bi bi-clock-history fs-4"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-medium">Temps cumulé</div>
+            <div class="fs-4 fw-bold text-dark lh-1 my-1">{{ summary.duration_display|default:"0 min" }}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">durée en déplacement</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: CO2 estimé -->
+    <div class="col-6 col-lg-3">
+      <div class="card border-0 rounded-4 shadow-sm p-3 h-100 bg-white tracker-kpi-card">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 d-flex align-items-center justify-content-center text-success" style="background: rgba(46, 125, 50, 0.12); width: 50px; height: 50px; min-width: 50px;">
+            <i class="bi bi-cloud-check fs-4"></i>
+          </div>
+          <div>
+            <div class="text-muted small fw-medium">CO₂ estimé</div>
+            <div class="fs-4 fw-bold text-dark lh-1 my-1">{{ summary.co2_kg|default:"0.00"|floatformat:2 }} <small class="fs-6 text-muted fw-normal">kg</small></div>
+            <div class="text-muted" style="font-size: 0.75rem;">selon modes réels</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
-  <div class="row g-4 mb-5">
+  <!-- Zone Centrale : Action & Modes de transport -->
+  <div class="row g-4 mb-4">
+    <!-- Colonne Gauche : Démarrage ou Trajet en cours -->
     <div class="col-lg-7">
       {% if active_trip %}
-      <section class="tracker-active-card h-100" aria-labelledby="active-trip-title">
-        <span class="tracker-live-indicator"><span></span> ENREGISTREMENT EN COURS</span>
-        <h2 id="active-trip-title">Votre trajet est prêt à reprendre</h2>
-        <p>La capture GPS est associée à votre session. Ouvrez le suivi pour consulter son état et terminer l'enregistrement.</p>
-        <a class="btn btn-success" href="{% url 'tracker:detail' active_trip.pk %}">Ouvrir le suivi <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+      <section class="card border-0 rounded-4 shadow-sm p-4 bg-white h-100" style="border-left: 5px solid #2e7d32 !important;">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="live-pulse-dot"></span>
+          <span class="small fw-bold text-success text-uppercase" style="letter-spacing: 0.08em;">ENREGISTREMENT GPS EN COURS</span>
+        </div>
+        <h2 class="h4 fw-bold text-dark mb-2">Votre trajet est en cours de capture</h2>
+        <p class="text-muted small mb-4">
+          La capture GPS est associée à votre session courante. Ouvrez le suivi pour visualiser la carte en direct, vérifier la détection IA et clôturer votre trajet.
+        </p>
+        <div>
+          <a class="btn btn-success rounded-pill px-4 shadow-sm fw-semibold" href="{% url 'tracker:detail' active_trip.pk %}">
+            Ouvrir le suivi en direct <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
       </section>
       {% else %}
-      <section class="tracker-start-card h-100" aria-labelledby="start-trip-title">
-        <div class="tracker-start-icon"><i class="bi bi-geo-alt" aria-hidden="true"></i></div>
-        <div><h2 id="start-trip-title">Prêt à partir ?</h2><p>Autorisez la géolocalisation de votre navigateur pour enregistrer votre parcours. La capture nécessite HTTPS ou localhost.</p></div>
-        <form method="post" action="{% url 'tracker:start' %}">
-          {% csrf_token %}
-          <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
-          <button class="btn btn-success" type="submit">Démarrer un trajet GPS</button>
-        </form>
+      <section class="card border-0 rounded-4 shadow-sm p-4 bg-white h-100" style="border: 1px solid rgba(51, 92, 69, 0.1) !important;">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center text-success shadow-sm" style="background: var(--gm-green-tint, #edf5ee); width: 54px; height: 54px; min-width: 54px;">
+            <i class="bi bi-geo-alt-fill fs-3"></i>
+          </div>
+          <div>
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 mb-1 fw-semibold small">
+              <i class="bi bi-cpu-fill me-1"></i> CLASSIFICATION IA (LIGHTGBM)
+            </span>
+            <h2 class="h4 fw-bold text-dark mb-0">Prêt à partir ?</h2>
+          </div>
+        </div>
+        <p class="text-muted small mb-4">
+          Autorisez la géolocalisation de votre navigateur pour enregistrer votre parcours. Le modèle IA classifie automatiquement votre mode de transport (marche, vélo, bus, voiture, métro, train) pour estimer vos économies de CO₂.
+        </p>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <form method="post" action="{% url 'tracker:start' %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+            <button class="btn btn-success rounded-pill px-4 py-2 shadow-sm fw-semibold" type="submit">
+              <i class="bi bi-play-circle-fill me-2"></i>Démarrer un trajet GPS
+            </button>
+          </form>
+          <a class="btn btn-outline-secondary rounded-pill px-3 py-2" href="{% url 'tracker:import-gpx' %}">
+            <i class="bi bi-upload me-1"></i> Importer un fichier GPX
+          </a>
+        </div>
       </section>
       {% endif %}
     </div>
+
+    <!-- Colonne Droite : Répartition des modes -->
     <div class="col-lg-5">
-      <section class="tracker-panel h-100" aria-labelledby="mode-distribution-title">
-        <div class="tracker-panel-heading"><div><span class="tracker-eyebrow">VUE D'ENSEMBLE</span><h2 id="mode-distribution-title">Modes de transport</h2></div><i class="bi bi-pie-chart tracker-panel-heading-icon" aria-hidden="true"></i></div>
+      <section class="card border-0 rounded-4 shadow-sm p-4 bg-white h-100" style="border: 1px solid rgba(51, 92, 69, 0.1) !important;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div>
+            <span class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.08em;">VUE D'ENSEMBLE</span>
+            <h2 class="h4 fw-bold text-dark mb-0">Modes de transport</h2>
+          </div>
+          <div class="rounded-circle d-flex align-items-center justify-content-center text-success" style="background: var(--gm-green-tint, #edf5ee); width: 42px; height: 42px;">
+            <i class="bi bi-pie-chart-fill fs-5"></i>
+          </div>
+        </div>
+
         {% if mode_distribution %}
-        <ul class="mode-distribution">
+        <ul class="list-unstyled mb-2">
           {% for mode in mode_distribution %}
-          <li><div class="mode-distribution-label"><span>{{ mode.label }}</span><strong>{{ mode.count }}</strong></div><div class="mode-distribution-track" role="img" aria-label="{{ mode.label }} : {{ mode.percentage }} % des trajets"><span style="width: {{ mode.percentage }}%"></span></div></li>
+          <li class="mb-3">
+            <div class="d-flex justify-content-between align-items-center small mb-1">
+              <span class="fw-semibold text-dark">{{ mode.label }}</span>
+              <span class="badge bg-light text-dark border">{{ mode.count }} trajet{{ mode.count|pluralize }} · {{ mode.percentage }}%</span>
+            </div>
+            <div class="progress rounded-pill" style="height: 8px;">
+              <div class="progress-bar bg-success rounded-pill" role="progressbar" style="width: {{ mode.percentage }}%;" aria-valuenow="{{ mode.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          </li>
           {% endfor %}
         </ul>
-        <p class="tracker-panel-footnote">Répartition des trajets terminés avec un mode confirmé ou détecté.</p>
+        <p class="text-muted" style="font-size: 0.78rem;">Répartition des trajets avec un mode confirmé ou détecté par l'IA.</p>
         {% else %}
-        <div class="tracker-empty-inline"><i class="bi bi-bar-chart" aria-hidden="true"></i><p>La répartition s'affichera dès qu'un trajet aura un mode confirmé ou détecté.</p></div>
+        <div class="text-center py-4 text-muted">
+          <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="background: #f8f9fa; width: 56px; height: 56px;">
+            <i class="bi bi-bar-chart-fill fs-4 text-muted"></i>
+          </div>
+          <div class="small fw-medium text-dark mb-1">Aucune répartition disponible</div>
+          <p class="small text-muted mb-0">La répartition s'affichera dès qu'un trajet aura un mode confirmé ou détecté par l'IA.</p>
+        </div>
         {% endif %}
       </section>
     </div>
   </div>
 
-  <section aria-labelledby="history-title">
-    <div class="tracker-section-heading">
-      <div><span class="tracker-eyebrow">VOTRE ACTIVITÉ</span><h2 id="history-title">Mes trajets</h2><p>Consultez et gérez votre historique de mobilité.</p></div>
-      <a class="btn btn-outline-success" href="{% url 'tracker:heatmap' %}"><i class="bi bi-map me-1" aria-hidden="true"></i>Ma heatmap</a>
+  <!-- Section Historique / Mes trajets -->
+  <section aria-labelledby="history-title" class="mt-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <div>
+        <span class="text-uppercase text-muted fw-bold" style="font-size: 0.72rem; letter-spacing: 0.08em;">VOTRE ACTIVITÉ</span>
+        <h2 id="history-title" class="h3 fw-bold text-dark mb-0">Mes trajets</h2>
+        <p class="text-muted small mb-0">Consultez et gérez votre historique de mobilité.</p>
+      </div>
+      <a class="btn btn-outline-success rounded-pill px-3 shadow-none fw-medium" href="{% url 'tracker:heatmap' %}">
+        <i class="bi bi-map-fill me-1"></i>Ma heatmap
+      </a>
     </div>
-    <form method="get" class="tracker-filter-panel mb-3" aria-label="Filtrer les trajets">
-      <div class="tracker-search-field"><label class="visually-hidden" for="trip-search">Rechercher par nom</label><i class="bi bi-search" aria-hidden="true"></i><input class="form-control" type="search" id="trip-search" name="q" value="{{ search }}" placeholder="Rechercher un trajet"></div>
-      <div><label class="form-label" for="transport-filter">Transport</label><select class="form-select" name="transport" id="transport-filter"><option value="">Tous les modes</option>{% for value, label in transport_modes %}<option value="{{ value }}" {% if request.GET.transport == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-      <div><label class="form-label" for="from-filter">Du</label><input class="form-control" type="date" id="from-filter" name="from" value="{{ request.GET.from }}"></div>
-      <div><label class="form-label" for="to-filter">Au</label><input class="form-control" type="date" id="to-filter" name="to" value="{{ request.GET.to }}"></div>
-      <div class="tracker-filter-actions"><button class="btn btn-success" type="submit"><i class="bi bi-funnel me-1" aria-hidden="true"></i>Filtrer</button><a class="btn btn-outline-secondary" href="{% url 'tracker:index' %}">Effacer</a></div>
-    </form>
+
+    <!-- Barre de filtres moderne -->
+    <div class="card border-0 rounded-4 shadow-sm p-3 mb-4 bg-white" style="border: 1px solid rgba(51, 92, 69, 0.08) !important;">
+      <form method="get" class="row g-2 align-items-end" aria-label="Filtrer les trajets">
+        <div class="col-md-4 col-sm-6">
+          <label class="form-label small text-muted mb-1" for="trip-search">Rechercher</label>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input class="form-control border-start-0" type="search" id="trip-search" name="q" value="{{ search }}" placeholder="Titre du trajet...">
+          </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+          <label class="form-label small text-muted mb-1" for="transport-filter">Mode de transport</label>
+          <select class="form-select form-select-sm" name="transport" id="transport-filter">
+            <option value="">Tous les modes</option>
+            {% for value, label in transport_modes %}
+            <option value="{{ value }}" {% if request.GET.transport == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 col-sm-4">
+          <label class="form-label small text-muted mb-1" for="from-filter">Du</label>
+          <input class="form-control form-control-sm" type="date" id="from-filter" name="from" value="{{ request.GET.from }}">
+        </div>
+        <div class="col-md-2 col-sm-4">
+          <label class="form-label small text-muted mb-1" for="to-filter">Au</label>
+          <input class="form-control form-control-sm" type="date" id="to-filter" name="to" value="{{ request.GET.to }}">
+        </div>
+        <div class="col-md-1 col-sm-4 d-flex gap-1">
+          <button class="btn btn-sm btn-success w-100" type="submit" title="Filtrer">
+            <i class="bi bi-funnel-fill"></i>
+          </button>
+          {% if search or request.GET.transport or request.GET.from or request.GET.to %}
+          <a class="btn btn-sm btn-outline-secondary" href="{% url 'tracker:index' %}" title="Réinitialiser">
+            <i class="bi bi-x-lg"></i>
+          </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+    <!-- Liste des Trajets -->
     {% if page.object_list %}
-    <div class="tracker-trip-list">
+    <div class="d-flex flex-column gap-3 mb-4">
       {% for trip in page.object_list %}
-      <article class="tracker-trip-card">
-        <div class="tracker-trip-date"><span>{{ trip.start_time|date:"d" }}</span><small>{{ trip.start_time|date:"M Y" }}</small></div>
-        <div class="tracker-trip-main"><h3><a href="{% url 'tracker:detail' trip.pk %}">{{ trip.title|default:"Trajet" }}</a></h3><p>{{ trip.start_time|date:"H:i" }} · {{ trip.duration_display }} · {{ trip.get_validation_status_display }}</p></div>
-        <div class="tracker-trip-mode"><span class="tracker-trip-label">Transport</span><strong>{% if trip.confirmed_transport_mode %}{{ trip.get_confirmed_transport_mode_display }}{% elif trip.detected_transport_mode %}{{ trip.get_detected_transport_mode_display }}{% else %}À confirmer{% endif %}</strong></div>
-        <div class="tracker-trip-metric"><span class="tracker-trip-label">Distance</span><strong>{{ trip.distance_km }} km</strong></div>
-        <div class="tracker-trip-metric"><span class="tracker-trip-label">CO₂e</span><strong>{{ trip.co2_kg }} kg</strong></div>
-        <div class="tracker-trip-actions"><a class="btn btn-sm btn-light" href="{% url 'tracker:detail' trip.pk %}" aria-label="Voir {{ trip }}"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></a><a class="btn btn-sm btn-light" href="{% url 'tracker:update' trip.pk %}" aria-label="Modifier {{ trip }}"><i class="bi bi-pencil" aria-hidden="true"></i></a><a class="btn btn-sm btn-light text-danger" href="{% url 'tracker:delete' trip.pk %}" aria-label="Supprimer {{ trip }}"><i class="bi bi-trash" aria-hidden="true"></i></a></div>
+      <article class="card border-0 rounded-4 shadow-sm p-3 bg-white trip-list-card">
+        <div class="row align-items-center g-3">
+          <!-- Date Badge -->
+          <div class="col-auto">
+            <div class="text-center rounded-3 p-2" style="background: var(--gm-green-tint, #edf5ee); min-width: 58px;">
+              <div class="fw-bold fs-5 text-success lh-1">{{ trip.start_time|date:"d" }}</div>
+              <div class="text-muted text-uppercase" style="font-size: 0.68rem;">{{ trip.start_time|date:"M Y" }}</div>
+            </div>
+          </div>
+
+          <!-- Titre & Info -->
+          <div class="col">
+            <h3 class="h6 fw-bold mb-1">
+              <a href="{% url 'tracker:detail' trip.pk %}" class="text-dark text-decoration-none hover-green">
+                {{ trip.title|default:"Trajet sans titre" }}
+              </a>
+            </h3>
+            <div class="text-muted small d-flex flex-wrap align-items-center gap-2">
+              <span><i class="bi bi-clock me-1"></i>{{ trip.start_time|date:"H:i" }}</span>
+              <span>•</span>
+              <span>{{ trip.duration_display }}</span>
+              <span>•</span>
+              <span class="badge bg-light text-secondary border">{{ trip.get_validation_status_display }}</span>
+            </div>
+          </div>
+
+          <!-- Mode de Transport -->
+          <div class="col-sm-auto">
+            <div class="small text-muted mb-1" style="font-size: 0.75rem;">Transport</div>
+            {% if trip.confirmed_transport_mode %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+              {{ trip.get_confirmed_transport_mode_display }}
+            </span>
+            {% elif trip.detected_transport_mode %}
+            <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1" title="Détecté par IA LightGBM">
+              <i class="bi bi-cpu me-1"></i>{{ trip.get_detected_transport_mode_display }} (IA)
+            </span>
+            {% else %}
+            <span class="badge bg-light text-muted border px-2 py-1">À confirmer</span>
+            {% endif %}
+          </div>
+
+          <!-- Distance & CO2 -->
+          <div class="col-auto text-end d-none d-md-block">
+            <div class="fw-bold text-dark">{{ trip.distance_km|default:"0.00" }} km</div>
+            <div class="small text-muted">{{ trip.co2_kg|default:"0.00" }} kg CO₂</div>
+          </div>
+
+          <!-- Actions -->
+          <div class="col-auto">
+            <div class="btn-group btn-group-sm">
+              <a class="btn btn-outline-success" href="{% url 'tracker:detail' trip.pk %}" title="Voir les détails">
+                <i class="bi bi-arrow-up-right"></i>
+              </a>
+              <a class="btn btn-outline-secondary" href="{% url 'tracker:update' trip.pk %}" title="Modifier">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a class="btn btn-outline-danger" href="{% url 'tracker:delete' trip.pk %}" title="Supprimer">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </div>
+        </div>
       </article>
       {% endfor %}
     </div>
-    <nav class="tracker-pagination" aria-label="Pages des trajets">
-      {% if page.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page.previous_page_number }}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Précédent</a>{% else %}<span></span>{% endif %}
-      <span>Page {{ page.number }} sur {{ page.paginator.num_pages }}</span>
-      {% if page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page.next_page_number }}">Suivant<i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>{% endif %}
+
+    <!-- Pagination -->
+    {% if page.has_other_pages %}
+    <nav class="d-flex justify-content-between align-items-center mb-5" aria-label="Pages des trajets">
+      {% if page.has_previous %}
+      <a class="btn btn-sm btn-outline-success rounded-pill px-3" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page.previous_page_number }}">
+        <i class="bi bi-arrow-left me-1"></i> Précédent
+      </a>
+      {% else %}
+      <div></div>
+      {% endif %}
+
+      <span class="text-muted small">Page {{ page.number }} sur {{ page.paginator.num_pages }}</span>
+
+      {% if page.has_next %}
+      <a class="btn btn-sm btn-outline-success rounded-pill px-3" href="?{% if pagination_query %}{{ pagination_query }}&amp;{% endif %}page={{ page.next_page_number }}">
+        Suivant <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+      {% else %}
+      <div></div>
+      {% endif %}
     </nav>
+    {% endif %}
+
     {% else %}
-    <div class="tracker-empty-state"><span class="tracker-empty-icon"><i class="bi bi-signpost-split" aria-hidden="true"></i></span><h3>{% if search or request.GET.transport or request.GET.from or request.GET.to %}Aucun trajet correspondant{% else %}Votre premier trajet vous attend{% endif %}</h3><p>{% if search or request.GET.transport or request.GET.from or request.GET.to %}Essayez d'ajuster vos filtres ou effacez la recherche.{% else %}Enregistrez un déplacement ou importez un fichier GPX pour commencer votre historique.{% endif %}</p><div class="d-flex flex-wrap justify-content-center gap-2">{% if search or request.GET.transport or request.GET.from or request.GET.to %}<a class="btn btn-outline-success" href="{% url 'tracker:index' %}">Effacer les filtres</a>{% else %}<a class="btn btn-success" href="{% url 'tracker:import-gpx' %}">Importer un GPX</a>{% endif %}</div></div>
+    <!-- État vide -->
+    <div class="card border-0 rounded-4 shadow-sm p-5 text-center bg-white my-4" style="border: 1px dashed rgba(51, 92, 69, 0.2) !important;">
+      <div class="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center text-success" style="background: var(--gm-green-tint, #edf5ee); width: 64px; height: 64px;">
+        <i class="bi bi-signpost-split fs-2"></i>
+      </div>
+      <h3 class="h5 fw-bold text-dark mb-2">
+        {% if search or request.GET.transport or request.GET.from or request.GET.to %}
+        Aucun trajet ne correspond à vos filtres
+        {% else %}
+        Aucun trajet pour le moment. Votre premier parcours vous attend !
+        {% endif %}
+      </h3>
+      <p class="text-muted small mb-4 mx-auto" style="max-width: 440px;">
+        {% if search or request.GET.transport or request.GET.from or request.GET.to %}
+        Essayez de modifier vos critères de recherche ou cliquez sur effacer pour revoir tous vos trajets.
+        {% else %}
+        Enregistrez un déplacement en direct ou importez un fichier GPX pour démarrer votre suivi carbone.
+        {% endif %}
+      </p>
+      <div>
+        {% if search or request.GET.transport or request.GET.from or request.GET.to %}
+        <a class="btn btn-outline-success rounded-pill px-4" href="{% url 'tracker:index' %}">Effacer les filtres</a>
+        {% else %}
+        <a class="btn btn-success rounded-pill px-4 shadow-sm" href="{% url 'tracker:import-gpx' %}">
+          <i class="bi bi-upload me-2"></i>Importer un GPX
+        </a>
+        {% endif %}
+      </div>
+    </div>
     {% endif %}
   </section>
 </main>

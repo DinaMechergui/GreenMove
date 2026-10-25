@@ -102,6 +102,15 @@ def index(request):
         duration_seconds=Sum("duration_seconds"),
         co2_kg=Sum("co2_kg"),
     )
+    dur_sec = int(summary.get("duration_seconds") or 0)
+    hours = dur_sec // 3600
+    minutes = (dur_sec % 3600) // 60
+    if hours > 0:
+        summary["duration_display"] = f"{hours}h {minutes:02d}m"
+    elif minutes > 0:
+        summary["duration_display"] = f"{minutes} min"
+    else:
+        summary["duration_display"] = f"{dur_sec} sec"
     mode_counts = (
         completed_trips.annotate(
             display_mode=Case(
