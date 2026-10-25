@@ -12,7 +12,7 @@ services:
     plan: free
     region: frankfurt
     branch: master
-    buildCommand: "./build.sh"
+    buildCommand: "bash ./build.sh"
     startCommand: "python -m gunicorn config.asgi:application -k uvicorn.workers.UvicornWorker"
     envVars:
       - key: PYTHON_VERSION

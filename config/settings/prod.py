@@ -7,16 +7,24 @@ from django.core.exceptions import ImproperlyConfigured
 DEBUG = False
 CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=False, cast=bool)
 
-# Le worker Celery et le serveur web partagent les statuts et artefacts du rapport.
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': config('CACHE_URL', default=config(
-            'CELERY_BROKER_URL', default=config('REDIS_URL', default='redis://127.0.0.1:6379/0')
-        )),
-        'TIMEOUT': 3600,
+# Cache : Redis si configuré, sinon LocMemCache
+redis_url = config('REDIS_URL', default=config('CACHE_URL', default='')).strip()
+if redis_url:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': redis_url,
+            'TIMEOUT': 3600,
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'greenmove-prod-cache',
+            'TIMEOUT': 3600,
+        }
+    }
 
 # Clé secrète de production (avec repli robuste pour le premier déploiement Render)
 if not SECRET_KEY or SECRET_KEY.startswith('django-insecure-') or len(SECRET_KEY) < 50:
@@ -37,7 +45,7 @@ STORAGES = {
         'BACKEND': 'django.core.files.storage.FileSystemStorage',
     },
     'staticfiles': {
-        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+        'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage',
     },
 }
 
