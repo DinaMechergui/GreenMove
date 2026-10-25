@@ -2,6 +2,7 @@
 Context Processors pour le projet GreenMove.
 Fournit des variables globales à l'ensemble des templates.
 """
+from django.conf import settings
 from django.utils.translation import get_language
 from datetime import datetime
 
@@ -18,6 +19,7 @@ def greenmove_context(request):
 
     return {
         'CURRENT_LANGUAGE': lang,
+        'GOOGLE_LOGIN_ENABLED': getattr(settings, 'GOOGLE_LOGIN_ENABLED', False),
         'IS_RTL': is_rtl,
         'CURRENT_YEAR': datetime.now().year,
         'PLATFORM_NAME': 'GreenMove',

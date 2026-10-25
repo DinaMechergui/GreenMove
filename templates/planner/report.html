@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Rapport hebdomadaire GreenMove</title>
+<style>
+  @page { size: A4; margin: 2cm; }
+  body { font-family: Helvetica, Arial, sans-serif; color: #1b2a1b; font-size: 11pt; }
+  h1 { color: #2e7d32; margin-bottom: 0; }
+  h2 { color: #2e7d32; border-bottom: 2px solid #c8e6c9; padding-bottom: 4px; margin-top: 24px; }
+  .muted { color: #667; font-size: 9pt; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #2e7d32; color: #fff; text-align: left; padding: 6px; }
+  td { padding: 6px; border-bottom: 1px solid #e0e0e0; }
+  .kpi { display: inline-block; width: 30%; background: #e8f5e9; border-radius: 8px; padding: 10px; margin-right: 1%; text-align: center; }
+  .kpi b { font-size: 16pt; color: #2e7d32; display: block; }
+</style>
+</head>
+<body>
+  <h1>GreenMove · Rapport hebdomadaire</h1>
+  <p class="muted">{{ user.first_name|default:user.username }} · {{ today|date:"d/m/Y" }} · Profil : {{ typology.label }}</p>
+
+  <div>
+    <span class="kpi"><b>{{ plan.co2_saved_kg }} kg</b>CO₂ évité / semaine</span>
+    <span class="kpi"><b>{{ budget.used_kg }} / {{ budget.budget_kg }} kg</b>Budget du mois</span>
+    <span class="kpi"><b>{{ impact.trees_equivalent }}</b>arbres / an</span>
+  </div>
+
+  <h2>Plan de la semaine</h2>
+  <table>
+    <tr><th>Jour</th><th>Trajet</th><th>Mode</th><th>Départ</th><th>CO₂</th></tr>
+    {% for t in plan.plan %}
+    <tr><td>{{ t.weekday_label }}</td><td>{{ t.label }}</td><td>{{ t.best.label }}</td><td>{{ t.leave_at }}</td><td>{{ t.best.co2_kg }} kg</td></tr>
+    {% empty %}<tr><td colspan="5">Aucun trajet habituel enregistré.</td></tr>{% endfor %}
+  </table>
+  <p>{{ explanations.summary }}</p>
+
+  <h2>Budget carbone</h2>
+  <p>Utilisé : {{ budget.used_kg }} kg ({{ budget.used_pct }} %). Projection fin de mois : <b>{{ budget.projected_kg }} kg</b>
+  {% if budget.will_exceed %}— <span style="color:#c62828">dépassement prévu</span>{% else %}— dans le budget{% endif %}.</p>
+
+  <h2>Évolution hebdomadaire</h2>
+  <table>
+    <tr><th>Semaine</th><th>Trajets</th><th>Km</th><th>CO₂ (kg)</th><th>Variation</th></tr>
+    {% for w in history %}
+    <tr><td>{{ w.week }}</td><td>{{ w.trips }}</td><td>{{ w.km }}</td><td>{{ w.co2_kg }}</td><td>{% if w.delta_pct is not None %}{{ w.delta_pct }} %{% else %}-{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5">Pas encore d'historique.</td></tr>{% endfor %}
+  </table>
+
+  <h2>Simulateur d'impact (1 an)</h2>
+  <p>En suivant ce plan : <b>{{ impact.co2_saved_kg }} kg de CO₂</b>, <b>{{ impact.money_saved_tnd }} TND</b> économisés, soit <b>{{ impact.trees_equivalent }} arbres</b>.</p>
+  <p class="muted">{{ typology.advice }}</p>
+</body>
+</html>

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Carte de congestion prévue" %} | Traffic | GreenMove{% endblock %}
+
+{% block extra_css %}
+<meta name="description" content="{% trans 'Carte de la congestion routière prévue dans le Grand Tunis, avec météo et qualité de l air.' %}">
+<link rel="stylesheet" href="{% static 'traffic/traffic.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 tm-page" id="traffic-map-app"
+     data-heatmap-url="{% url 'traffic_api:heatmap' %}"
+     data-comfort-url="{% url 'weather_api:comfort' %}"
+     data-rain-url="{% url 'weather_api:rain_alert' %}"
+     data-air-url="{% url 'weather_api:air_quality' %}">
+
+  {% include "traffic/_module_header.html" with active="map" %}
+
+  {# ─── Bandeau météo ─────────────────────────────────────────────── #}
+  <section class="mb-4" aria-labelledby="wx-heading">
+    <h2 id="wx-heading" class="h5 fw-bold mb-2">
+      <i class="bi bi-cloud-sun me-1" aria-hidden="true"></i>{% trans "Météo actuelle à Tunis" %}
+    </h2>
+    <div id="rain-alert" class="alert alert-primary d-none d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-cloud-rain-heavy-fill fs-4" aria-hidden="true"></i>
+      <strong id="rain-alert-text"></strong>
+    </div>
+    <ul class="tm-weather" aria-live="polite" aria-busy="true" id="wx-list">
+      <li><i class="bi bi-thermometer-half" aria-hidden="true"></i>
+        <div><span class="tm-wx-label">{% trans "Température" %}</span><span class="tm-wx-value" id="wx-temp">…</span></div></li>
+      <li><i class="bi bi-umbrella" aria-hidden="true"></i>
+        <div><span class="tm-wx-label">{% trans "Pluie (heure en cours)" %}</span><span class="tm-wx-value" id="wx-rain">…</span></div></li>
+      <li><i class="bi bi-wind" aria-hidden="true"></i>
+        <div><span class="tm-wx-label">{% trans "Qualité de l'air" %}</span><span class="tm-wx-value" id="wx-air">…</span></div></li>
+      <li><i class="bi bi-person-walking" aria-hidden="true"></i>
+        <div><span class="tm-wx-label">{% trans "Confort à pied" %}</span><span class="tm-wx-value" id="wx-comfort">…</span></div></li>
+    </ul>
+  </section>
+
+  <div class="row g-4">
+    {# ─── Carte ──────────────────────────────────────────────────── #}
+    <section class="col-lg-8" aria-labelledby="map-heading">
+      <div class="tm-card h-100">
+        <h2 id="map-heading" class="h5 fw-bold mb-1">{% trans "Carte des points de surveillance" %}</h2>
+        <p class="small text-muted mb-2">
+          {% trans "Chaque marqueur est focalisable au clavier (Tab) ; Entrée ouvre sa fiche. Une alternative textuelle se trouve dans le tableau sous la carte." %}
+        </p>
+        <div id="traffic-map" class="tm-map" role="region" aria-label="{% trans 'Carte interactive de la congestion prévue' %}" aria-describedby="tm-status"></div>
+      </div>
+    </section>
+
+    {# ─── Contrôles + légende ─────────────────────────────────────── #}
+    <section class="col-lg-4" aria-labelledby="controls-heading">
+      <div class="tm-card mb-4">
+        <h2 id="controls-heading" class="h5 fw-bold">{% trans "Choisir le moment" %}</h2>
+        <form id="tm-controls" novalidate>
+          <div class="mb-3">
+            <label for="tm-date" class="form-label fw-semibold">{% trans "Jour" %}</label>
+            <input type="date" id="tm-date" name="date" class="form-control" value="{{ today }}" required>
+          </div>
+          <div class="mb-2">
+            <label for="tm-time" class="form-label fw-semibold mb-0">{% trans "Heure" %}</label>
+            <output id="tm-time-out" for="tm-time" class="tm-time-display d-block" aria-hidden="true">08:00</output>
+            <input type="range" id="tm-time" name="time" class="tm-range" min="0" max="95" step="1" value="32"
+                   aria-describedby="tm-time-help">
+            <div id="tm-time-help" class="form-text">{% trans "Pas de 15 minutes. Flèches du clavier pour ajuster, Début/Fin pour minuit/23 h 45." %}</div>
+          </div>
+          <div class="tm-quick d-flex flex-wrap gap-2" role="group" aria-label="{% trans 'Raccourcis horaires' %}">
+            <button type="button" class="btn btn-sm btn-green-outline" id="tm-btn-now" data-quick="now">
+              <i class="bi bi-clock" aria-hidden="true"></i> {% trans "Maintenant" %}</button>
+            <button type="button" class="btn btn-sm btn-green-outline" id="tm-btn-morning" data-quick="32">
+              <i class="bi bi-sunrise" aria-hidden="true"></i> {% trans "Pic du matin (8h)" %}</button>
+            <button type="button" class="btn btn-sm btn-green-outline" id="tm-btn-evening" data-quick="70">
+              <i class="bi bi-sunset" aria-hidden="true"></i> {% trans "Pic du soir (17h30)" %}</button>
+          </div>
+        </form>
+        <p id="tm-status" class="small mt-3 mb-0" aria-live="polite" role="status"></p>
+        <div id="tm-error" class="alert alert-danger mt-2 d-none" role="alert"></div>
+      </div>
+
+      <div class="tm-card">
+        <h3 class="h6 fw-bold">{% trans "Légende" %}</h3>
+        <ul class="tm-legend">
+          <li><span class="tm-marker tm-bg-fluide" aria-hidden="true"><i class="bi bi-check-lg"></i></span>{% trans "Fluide" %} <span class="text-muted">(&lt; 30 %)</span></li>
+          <li><span class="tm-marker tm-bg-modere" aria-hidden="true"><i class="bi bi-dash-lg"></i></span>{% trans "Modéré" %} <span class="text-muted">(30–59 %)</span></li>
+          <li><span class="tm-marker tm-bg-dense" aria-hidden="true"><i class="bi bi-exclamation-lg"></i></span>{% trans "Dense" %} <span class="text-muted">(60–79 %)</span></li>
+          <li><span class="tm-marker tm-bg-bloque" aria-hidden="true"><i class="bi bi-x-lg"></i></span>{% trans "Bloqué" %} <span class="text-muted">(≥ 80 %)</span></li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  {# ─── Alternative textuelle à la carte ─────────────────────────── #}
+  <section class="tm-card mt-4" aria-labelledby="table-heading">
+    <h2 id="table-heading" class="h5 fw-bold">{% trans "Tableau des points de surveillance" %}</h2>
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <caption id="tm-table-caption">{% trans "Congestion prévue par point, triée de la plus forte à la plus faible." %}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{% trans "Point" %}</th>
+            <th scope="col">{% trans "Congestion" %}</th>
+            <th scope="col">{% trans "Niveau" %}</th>
+          </tr>
+        </thead>
+        <tbody id="tm-table-body">
+          {% for p in points %}
+          <tr><th scope="row">{{ p.name }}</th><td>…</td><td>…</td></tr>
+          {% empty %}
+          <tr><td colspan="3">{% trans "Aucun point actif. Lancez : python manage.py seed_traffic_points" %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{{ js_strings|json_script:"tm-i18n" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'traffic/traffic_map.js' %}"></script>
+{% endblock %}

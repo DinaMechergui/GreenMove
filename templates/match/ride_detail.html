@@ -19,7 +19,7 @@
 <div class="container py-4 mt-4">
   <div class="mb-3" data-aos="fade-down">
     <a href="{% url 'match:search' %}" class="btn btn-sm btn-link text-muted text-decoration-none p-0">
-      <i class="bi bi-arrow-left me-1"></i>{% trans "Retour aux résultats de recherche" %}
+      <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{% trans "Retour aux résultats de recherche" %}
     </a>
   </div>
 
@@ -32,11 +32,11 @@
             <span class="badge rounded-pill px-3 py-1 mb-2 fw-semibold" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.75rem;">
               {{ ride.get_ride_type_display }}
             </span>
-            <h4 class="fw-bold mb-0 text-dark">
+            <h1 class="h4 fw-bold mb-0 text-dark">
               {{ ride.origin_address }}
-              <i class="bi bi-arrow-right text-muted mx-1" style="font-size: 0.9em;"></i>
+              <i class="bi bi-arrow-right text-muted mx-1" style="font-size: 0.9em;" aria-hidden="true"></i>
               {{ ride.destination_address }}
-            </h4>
+            </h1>
           </div>
           <div class="text-end">
             <div class="display-6 fw-bold text-dark" style="font-size: 2rem;">{{ ride.price_tnd }} <span class="fs-6 text-muted">DT</span></div>
@@ -66,7 +66,7 @@
         <!-- Impact Écologique Soft -->
         <div class="p-3 rounded-3 mb-3 d-flex align-items-center justify-content-between border" style="background: var(--gm-green-tint);">
           <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-tree text-success fs-4"></i>
+            <i class="bi bi-tree text-success fs-4" aria-hidden="true"></i>
             <div>
               <div class="fw-bold small" style="color: var(--gm-green-primary);">Économie de CO₂ estimée</div>
               <div class="text-muted" style="font-size: 0.75rem;">Par rapport à un trajet individuel thermique</div>
@@ -86,7 +86,7 @@
 
         {% if ride.is_recurring %}
           <div class="small text-success fw-medium">
-            <i class="bi bi-repeat me-1"></i>Trajet régulier : {{ ride.recurring_days }}
+            <i class="bi bi-repeat me-1" aria-hidden="true"></i>Trajet régulier : {{ ride.recurring_days }}
           </div>
         {% endif %}
       </div>
@@ -96,7 +96,7 @@
         <div class="d-flex flex-wrap gap-2">
           {% if user.is_authenticated %}
             <a href="{% url 'match:chat_room' ride.id %}" class="btn btn-sm btn-green-outline flex-fill">
-              <i class="bi bi-chat-dots me-1"></i>{% trans "Chat du trajet" %}
+              <i class="bi bi-chat-dots me-1" aria-hidden="true"></i>{% trans "Chat du trajet" %}
             </a>
           {% endif %}
 
@@ -104,17 +104,17 @@
             <form method="post" action="{% url 'match:create_tracking_link' ride.id %}" class="flex-fill m-0">
               {% csrf_token %}
               <button class="btn btn-sm btn-outline-primary w-100">
-                <i class="bi bi-broadcast me-1"></i>{% trans "Activer le suivi live" %}
+                <i class="bi bi-broadcast me-1" aria-hidden="true"></i>{% trans "Activer le suivi live" %}
               </button>
             </form>
           {% elif active_link %}
             <a href="{{ live_url }}" class="btn btn-sm btn-outline-primary flex-fill" target="_blank" rel="noopener">
-              <i class="bi bi-geo-alt-fill me-1"></i>{% trans "Suivre en live" %}
+              <i class="bi bi-geo-alt-fill me-1" aria-hidden="true"></i>{% trans "Suivre en live" %}
             </a>
           {% endif %}
 
           <a href="{% url 'match:split_calculator' %}?ride={{ ride.id }}" class="btn btn-sm btn-outline-success flex-fill">
-            <i class="bi bi-calculator me-1"></i>{% trans "Partage des frais & CO₂" %}
+            <i class="bi bi-calculator me-1" aria-hidden="true"></i>{% trans "Partage des frais & CO₂" %}
           </a>
 
           {% if user.is_authenticated and user != ride.user %}
@@ -125,7 +125,7 @@
               <input type="hidden" name="lat" id="sos-lat" value="">
               <input type="hidden" name="lon" id="sos-lon" value="">
               <button class="btn btn-sm btn-danger w-100">
-                <i class="bi bi-exclamation-octagon-fill me-1"></i>{% trans "SOS" %}
+                <i class="bi bi-exclamation-octagon-fill me-1" aria-hidden="true"></i>{% trans "SOS" %}
               </button>
             </form>
           {% endif %}
@@ -133,7 +133,7 @@
 
         {% if active_link and user == ride.user %}
           <div class="small text-muted mt-2">
-            <i class="bi bi-link-45deg me-1"></i>{% trans "Lien de suivi actif" %} :
+            <i class="bi bi-link-45deg me-1" aria-hidden="true"></i>{% trans "Lien de suivi actif" %} :
             <a href="{{ live_url }}" target="_blank" rel="noopener">{{ live_url|truncatechars:64 }}</a>
           </div>
         {% endif %}
@@ -143,18 +143,21 @@
       <div id="booking-section" class="card-greenmove p-4 border shadow-sm">
         {% if has_booked %}
           <div class="alert alert-success border-0 shadow-sm p-3 rounded-4 mb-0" role="alert" style="background: #EDF5EE; color: #2D5434;">
-            <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+            <i class="bi bi-check-circle-fill me-2 fs-5" aria-hidden="true"></i>
             <strong>{% trans "Vous avez déjà réservé ce trajet !" %}</strong>
             <div class="small text-muted mt-1">Statut : {{ existing_booking.get_status_display }} • Places réservées : {{ existing_booking.seats_requested }}</div>
           </div>
         {% elif user.is_authenticated and user == ride.user %}
           <div class="p-3 rounded-3 small text-muted border bg-light mb-0">
-            <i class="bi bi-info-circle me-2 text-primary"></i>Vous êtes le créateur de ce trajet.
+            <i class="bi bi-info-circle me-2 text-primary" aria-hidden="true"></i>Vous êtes le créateur de ce trajet.
           </div>
         {% elif user.is_authenticated %}
-          <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-ticket-perforated me-2" style="color: var(--gm-green-primary);"></i>{% trans "Réserver une place" %}</h5>
-          <form hx-post="{% url 'match:book_ride' ride.id %}" hx-target="#booking-section" hx-swap="outerHTML">
+          <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-ticket-perforated me-2" style="color: var(--gm-green-primary);" aria-hidden="true"></i>{% trans "Réserver une place" %}</h5>
+          <form hx-post="{% url 'match:book_ride' ride.id %}" hx-target="#booking-section" hx-swap="outerHTML" hx-indicator="#booking-indicator">
             {% csrf_token %}
+            <div id="booking-indicator" class="htmx-indicator small text-muted mb-2" role="status">
+              <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>{% trans "Réservation en cours…" %}
+            </div>
             <div class="row g-3 mb-3">
               <div class="col-md-4">
                 <label class="form-label small text-muted">Places demandées</label>
@@ -166,7 +169,7 @@
               </div>
             </div>
             <button type="submit" class="btn btn-green-primary w-100 py-2">
-              <i class="bi bi-check-lg me-1"></i>{% trans "Confirmer ma réservation (+20 GreenPoints)" %}
+              <i class="bi bi-send me-1" aria-hidden="true"></i>{% trans "Envoyer ma demande au conducteur" %}
             </button>
           </form>
         {% else %}
@@ -185,7 +188,7 @@
       <!-- Carte avec tracé ORS/OSRM -->
       <div class="card-greenmove p-3 mb-4 border shadow-sm">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h6 class="fw-bold text-dark mb-0"><i class="bi bi-map me-1 text-success"></i>Tracé Routier</h6>
+          <h6 class="fw-bold text-dark mb-0"><i class="bi bi-map me-1 text-success" aria-hidden="true"></i>Tracé Routier</h6>
           <span class="badge rounded-pill text-muted border bg-light small" style="font-size: 0.72rem;">{{ route_details.source }}</span>
         </div>
         <div id="route-leaflet-map"></div>
@@ -200,14 +203,14 @@
             <h5 class="fw-bold mb-0 text-dark">
               {{ ride.user.get_full_name|default:ride.user.username }}
               {% if ride.user.profile_verified %}
-                <i class="bi bi-patch-check-fill text-primary" title="{% trans 'Profil vérifié' %}"></i>
+                <i class="bi bi-patch-check-fill text-primary" title="{% trans 'Profil vérifié' %}" aria-hidden="true"></i>
               {% endif %}
             </h5>
             <span class="badge rounded-pill mt-1" style="background: var(--gm-green-tint); color: var(--gm-green-primary); font-size: 0.7rem;">
               {{ ride.user.eco_badge }}
             </span>
             <div class="small text-muted mt-1">
-              <i class="bi bi-star-fill text-warning me-1"></i>
+              <i class="bi bi-star-fill text-warning me-1" aria-hidden="true"></i>
               {{ ride.user.reliability_score|floatformat:1 }}/5
               <span class="mx-1">•</span>
               {% trans "Fiabilité" %}
@@ -217,7 +220,7 @@
 
         <div class="p-3 bg-light rounded-3 small border mb-3">
           <div class="d-flex justify-content-between mb-1">
-            <span class="text-muted"><i class="bi bi-car-front text-secondary me-1"></i>Véhicule :</span>
+            <span class="text-muted"><i class="bi bi-car-front text-secondary me-1" aria-hidden="true"></i>Véhicule :</span>
             <strong>{{ ride.user.get_vehicle_type_display }}</strong>
           </div>
           {% if ride.user.vehicle_model %}
@@ -227,7 +230,7 @@
             </div>
           {% endif %}
           <div class="d-flex justify-content-between">
-            <span class="text-muted"><i class="bi bi-lightning-charge text-warning me-1"></i>Score Éco :</span>
+            <span class="text-muted"><i class="bi bi-lightning-charge text-warning me-1" aria-hidden="true"></i>Score Éco :</span>
             <strong style="color: var(--gm-green-primary);">{{ ride.user.eco_points }} pts</strong>
           </div>
         </div>
@@ -240,7 +243,7 @@
 
         {% if user.is_authenticated and ride.user.phone_number %}
           <div class="text-center pt-2 border-top small text-muted">
-            <i class="bi bi-telephone text-success me-1"></i>Téléphone : <strong>{{ ride.user.phone_number }}</strong>
+            <i class="bi bi-telephone text-success me-1" aria-hidden="true"></i>Téléphone : <strong>{{ ride.user.phone_number }}</strong>
           </div>
         {% endif %}
       </div>
@@ -248,7 +251,7 @@
       <!-- Partage des frais & CO2 par duo -->
       <div class="card-greenmove p-4 mb-4 border shadow-sm">
         <h6 class="fw-semibold text-muted small text-uppercase mb-3">
-          <i class="bi bi-calculator me-1 text-success"></i>{% trans "Partage des frais & CO₂ (duo)" %}
+          <i class="bi bi-calculator me-1 text-success" aria-hidden="true"></i>{% trans "Partage des frais & CO₂ (duo)" %}
         </h6>
         <div class="d-flex justify-content-between small border-bottom pb-2 mb-1">
           <span class="text-muted">{% trans "Coût estimé du trajet" %}</span>
@@ -263,7 +266,7 @@
           <strong>{{ duo_split.driver_net_cost_tnd }} DT</strong>
         </div>
         <div class="d-flex justify-content-between small">
-          <span class="text-muted"><i class="bi bi-tree me-1 text-success"></i>{% trans "CO₂ évité par le duo" %}</span>
+          <span class="text-muted"><i class="bi bi-tree me-1 text-success" aria-hidden="true"></i>{% trans "CO₂ évité par le duo" %}</span>
           <strong class="text-success">-{{ duo_split.co2_duo_saved_kg }} kg</strong>
         </div>
         <a href="{% url 'match:split_calculator' %}?ride={{ ride.id }}" class="btn btn-sm btn-outline-success w-100 mt-3">
@@ -274,7 +277,7 @@
       <!-- Avis post-trajet -->
       <div class="card-greenmove p-4 mb-4 border shadow-sm">
         <h6 class="fw-semibold text-muted small text-uppercase mb-3">
-          <i class="bi bi-star me-1 text-warning"></i>{% trans "Avis des passagers" %}
+          <i class="bi bi-star me-1 text-warning" aria-hidden="true"></i>{% trans "Avis des passagers" %}
         </h6>
         {% if driver_reviews %}
           {% for review in driver_reviews %}
@@ -301,7 +304,7 @@
             </div>
             <div class="mb-2">{{ review_form.comment }}</div>
             <button class="btn btn-sm btn-green-primary w-100">
-              <i class="bi bi-send me-1"></i>{% trans "Publier mon avis (+15 GreenPoints)" %}
+              <i class="bi bi-send me-1" aria-hidden="true"></i>{% trans "Publier mon avis (+15 GreenPoints)" %}
             </button>
           </form>
         {% endif %}
@@ -331,7 +334,7 @@
     const startIcon = L.divIcon({
       className: 'marker-start',
       html: `<div style="background-color: #335C45; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
-               <i class="bi bi-geo-alt-fill"></i>
+               <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
              </div>`,
       iconSize: [28, 28],
       iconAnchor: [14, 28]
@@ -342,7 +345,7 @@
     const endIcon = L.divIcon({
       className: 'marker-end',
       html: `<div style="background-color: #C05621; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
-               <i class="bi bi-flag-fill"></i>
+               <i class="bi bi-flag-fill" aria-hidden="true"></i>
              </div>`,
       iconSize: [28, 28],
       iconAnchor: [14, 28]

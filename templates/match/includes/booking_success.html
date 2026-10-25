@@ -2,15 +2,15 @@
 <div class="alert alert-success border-0 shadow-sm p-3 rounded-4" role="alert">
   <div class="d-flex align-items-center gap-3">
     <div class="p-2 rounded-circle bg-success text-white">
-      <i class="bi bi-check-lg fs-4"></i>
+      <i class="bi bi-check-lg fs-4" aria-hidden="true"></i>
     </div>
     <div>
-      <h6 class="fw-bold mb-1">{% trans "Réservation confirmée !" %}</h6>
+      <h6 class="fw-bold mb-1">{% trans "Demande envoyée au conducteur" %}</h6>
       <p class="small mb-1 text-dark">
-        Votre place a été réservée sur ce trajet vert. Vous avez gagné <strong>+20 GreenPoints</strong>.
+        Votre demande de {{ booking.seats_requested }} place(s) est en attente de réponse.
       </p>
       <div class="small text-muted">
-        Conducteur prévenu en temps réel • Statut : <span class="badge bg-success">Accepté</span>
+        Statut : <span class="badge bg-warning text-dark">En attente</span>
       </div>
     </div>
   </div>

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Importer GPX | GreenMove{% endblock %}
+{% block content %}
+<main class="container py-5 tracker-page">
+  <h1 class="h2 mb-3">Importer un trajet GPX</h1>
+  <p>Fichier limité à 2 Mio. Les coordonnées sont chiffrées avant leur enregistrement.</p>
+  <form method="post" enctype="multipart/form-data" class="card card-body">
+    {% csrf_token %}
+    <label class="form-label" for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
+    {{ form.file }}
+    {% for error in form.file.errors %}<div class="text-danger" role="alert">{{ error }}</div>{% endfor %}
+    <button class="btn btn-success align-self-start mt-3" type="submit">Importer le trajet</button>
+  </form>
+</main>
+{% endblock %}

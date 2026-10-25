@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "À propos des données" %} | Traffic | GreenMove{% endblock %}
+
+{% block extra_css %}
+<meta name="description" content="{% trans 'Transparence et explications sur l origine des données du module Traffic GreenMove.' %}">
+<link rel="stylesheet" href="{% static 'traffic/traffic.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 tm-page">
+  {% include "traffic/_module_header.html" with active="about" %}
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="tm-card mb-4">
+        <h2 class="h4 fw-bold mb-3 text-success">
+          <i class="bi bi-shield-check me-2" aria-hidden="true"></i>{% trans "Transparence sur les données de trafic" %}
+        </h2>
+
+        <div class="alert alert-warning border-0 rounded-4 p-3 mb-4 d-flex align-items-center gap-3">
+          <i class="bi bi-info-circle-fill fs-3 text-warning" aria-hidden="true"></i>
+          <div>
+            <strong>{% trans "Pourquoi des données simulées ?" %}</strong><br>
+            {% trans "En Tunisie, les API de trafic en temps réel grand public (comme TomTom Traffic Flow) ne couvrent pas exhaustivement le réseau urbain du Grand Tunis. Pour concevoir un modèle d'IA rigoureux et exploitable, nous combinons simulation statistique calibrée et sources ouvertes réelles." %}
+          </div>
+        </div>
+
+        <h3 class="h5 fw-bold mb-3">{% trans "Méthodologie & Sources combinées" %}</h3>
+        <ul class="list-group list-group-flush mb-4">
+          <li class="list-group-item bg-transparent px-0 py-3">
+            <div class="d-flex align-items-start gap-3">
+              <span class="badge bg-success rounded-pill p-2"><i class="bi bi-cpu-fill"></i></span>
+              <div>
+                <strong>{% trans "Générateur synthétique calibré" %}</strong>
+                <p class="small text-muted mb-0">
+                  {% trans "Simulation sur 60 jours (~86 000 snapshots) reproduisant fidèlement les profils de circulation tunisiens : pic pendulaire du matin (vers le centre), pic de midi, sortie des bureaux en soirée, fluidité le week-end et jours fériés." %}
+                </p>
+              </div>
+            </div>
+          </li>
+
+          <li class="list-group-item bg-transparent px-0 py-3">
+            <div class="d-flex align-items-start gap-3">
+              <span class="badge bg-primary rounded-pill p-2"><i class="bi bi-cloud-sun-fill"></i></span>
+              <div>
+                <strong>{% trans "Météo réelle en direct (Open-Meteo)" %}</strong>
+                <p class="small text-muted mb-0">
+                  {% trans "Précipitations, vent et indices de confort réels pour Tunis, pris en compte dans le modèle car la pluie accentue les ralentissements (+15 à +25%)." %}
+                </p>
+              </div>
+            </div>
+          </li>
+
+          <li class="list-group-item bg-transparent px-0 py-3">
+            <div class="d-flex align-items-start gap-3">
+              <span class="badge bg-warning rounded-pill p-2 text-dark"><i class="bi bi-calendar2-check-fill"></i></span>
+              <div>
+                <strong>{% trans "Calendrier des jours fériés tunisiens (Nager.Date)" %}</strong>
+                <p class="small text-muted mb-0">
+                  {% trans "Détection automatique des jours fériés légaux pour ajuster les prédictions d'affluence vers les zones universitaires et de bureaux." %}
+                </p>
+              </div>
+            </div>
+          </li>
+
+          <li class="list-group-item bg-transparent px-0 py-3">
+            <div class="d-flex align-items-start gap-3">
+              <span class="badge bg-secondary rounded-pill p-2"><i class="bi bi-diagram-3-fill"></i></span>
+              <div>
+                <strong>{% trans "Modèle prédictif Machine Learning (LightGBM)" %}</strong>
+                <p class="small text-muted mb-0">
+                  {% trans "Entraîné sur l'historique chronologique, le modèle anticipe le niveau de congestion avec des features cycliques (sin/cos de l'heure, jour de la semaine, pluie, statut férié)." %}
+                </p>
+              </div>
+            </div>
+          </li>
+        </ul>
+
+        <h3 class="h5 fw-bold mb-2">{% trans "Prêt pour la production (Live Switch)" %}</h3>
+        <p class="small text-muted">
+          {% trans "L'architecture est entièrement découplée : en configurant la variable d'environnement" %}
+          <code>TRAFFIC_SOURCE=tomtom</code> {% trans "et en fournissant une clé," %}
+          {% trans "le système bascule instantanément vers les flux réels sans modification du code." %}
+          <br>
+          <span class="badge bg-light text-dark border mt-2">
+            {% trans "Mode actif actuel :" %} <strong>{{ traffic_source }}</strong>
+          </span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Sidebar 15 points -->
+    <div class="col-lg-4">
+      <div class="tm-card">
+        <h3 class="h6 fw-bold mb-3">
+          <i class="bi bi-pin-map-fill text-danger me-1" aria-hidden="true"></i>
+          {% trans "15 Points de surveillance du Grand Tunis" %}
+        </h3>
+        <p class="small text-muted mb-3">
+          {% trans "Axes stratégiques couverts (artères pénétrantes, autoroutes, centres urbains et zones d'activité)." %}
+        </p>
+
+        <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
+          {% for p in points %}
+          <li class="d-flex justify-content-between align-items-center py-1 border-bottom">
+            <span><strong>{{ p.name }}</strong></span>
+            <span class="badge bg-light text-muted border">{{ p.get_profile_display }}</span>
+          </li>
+          {% empty %}
+          <li class="text-muted">{% trans "Aucun point configuré." %}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

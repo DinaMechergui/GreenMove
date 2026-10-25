@@ -41,11 +41,11 @@
   <div class="d-flex justify-content-between align-items-center mb-3" data-aos="fade-down">
     <div>
       <a href="{% url 'match:ride_detail' ride.id %}" class="btn btn-sm btn-link text-muted text-decoration-none p-0">
-        <i class="bi bi-arrow-left me-1"></i>{% trans "Retour au trajet" %}
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{% trans "Retour au trajet" %}
       </a>
-      <h5 class="fw-bold mb-0 text-dark">
-        <i class="bi bi-chat-dots me-2 text-success"></i>{{ ride.origin_address }} ➔ {{ ride.destination_address }}
-      </h5>
+      <h1 class="h5 fw-bold mb-0 text-dark">
+        <i class="bi bi-chat-dots me-2 text-success" aria-hidden="true"></i>{{ ride.origin_address }} ➔ {{ ride.destination_address }}
+      </h1>
       <div class="small text-muted">
         {{ ride.departure_datetime|date:"d M Y à H:i" }}
         {% if other_participant %} • {{ other_participant.get_full_name|default:other_participant.username }}{% endif %}
@@ -60,12 +60,12 @@
   <!-- Messages d'accueil suggérés -->
   <div class="mb-3" id="suggestions-box">
     <div class="small text-muted mb-2" style="font-size:.72rem; text-transform: uppercase; letter-spacing:.5px;">
-      <i class="bi bi-lightbulb me-1 text-warning"></i>{% trans "Messages d'accueil suggérés" %}
+      <i class="bi bi-lightbulb me-1 text-warning" aria-hidden="true"></i>{% trans "Messages d'accueil suggérés" %}
     </div>
     <div class="d-flex flex-wrap gap-2">
       {% for s in suggestions %}
         <button type="button" class="suggestion-chip" data-suggestion="{{ s|escapejs }}">
-          <i class="bi bi-lightning-charge-fill me-1" style="font-size:.7rem;"></i>{{ s }}
+          <i class="bi bi-lightning-charge-fill me-1" style="font-size:.7rem;" aria-hidden="true"></i>{{ s }}
         </button>
       {% endfor %}
     </div>
@@ -74,7 +74,7 @@
   <div class="card-greenmove p-3 border shadow-sm mb-3">
     <div id="chat-messages" class="p-3">
       <div class="text-center text-muted small py-5" id="chat-placeholder">
-        <i class="bi bi-hourglass-split fs-3 d-block mb-2"></i>{% trans "Chargement de la discussion…" %}
+        <i class="bi bi-hourglass-split fs-3 d-block mb-2" aria-hidden="true"></i>{% trans "Chargement de la discussion…" %}
       </div>
     </div>
 
@@ -83,13 +83,13 @@
       <input type="text" id="chat-input" class="form-control rounded-pill"
              placeholder="{% trans 'Écrivez votre message…' %}" maxlength="2000" autocomplete="off" required>
       <button type="submit" class="btn btn-green-primary px-4">
-        <i class="bi bi-send-fill"></i>
+        <i class="bi bi-send-fill" aria-hidden="true"></i>
       </button>
     </form>
   </div>
 
   <div class="small text-muted text-center">
-    <i class="bi bi-lock me-1"></i>{% trans "Discussion chiffrée dans votre salon de trajet — visible par le conducteur et les passagers réservés." %}
+    <i class="bi bi-lock me-1" aria-hidden="true"></i>{% trans "Discussion chiffrée dans votre salon de trajet — visible par le conducteur et les passagers réservés." %}
   </div>
 </div>
 {% endblock %}
@@ -129,7 +129,7 @@
       if (placeholder) placeholder.remove();
       box.innerHTML = '';
       if (!messages.length) {
-        box.innerHTML = '<div class="text-center text-muted small py-5" id="chat-placeholder"><i class="bi bi-emoji-smile fs-3 d-block mb-2"></div>';
+        box.innerHTML = '<div class="text-center text-muted small py-5" id="chat-placeholder"><i class="bi bi-emoji-smile fs-3 d-block mb-2" aria-hidden="true"></div>';
         return;
       }
       messages.forEach(m => addMessage(m, m.sender === myId));

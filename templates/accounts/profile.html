@@ -15,7 +15,7 @@
       <div class="card-greenmove p-4 h-100 text-center d-flex flex-column justify-content-center bg-white shadow-sm border">
         <div class="mb-2">
           <span class="badge rounded-pill px-3 py-2 border" style="background: var(--gm-warm-tint); color: #92400E; border-color: rgba(233, 196, 106, 0.4) !important; font-size: 0.85rem;">
-            <i class="bi bi-award me-1"></i>{{ user_profile.eco_badge }}
+            <i class="bi bi-award me-1" aria-hidden="true"></i>{{ user_profile.eco_badge }}
           </span>
         </div>
         <div class="display-4 fw-bold my-2" style="color: var(--gm-green-primary);">{{ user_profile.eco_points }}</div>
@@ -24,11 +24,11 @@
           Équivalent à environ <strong>{{ user_profile.co2_saved_kg }} kg de CO₂</strong> épargnés grâce à vos choix de mobilité durable.
         </p>
         <div class="d-flex justify-content-center gap-2">
-          <a href="{% url 'match:create_ride' %}" class="btn btn-sm btn-green-primary">
-            <i class="bi bi-plus-circle me-1"></i>Nouveau Trajet
+          <a href="{% url 'match:create_ride' %}" class="btn btn-sm btn-green-primary" aria-label="Nouveau Trajet">
+            <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>Nouveau Trajet
           </a>
-          <a href="{% url 'match:search' %}" class="btn btn-sm btn-green-outline">
-            <i class="bi bi-search me-1"></i>Rechercher
+          <a href="{% url 'match:search' %}" class="btn btn-sm btn-green-outline" aria-label="Rechercher un trajet">
+            <i class="bi bi-search me-1" aria-hidden="true"></i>Rechercher
           </a>
         </div>
       </div>
@@ -40,12 +40,12 @@
     <ul class="nav nav-pills mb-4 gap-2" id="profileTab" role="tablist">
       <li class="nav-item" role="presentation">
         <button class="nav-link active rounded-pill px-4" id="rides-tab" data-bs-toggle="tab" data-bs-target="#rides" type="button" role="tab">
-          <i class="bi bi-car-front me-2"></i>{% trans "Mes Trajets Proposés" %} ({{ my_rides.count }})
+          <i class="bi bi-car-front me-2" aria-hidden="true"></i>{% trans "Mes Trajets Proposés" %} ({{ my_rides.count }})
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link rounded-pill px-4" id="bookings-tab" data-bs-toggle="tab" data-bs-target="#bookings" type="button" role="tab">
-          <i class="bi bi-ticket-perforated me-2"></i>{% trans "Mes Réservations" %} ({{ my_bookings.count }})
+          <i class="bi bi-ticket-perforated me-2" aria-hidden="true"></i>{% trans "Mes Réservations" %} ({{ my_bookings.count }})
         </button>
       </li>
     </ul>
@@ -62,8 +62,8 @@
                     <i class="bi bi-geo-alt text-success me-1"></i>{{ ride.origin_address }} ➔ {{ ride.destination_address }}
                   </div>
                   <div class="small text-muted">
-                    <i class="bi bi-clock me-1"></i>{{ ride.departure_datetime|date:"d/m/Y H:i" }} •
-                    <i class="bi bi-people me-1"></i>{{ ride.seats_available }} places •
+                    <i class="bi bi-clock me-1" aria-hidden="true"></i>{{ ride.departure_datetime|date:"d/m/Y H:i" }} •
+                    <i class="bi bi-people me-1" aria-hidden="true"></i>{{ ride.seats_available }} places •
                     <strong>{{ ride.price_tnd }} DT</strong>
                   </div>
                 </div>

@@ -1,37 +1,21 @@
-{% extends 'base.html' %}
-{% load i18n static %}
+{% extends "base.html" %}
+{% load i18n %}
 
-{% block title %}Erreur serveur (500) | GreenMove{% endblock %}
+{% block title %}500 – Erreur serveur | GreenMove{% endblock %}
 
 {% block content %}
-<section class="py-5" style="background: var(--gm-bg); min-height: 70vh; display: flex; align-items: center;">
-  <div class="container text-center">
-    <div class="row justify-content-center">
-      <div class="col-lg-6 col-md-8">
-        
-        <div class="mb-4 position-relative d-inline-block">
-          <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm" style="width: 120px; height: 120px; background: rgba(220, 53, 69, 0.1); border: 3px solid rgba(220, 53, 69, 0.25);">
-            <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3.5rem;"></i>
-          </div>
-          <span class="position-absolute top-0 end-0 badge rounded-pill bg-danger px-2 py-1 shadow-sm">500</span>
-        </div>
-
-        <h1 class="fw-extrabold text-dark mb-3">{% trans "Ralentissement passager" %}</h1>
-        <p class="text-muted lead mb-4" style="font-size: 1.05rem;">
-          {% trans "Une anomalie imprévue est survenue lors du traitement. Nos services de régulation analysent la situation pour rétablir la circulation." %}
-        </p>
-
-        <div class="d-flex flex-wrap gap-3 justify-content-center">
-          <a href="{% url 'core:home' %}" class="btn btn-green-primary rounded-pill px-4 py-2 shadow-sm">
-            <i class="bi bi-arrow-clockwise me-1"></i>{% trans "Retourner à l'accueil" %}
-          </a>
-          <button onclick="window.location.reload();" class="btn btn-outline-secondary rounded-pill px-4 py-2">
-            <i class="bi bi-arrow-repeat me-1"></i>{% trans "Réessayer" %}
-          </button>
-        </div>
-
-      </div>
-    </div>
-  </div>
-</section>
+<div class="container py-5 text-center" style="min-height:60vh;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+  <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true" class="mb-4">
+    <circle cx="60" cy="60" r="58" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/>
+    <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-size="36" font-weight="bold" fill="#e65100">500</text>
+    <path d="M30 80 Q60 68 90 80" stroke="#e65100" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </svg>
+  <h1 class="fw-bold mb-2" style="color:#e65100;">Erreur serveur</h1>
+  <p class="text-muted mb-4" style="max-width:420px;">
+    Un problème inattendu est survenu. Notre équipe a été notifiée automatiquement. Merci de réessayer dans quelques instants.
+  </p>
+  <a href="{% url 'core:home' %}" class="btn btn-green-primary">
+    <i class="bi bi-house-fill me-2" aria-hidden="true"></i>Retour à l'accueil
+  </a>
+</div>
 {% endblock %}

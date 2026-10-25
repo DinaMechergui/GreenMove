@@ -10,7 +10,7 @@
       <div class="card-greenmove p-4 p-md-5 border shadow-sm">
         <div class="text-center mb-4">
           <div class="d-inline-flex align-items-center justify-content-center p-3 rounded-circle mb-2" style="background: var(--gm-green-tint);">
-            <i class="bi bi-person-check fs-2" style="color: var(--gm-green-primary);"></i>
+            <i class="bi bi-person-check fs-2" style="color: var(--gm-green-primary);" aria-hidden="true"></i>
           </div>
           <h3 class="fw-bold mb-1 text-dark">{% trans "Espace Citoyen" %}</h3>
           <p class="text-muted small">Accédez à vos trajets verts et vos GreenPoints.</p>
@@ -28,7 +28,7 @@
           <div class="mb-3">
             <label for="id_username" class="form-label small fw-semibold text-muted">{% trans "Nom d'utilisateur ou email" %}</label>
             <div class="input-group">
-              <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-person"></i></span>
+              <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-person" aria-hidden="true"></i></span>
               {{ form.username }}
             </div>
             {% if form.username.errors %}
@@ -39,7 +39,7 @@
           <div class="mb-4">
             <label for="id_password" class="form-label small fw-semibold text-muted">{% trans "Mot de passe" %}</label>
             <div class="input-group">
-              <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-key"></i></span>
+              <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-key" aria-hidden="true"></i></span>
               {{ form.password }}
             </div>
             {% if form.password.errors %}
@@ -47,14 +47,21 @@
             {% endif %}
           </div>
 
-          <button type="submit" class="btn btn-green-primary w-100 py-2 mb-3">
-            <i class="bi bi-box-arrow-in-right me-2"></i>{% trans "Se connecter" %}
+          <button type="submit" class="btn btn-green-primary w-100 py-2 mb-3" aria-label="{% trans 'Se connecter' %}">
+            <i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i>{% trans "Se connecter" %}
           </button>
         </form>
 
+        {% if GOOGLE_LOGIN_ENABLED %}
+        <div class="text-center text-muted small mb-2">{% trans "ou" %}</div>
+        <a href="{% url 'google_login' %}?process=login" class="btn btn-outline-secondary w-100 py-2 mb-3" aria-label="{% trans 'Continuer avec Google' %}">
+          <i class="bi bi-google me-2" aria-hidden="true"></i>{% trans "Continuer avec Google" %}
+        </a>
+        {% endif %}
+
         <!-- Comptes de démonstration rapide -->
         <div class="p-3 bg-light rounded-3 small border mb-3">
-          <div class="fw-bold mb-1" style="color: var(--gm-green-primary);"><i class="bi bi-info-circle me-1"></i>Accès Démonstration :</div>
+          <div class="fw-bold mb-1" style="color: var(--gm-green-primary);"><i class="bi bi-info-circle me-1" aria-hidden="true"></i>Accès Démonstration :</div>
           <div class="text-muted"><strong>Conducteur :</strong> <code>yassine_lac</code> / <code>greenmove2026</code></div>
           <div class="text-muted"><strong>Passager :</strong> <code>salma_k</code> / <code>greenmove2026</code></div>
           <div class="text-muted"><strong>Admin :</strong> <code>admin</code> / <code>admin123</code></div>

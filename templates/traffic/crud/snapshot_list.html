@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Mesures de trafic (Snapshots)" %} | Traffic | GreenMove{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'traffic/traffic.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 tm-page">
+  {% include "traffic/_module_header.html" with page_title="Mesures de trafic (Snapshots)" page_intro="Relevés chronologiques de vitesse, de fluidité et de météo par axe routier." active="snapshots" %}
+
+  <div class="tm-card shadow-sm mb-4">
+    <!-- Barre de filtre et actions -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+      <form method="get" class="d-flex flex-wrap align-items-center gap-2" aria-label="{% trans 'Filtrer les mesures par point' %}">
+        <label for="point_filter" class="form-label fw-semibold mb-0 small text-muted">
+          <i class="bi bi-funnel me-1" aria-hidden="true"></i>{% trans "Filtrer par axe :" %}
+        </label>
+        <select id="point_filter" name="point" class="form-select form-select-sm" style="min-width: 220px;" onchange="this.form.submit()">
+          <option value="">{% trans "-- Tous les points de surveillance --" %}</option>
+          {% for p in points %}
+            <option value="{{ p.id }}" {% if selected_point == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+        {% if selected_point %}
+          <a href="{% url 'traffic:snapshot_list' %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Réinitialiser le filtre' %}">
+            <i class="bi bi-x-circle me-1" aria-hidden="true"></i>{% trans "Effacer" %}
+          </a>
+        {% endif %}
+      </form>
+
+      <div>
+        {% if perms.traffic.add_trafficsnapshot %}
+          <a href="{% url 'traffic:snapshot_create' %}" class="btn btn-sm btn-green-primary" aria-label="{% trans 'Enregistrer une nouvelle mesure' %}">
+            <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{% trans "Nouvelle mesure" %}
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-responsive">
+      <table class="table table-hover table-sm align-middle mb-0">
+        <caption class="visually-hidden">{% trans "Mesures de trafic enregistrées avec horodatage, vitesse et congestion" %}</caption>
+        <thead class="table-light">
+          <tr>
+            <th scope="col">{% trans "Point de surveillance" %}</th>
+            <th scope="col">{% trans "Horodatage" %}</th>
+            <th scope="col">{% trans "Vitesse / Référence" %}</th>
+            <th scope="col">{% trans "Congestion" %}</th>
+            <th scope="col">{% trans "Pluie" %}</th>
+            <th scope="col">{% trans "Source" %}</th>
+            <th scope="col" class="text-end">{% trans "Actions" %}</th>
+          </tr>
+        </thead>
+        <tbody class="small">
+          {% for s in snapshots %}
+            <tr>
+              <th scope="row">
+                <a href="{% url 'traffic:point_detail' s.point.pk %}" class="fw-semibold text-dark text-decoration-none">
+                  {{ s.point.name }}
+                </a>
+              </th>
+              <td>{{ s.timestamp|date:"d/m/Y H:i:s" }}</td>
+              <td><strong>{{ s.current_speed|floatformat:1 }}</strong> / {{ s.free_flow_speed|floatformat:0 }} km/h</td>
+              <td>
+                <span class="badge {% if s.congestion < 0.3 %}bg-success-subtle text-success border border-success-subtle{% elif s.congestion < 0.6 %}bg-warning-subtle text-dark border border-warning-subtle{% elif s.congestion < 0.8 %}bg-warning text-dark{% else %}bg-danger text-white{% endif %}">
+                  {{ s.congestion|floatformat:2 }}
+                </span>
+              </td>
+              <td>{{ s.precipitation_mm|floatformat:1 }} mm</td>
+              <td><span class="badge bg-light text-muted border">{{ s.get_source_display }}</span></td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'traffic:snapshot_detail' s.pk %}" class="btn btn-outline-secondary" title="{% trans 'Détail' %}" aria-label="{% trans 'Détail mesure' %} #{{ s.pk }}">
+                    <i class="bi bi-eye" aria-hidden="true"></i>
+                  </a>
+                  {% if perms.traffic.change_trafficsnapshot %}
+                    <a href="{% url 'traffic:snapshot_update' s.pk %}" class="btn btn-outline-primary" title="{% trans 'Modifier' %}" aria-label="{% trans 'Modifier mesure' %} #{{ s.pk }}">
+                      <i class="bi bi-pencil" aria-hidden="true"></i>
+                    </a>
+                  {% endif %}
+                  {% if perms.traffic.delete_trafficsnapshot %}
+                    <a href="{% url 'traffic:snapshot_delete' s.pk %}" class="btn btn-outline-danger" title="{% trans 'Supprimer' %}" aria-label="{% trans 'Supprimer mesure' %} #{{ s.pk }}">
+                      <i class="bi bi-trash" aria-hidden="true"></i>
+                    </a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">
+                <i class="bi bi-clock-history display-6 d-block mb-2" aria-hidden="true"></i>
+                {% trans "Aucune mesure trouvée." %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+      <nav aria-label="{% trans 'Pagination des mesures' %}" class="mt-4 d-flex justify-content-center">
+        <ul class="pagination pagination-sm mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?{% if selected_point %}point={{ selected_point }}&{% endif %}page={{ page_obj.previous_page_number }}" aria-label="{% trans 'Page précédente' %}">
+                &laquo;
+              </a>
+            </li>
+          {% endif %}
+          <li class="page-item disabled">
+            <span class="page-link">{% trans "Page" %} {{ page_obj.number }} / {{ paginator.num_pages }}</span>
+          </li>
+          {% if page_obj.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?{% if selected_point %}point={{ selected_point }}&{% endif %}page={{ page_obj.next_page_number }}" aria-label="{% trans 'Page suivante' %}">
+                &raquo;
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

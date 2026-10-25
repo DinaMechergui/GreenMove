@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Comparaison carbone | GreenMove{% endblock %}
+{% block content %}
+<main class="container py-5 tracker-page">
+  <a href="{% url 'tracker:detail' trip.pk %}">← Retour au trajet</a>
+  <h1 class="h2 mt-3">Et si j'avais utilisé un autre transport ?</h1>
+  <p>Trajet réel : {{ trip.distance_km }} km · Mode : {{ trip.get_confirmed_transport_mode_display|default:trip.get_detected_transport_mode_display }}</p>
+  {% if alternatives %}
+  <p class="alert alert-info">Comparaison indicative à distance identique. La durée et l'itinéraire ne sont pas routés.</p>
+  <div class="row g-3">{% for alternative in alternatives %}
+    <div class="col-md-6 col-lg-4"><article class="card card-body h-100">
+      <h2 class="h5">{{ alternative.label }}</h2><p>Émissions estimées : {{ alternative.co2 }} kg CO₂e</p>
+      {% if alternative.savings >= 0 %}<p>Économie estimée : {{ alternative.savings }} kg CO₂e{% if alternative.reduction %} ({{ alternative.reduction }} %){% endif %}</p>{% else %}<p>Émissions supplémentaires : {{ alternative.savings|stringformat:"s"|slice:"1:" }} kg CO₂e</p>{% endif %}
+    </article></div>
+  {% endfor %}</div>
+  {% else %}<p class="alert alert-warning">Confirmez un mode et enregistrez une distance pour comparer.</p>{% endif %}
+</main>
+{% endblock %}

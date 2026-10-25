@@ -8,9 +8,11 @@ import uuid
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db import transaction
 from django.http import HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -31,6 +33,20 @@ from .services.isochrones import find_meeting_point
 from .services.clusters import cluster_recurring_rides, join_group
 from .services.costs import compute_duo_split, compute_custom_split
 from .services import telegram as telegram_service
+from accounts.signals import ADMIN_GROUP
+
+
+class IsRideOwnerOrAdminOrReadOnly(permissions.BasePermission):
+    """Les trajets restent publics en lecture, seuls leur auteur et l'admin les modifient."""
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return bool(
+            request.user.is_authenticated and
+            (obj.user_id == request.user.pk or request.user.is_superuser or
+             request.user.groups.filter(name=ADMIN_GROUP).exists())
+        )
 
 
 def search_rides(request):
@@ -235,7 +251,10 @@ def ride_detail(request, pk: int):
     has_booked = False
     existing_booking = None
     if request.user.is_authenticated:
-        existing_booking = RideBooking.objects.filter(ride=ride, passenger=request.user).first()
+        existing_booking = RideBooking.objects.filter(
+            ride=ride, passenger=request.user,
+            status__in=(RideBooking.StatusChoices.PENDING, RideBooking.StatusChoices.ACCEPTED),
+        ).first()
         has_booked = existing_booking is not None
 
     # Salon de chat du trajet
@@ -254,7 +273,9 @@ def ride_detail(request, pk: int):
     )
     can_review = False
     if request.user.is_authenticated and request.user != ride.user:
-        has_booking = RideBooking.objects.filter(ride=ride, passenger=request.user).exists()
+        has_booking = RideBooking.objects.filter(
+            ride=ride, passenger=request.user, status=RideBooking.StatusChoices.ACCEPTED
+        ).exists()
         already_reviewed = Review.objects.filter(ride=ride, reviewer=request.user).exists()
         can_review = has_booking and not already_reviewed
 
@@ -283,11 +304,16 @@ def ride_detail(request, pk: int):
 
 
 @login_required
+@require_POST
 def book_ride(request, pk: int):
     """
     Création d'une réservation pour un trajet (support HTMX).
     """
     ride = get_object_or_404(Ride, pk=pk)
+
+    if ride.status != Ride.StatusChoices.ACTIVE or ride.seats_available < 1:
+        messages.warning(request, "Ce trajet n'accepte plus de réservations.")
+        return redirect('match:ride_detail', pk=pk)
 
     if ride.user == request.user:
         messages.warning(request, "Vous ne pouvez pas réserver votre propre trajet.")
@@ -296,37 +322,42 @@ def book_ride(request, pk: int):
     if request.method == 'POST':
         form = BookingForm(request.POST)
         if form.is_valid():
+            seats_requested = form.cleaned_data['seats_requested']
+            if seats_requested > ride.seats_available:
+                messages.error(request, "Le nombre de places demandé dépasse les places disponibles.")
+                return redirect('match:ride_detail', pk=pk)
             booking, created = RideBooking.objects.get_or_create(
                 ride=ride,
                 passenger=request.user,
                 defaults={
                     'seats_requested': form.cleaned_data['seats_requested'],
                     'message': form.cleaned_data['message'],
-                    'status': RideBooking.StatusChoices.ACCEPTED, # Auto-accepté en démo hackathon
+                    'status': RideBooking.StatusChoices.PENDING,
                 }
             )
-
-            # Gain de 20 GreenPoints pour le passager éco-responsable
-            request.user.eco_points += 20
-            request.user.save(update_fields=['eco_points'])
-
-            # Création / ouverture du salon de chat du trajet + participants
-            room, _ = ChatRoom.objects.get_or_create(ride=ride)
-            room.participants.add(ride.user, request.user)
+            if not created and booking.status in (
+                RideBooking.StatusChoices.REJECTED, RideBooking.StatusChoices.CANCELLED
+            ):
+                booking.seats_requested = seats_requested
+                booking.message = form.cleaned_data['message']
+                booking.status = RideBooking.StatusChoices.PENDING
+                booking.save(update_fields=['seats_requested', 'message', 'status'])
+                created = True
 
             # Notification Telegram du conducteur (gratuite, no-op sans token)
-            telegram_service.notify_booking(booking)
+            if created:
+                telegram_service.notify_booking(booking)
 
             # Notification au conducteur via WebSocket si Channels est actif
             try:
                 channel_layer = get_channel_layer()
-                if channel_layer:
+                if channel_layer and created:
                     async_to_sync(channel_layer.group_send)(
                         f'user_notifications_{ride.user_id}',
                         {
                             'type': 'match_notification',
                             'message': {
-                                'title': 'Nouvelle réservation reçue !',
+                                'title': 'Demande de réservation reçue',
                                 'text': f"{request.user.get_full_name() or request.user.username} a réservé {booking.seats_requested} place(s).",
                                 'ride_id': ride.id
                             }
@@ -338,10 +369,64 @@ def book_ride(request, pk: int):
             if request.htmx:
                 return render(request, 'match/includes/booking_success.html', {'booking': booking})
 
-            messages.success(request, "Réservation confirmée ! Vous avez gagné 20 GreenPoints.")
+            messages.success(request, "Votre demande a été envoyée au conducteur.")
             return redirect('match:ride_detail', pk=pk)
 
     return redirect('match:ride_detail', pk=pk)
+
+
+@login_required
+@require_POST
+def manage_booking(request, booking_id: int):
+    """Transitions contrôlées : conducteur accepte/refuse, passager annule."""
+    action = request.POST.get('action')
+    with transaction.atomic():
+        booking = get_object_or_404(
+            RideBooking.objects.select_for_update().select_related('ride', 'passenger'), pk=booking_id
+        )
+        ride = Ride.objects.select_for_update().get(pk=booking.ride_id)
+        if action in ('accept', 'reject'):
+            if request.user.pk != ride.user_id or booking.status != RideBooking.StatusChoices.PENDING:
+                messages.error(request, "Cette demande ne peut pas être modifiée par ce compte.")
+                return redirect('match:my_rides')
+            if action == 'accept':
+                if ride.status != Ride.StatusChoices.ACTIVE or ride.seats_available < booking.seats_requested:
+                    messages.error(request, "Il n'y a pas assez de places disponibles.")
+                    return redirect('match:my_rides')
+                booking.status = RideBooking.StatusChoices.ACCEPTED
+                ride.seats_available -= booking.seats_requested
+                if ride.seats_available == 0:
+                    ride.status = Ride.StatusChoices.FULL
+                ride.save(update_fields=['seats_available', 'status', 'updated_at'])
+                room, _ = ChatRoom.objects.get_or_create(ride=ride)
+                room.participants.add(ride.user, booking.passenger)
+                booking.passenger.eco_points += 20
+                booking.passenger.save(update_fields=['eco_points'])
+                messages.success(request, "Demande acceptée. Le chat est maintenant accessible aux participants.")
+            else:
+                booking.status = RideBooking.StatusChoices.REJECTED
+                messages.success(request, "Demande refusée.")
+        elif action == 'cancel':
+            if request.user.pk != booking.passenger_id or booking.status not in (
+                RideBooking.StatusChoices.PENDING, RideBooking.StatusChoices.ACCEPTED
+            ):
+                messages.error(request, "Cette réservation ne peut pas être annulée par ce compte.")
+                return redirect('match:my_rides')
+            if booking.status == RideBooking.StatusChoices.ACCEPTED:
+                ride.seats_available += booking.seats_requested
+                if ride.status == Ride.StatusChoices.FULL:
+                    ride.status = Ride.StatusChoices.ACTIVE
+                ride.save(update_fields=['seats_available', 'status', 'updated_at'])
+                room = ChatRoom.objects.filter(ride=ride).first()
+                if room:
+                    room.participants.remove(booking.passenger)
+            booking.status = RideBooking.StatusChoices.CANCELLED
+            messages.success(request, "Réservation annulée.")
+        else:
+            messages.error(request, "Action de réservation invalide.")
+            return redirect('match:my_rides')
+        booking.save(update_fields=['status'])
+    return redirect('match:my_rides')
 
 
 @login_required
@@ -356,6 +441,9 @@ def my_rides(request):
     context = {
         'proposed_rides': proposed_rides,
         'bookings': bookings,
+        'incoming_bookings': RideBooking.objects.filter(ride__user=user).select_related(
+            'ride', 'passenger'
+        ).order_by('-created_at'),
     }
     return render(request, 'match/my_rides.html', context)
 
@@ -372,6 +460,13 @@ class APIRideListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class APIRideDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """CRUD d'un trajet ; les mutations sont limitées au propriétaire ou à l'admin."""
+    queryset = Ride.objects.select_related('user')
+    serializer_class = RideSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsRideOwnerOrAdminOrReadOnly]
 
 
 class APIFindMatchesView(APIView):
@@ -576,19 +671,21 @@ def chat_room(request, pk: int):
     Chat temps réel d'un trajet (WebSocket) avec messages d'accueil suggérés.
     """
     ride = get_object_or_404(Ride.objects.select_related('user'), pk=pk)
-    room, _ = ChatRoom.objects.get_or_create(ride=ride)
-
-    # Participants : conducteur + passagers ayant réservé
-    room.participants.add(ride.user)
-    for booking in ride.bookings.select_related('passenger'):
-        room.participants.add(booking.passenger)
-
-    if not room.participants.filter(pk=request.user.pk).exists():
+    is_owner = request.user.pk == ride.user_id
+    is_accepted_passenger = ride.bookings.filter(
+        passenger=request.user, status=RideBooking.StatusChoices.ACCEPTED
+    ).exists()
+    if not (is_owner or is_accepted_passenger):
         messages.warning(
             request,
-            "Rejoignez ce trajet (réservation) pour accéder à la discussion."
+            "Le chat est réservé au conducteur et aux passagers dont la demande a été acceptée."
         )
         return redirect('match:ride_detail', pk=ride.id)
+
+    room, _ = ChatRoom.objects.get_or_create(ride=ride)
+    room.participants.add(ride.user)
+    if is_accepted_passenger:
+        room.participants.add(request.user)
 
     # Messages d'accueil suggérés (injectés une seule fois)
     if not room.messages.filter(is_suggestion=True).exists():
@@ -840,10 +937,13 @@ class APIRideGroupsView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        clusters = cluster_recurring_rides(
-            eps_m=float(request.query_params.get('eps', 1500)),
-            min_samples=int(request.query_params.get('min_samples', 2)),
-        )
+        try:
+            eps = float(request.query_params.get('eps', 1500))
+            min_samples = int(request.query_params.get('min_samples', 2))
+        except (TypeError, ValueError):
+            return Response({"detail": "Paramètres eps/min_samples invalides."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        clusters = cluster_recurring_rides(eps_m=eps, min_samples=min_samples)
         return Response({
             "groups": [
                 {
@@ -859,3 +959,45 @@ class APIRideGroupsView(APIView):
                 for c in clusters
             ]
         })
+
+
+# ==========================================
+# MÉTRIQUES IA (Celery + polling HTMX)
+# ==========================================
+
+def _launch_ai_evaluation():
+    """Lance la tâche Celery sans bloquer la requête si le broker est indisponible."""
+    from django.core.cache import cache
+    from .tasks import evaluate_ai_async, METRICS_STATUS_KEY
+    cache.set(METRICS_STATUS_KEY, 'running', 600)
+    try:
+        evaluate_ai_async.delay()
+        return True
+    except Exception:
+        cache.set(METRICS_STATUS_KEY, 'error', 600)
+        return False
+
+
+@login_required
+def ai_metrics(request):
+    """Page des métriques IA ; POST relance l'évaluation en arrière-plan."""
+    from django.core.cache import cache
+    from .tasks import METRICS_CACHE_KEY
+    if request.method == 'POST' or cache.get(METRICS_CACHE_KEY) is None:
+        _launch_ai_evaluation()
+        if request.method == 'POST':
+            return redirect('match:ai_metrics')
+    return render(request, 'match/ai_metrics.html')
+
+
+@login_required
+def ai_metrics_status(request):
+    """Fragment HTMX : « analyse en cours » (poll toutes les 2 s) puis résultats."""
+    from django.core.cache import cache
+    from .tasks import METRICS_CACHE_KEY, METRICS_STATUS_KEY
+    status_value = cache.get(METRICS_STATUS_KEY, 'running')
+    report = cache.get(METRICS_CACHE_KEY)
+    if status_value == 'running' or (report is None and status_value != 'error'):
+        status_value = 'running'
+    return render(request, 'match/partials/ai_metrics_result.html',
+                  {'status': status_value, 'report': report})

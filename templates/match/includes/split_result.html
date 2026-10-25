@@ -3,7 +3,7 @@
   <div class="card-greenmove p-4 border shadow-sm">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h6 class="fw-bold text-dark mb-0">
-        <i class="bi bi-receipt me-1 text-success"></i>
+        <i class="bi bi-receipt me-1 text-success" aria-hidden="true"></i>
         {% if result.is_duo %}{% trans "Partage par duo (conducteur + passager)" %}{% else %}{% trans "Partage entre personnes" %}{% endif %}
       </h6>
       {% if result.ride %}
@@ -41,21 +41,21 @@
     {% if result.is_duo %}
       <div class="mb-3">
         <div class="d-flex justify-content-between small border-bottom pb-2 mb-1">
-          <span class="text-muted"><i class="bi bi-person me-1"></i>{% trans "Passager paie" %}</span>
+          <span class="text-muted"><i class="bi bi-person me-1" aria-hidden="true"></i>{% trans "Passager paie" %}</span>
           <strong>{{ result.passenger_pays_tnd }} DT</strong>
         </div>
         <div class="d-flex justify-content-between small border-bottom pb-2 mb-1">
-          <span class="text-muted"><i class="bi bi-person-vcard me-1"></i>{% trans "Conducteur supporte" %}</span>
+          <span class="text-muted"><i class="bi bi-person-vcard me-1" aria-hidden="true"></i>{% trans "Conducteur supporte" %}</span>
           <strong>{{ result.driver_net_cost_tnd }} DT</strong>
         </div>
         <div class="d-flex justify-content-between small">
-          <span class="text-muted"><i class="bi bi-piggy-bank me-1 text-success"></i>{% trans "Économie du conducteur" %}</span>
+          <span class="text-muted"><i class="bi bi-piggy-bank me-1 text-success" aria-hidden="true"></i>{% trans "Économie du conducteur" %}</span>
           <strong class="text-success">-{{ result.driver_saves_tnd }} DT</strong>
         </div>
       </div>
     {% else %}
       <div class="d-flex justify-content-between small border-bottom pb-2 mb-1">
-        <span class="text-muted"><i class="bi bi-people me-1"></i>{{ result.passengers }} {% trans "personnes" %}</span>
+        <span class="text-muted"><i class="bi bi-people me-1" aria-hidden="true"></i>{{ result.passengers }} {% trans "personnes" %}</span>
         <strong>{{ result.co2_total_kg }} kg CO₂</strong>
       </div>
     {% endif %}
@@ -63,7 +63,7 @@
     <!-- Impact CO2 duo -->
     <div class="p-3 rounded-3 d-flex align-items-center justify-content-between border mt-3" style="background: var(--gm-green-tint);">
       <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-tree text-success fs-4"></i>
+        <i class="bi bi-tree text-success fs-4" aria-hidden="true"></i>
         <div>
           <div class="fw-bold small" style="color: var(--gm-green-primary);">
             {% if result.is_duo %}{% trans "CO₂ évité par le duo" %}{% else %}{% trans "CO₂ total du trajet" %}{% endif %}
@@ -84,14 +84,14 @@
 
     {% if result.is_duo %}
       <div class="small text-muted mt-3 text-center">
-        <i class="bi bi-leaf me-1 text-success"></i>
+        <i class="bi bi-leaf me-1 text-success" aria-hidden="true"></i>
         {% blocktrans with km=result.distance_km co2=result.co2_duo_saved_kg %}Sur {{ km }} km, le duo évite l'équivalent de {{ co2 }} kg de CO₂ par rapport à deux trajets séparés.{% endblocktrans %}
       </div>
     {% endif %}
   </div>
 {% else %}
   <div class="card-greenmove p-5 text-center text-muted border">
-    <i class="bi bi-calculator fs-1 d-block mb-3 text-secondary opacity-50"></i>
+    <i class="bi bi-calculator fs-1 d-block mb-3 text-secondary opacity-50" aria-hidden="true"></i>
     <h6 class="text-dark">{% trans "Choisissez un trajet ou saisissez une distance" %}</h6>
     <p class="small mb-0">{% trans "Le détail du partage des frais et du CO₂ apparaîtra ici." %}</p>
   </div>

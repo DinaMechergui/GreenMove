@@ -7,25 +7,47 @@
 <div class="container py-4 mt-4">
   <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3" data-aos="fade-down">
     <div>
-      <h2 class="fw-bold mb-1">{% trans "Mes Trajets Écologiques" %}</h2>
+      <h1 class="h2 fw-bold mb-1">{% trans "Mes Trajets Écologiques" %}</h1>
       <p class="text-muted small mb-0">Retrouvez l'historique de vos propositions et de vos covoiturages partagés.</p>
     </div>
     <div class="d-flex gap-2">
       <a href="{% url 'match:create_ride' %}" class="btn btn-green-primary">
-        <i class="bi bi-plus-circle me-1"></i>{% trans "Proposer un trajet" %}
+        <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>{% trans "Proposer un trajet" %}
       </a>
       <a href="{% url 'match:search' %}" class="btn btn-green-outline">
-        <i class="bi bi-search me-1"></i>{% trans "Rechercher" %}
+        <i class="bi bi-search me-1" aria-hidden="true"></i>{% trans "Rechercher" %}
       </a>
     </div>
   </div>
 
   <div class="row g-4">
+    <div class="col-12" data-aos="fade-up">
+      <section class="card-greenmove p-4 border shadow-sm" aria-labelledby="incoming-bookings-heading">
+        <h2 id="incoming-bookings-heading" class="h5 fw-bold mb-3">{% trans "Demandes reçues sur mes trajets" %} ({{ incoming_bookings.count }})</h2>
+        {% if incoming_bookings %}
+          <ul class="list-group list-group-flush">
+            {% for b in incoming_bookings %}
+              <li class="list-group-item px-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span>{{ b.passenger.get_full_name|default:b.passenger.username }} · {{ b.ride.origin_address }} → {{ b.ride.destination_address }} · {{ b.seats_requested }} place(s) · {{ b.get_status_display }}</span>
+                {% if b.status == 'PENDING' %}
+                  <div class="d-flex gap-2">
+                    <form method="post" action="{% url 'match:manage_booking' b.pk %}">{% csrf_token %}<input type="hidden" name="action" value="accept"><button class="btn btn-sm btn-success">{% trans "Accepter" %}</button></form>
+                    <form method="post" action="{% url 'match:manage_booking' b.pk %}">{% csrf_token %}<input type="hidden" name="action" value="reject"><button class="btn btn-sm btn-outline-danger">{% trans "Refuser" %}</button></form>
+                  </div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">{% trans "Aucune demande reçue pour le moment." %}</p>
+        {% endif %}
+      </section>
+    </div>
     <!-- Mes Propositions Conducteur -->
     <div class="col-lg-6" data-aos="fade-right">
       <div class="card-greenmove p-4 border shadow-sm h-100">
         <h5 class="fw-bold text-success mb-3">
-          <i class="bi bi-car-front-fill me-2"></i>{% trans "Mes Trajets Publiés" %} ({{ proposed_rides.count }})
+          <i class="bi bi-car-front-fill me-2" aria-hidden="true"></i>{% trans "Mes Trajets Publiés" %} ({{ proposed_rides.count }})
         </h5>
 
         {% if proposed_rides %}
@@ -39,13 +61,13 @@
                   <span class="badge bg-success-subtle text-success">{{ ride.get_status_display }}</span>
                 </div>
                 <div class="small text-muted mb-2">
-                  <i class="bi bi-calendar3 me-1"></i>{{ ride.departure_datetime|date:"d M Y à H:i" }} •
+                  <i class="bi bi-calendar3 me-1" aria-hidden="true"></i>{{ ride.departure_datetime|date:"d M Y à H:i" }} •
                   <strong>{{ ride.price_tnd }} DT</strong> •
                   {{ ride.seats_available }} places restantes
                 </div>
                 <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                   <span class="small text-success">
-                    <i class="bi bi-tree-fill"></i> -{{ ride.estimated_co2_saved }} kg CO₂
+                    <i class="bi bi-tree-fill" aria-hidden="true"></i> -{{ ride.estimated_co2_saved }} kg CO₂
                   </span>
                   <a href="{% url 'match:ride_detail' ride.id %}" class="btn btn-sm btn-outline-success rounded-pill px-3">
                     {% trans "Gérer le trajet" %}
@@ -56,7 +78,7 @@
           </div>
         {% else %}
           <div class="text-center py-5 text-muted">
-            <i class="bi bi-car-front fs-1 d-block mb-2 text-secondary"></i>
+            <i class="bi bi-car-front fs-1 d-block mb-2 text-secondary" aria-hidden="true"></i>
             <p>{% trans "Vous n'avez aucun trajet publié en tant que conducteur." %}</p>
             <a href="{% url 'match:create_ride' %}" class="btn btn-sm btn-green-primary">{% trans "Proposer un trajet" %}</a>
           </div>
@@ -68,7 +90,7 @@
     <div class="col-lg-6" data-aos="fade-left">
       <div class="card-greenmove p-4 border shadow-sm h-100">
         <h5 class="fw-bold text-primary mb-3">
-          <i class="bi bi-ticket-perforated-fill me-2"></i>{% trans "Mes Réservations" %} ({{ bookings.count }})
+          <i class="bi bi-ticket-perforated-fill me-2" aria-hidden="true"></i>{% trans "Mes Réservations" %} ({{ bookings.count }})
         </h5>
 
         {% if bookings %}
@@ -93,13 +115,16 @@
                   <a href="{% url 'match:ride_detail' b.ride.id %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
                     {% trans "Voir trajet" %}
                   </a>
+                  {% if b.status == 'PENDING' or b.status == 'ACCEPTED' %}
+                    <form method="post" action="{% url 'match:manage_booking' b.pk %}">{% csrf_token %}<input type="hidden" name="action" value="cancel"><button class="btn btn-sm btn-outline-danger">{% trans "Annuler" %}</button></form>
+                  {% endif %}
                 </div>
               </div>
             {% endfor %}
           </div>
         {% else %}
           <div class="text-center py-5 text-muted">
-            <i class="bi bi-ticket-detailed fs-1 d-block mb-2 text-secondary"></i>
+            <i class="bi bi-ticket-detailed fs-1 d-block mb-2 text-secondary" aria-hidden="true"></i>
             <p>{% trans "Vous n'avez pas de réservation active." %}</p>
             <a href="{% url 'match:search' %}" class="btn btn-sm btn-green-primary">{% trans "Rechercher un covoiturage" %}</a>
           </div>

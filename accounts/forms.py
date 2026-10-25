@@ -3,7 +3,7 @@ Formulaires pour l'authentification et la gestion du profil éco-mobilité.
 """
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import CustomUser
+from .models import CustomUser, Profile
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -88,3 +88,17 @@ class ProfileEditForm(forms.ModelForm):
             if name in custom_classed:
                 continue
             field.widget.attrs.update({'class': 'form-control'})
+
+
+class ProfilePrefsForm(forms.ModelForm):
+    """Préférences de mobilité (ville, mode préféré, objectif carbone, langue)."""
+
+    class Meta:
+        model = Profile
+        fields = ('city', 'preferred_mode', 'carbon_goal_kg', 'language')
+        widgets = {
+            'city': forms.TextInput(attrs={'class': 'form-control'}),
+            'preferred_mode': forms.Select(attrs={'class': 'form-select'}),
+            'carbon_goal_kg': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'step': 1}),
+            'language': forms.Select(attrs={'class': 'form-select'}),
+        }

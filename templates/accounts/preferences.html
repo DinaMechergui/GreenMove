@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Préférences de mobilité" %} | GreenMove{% endblock %}
+
+{% block content %}
+<div class="container py-5 mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+      <div class="card-greenmove border p-4 shadow-sm">
+        <h1 class="h4 fw-bold mb-3"><i class="bi bi-sliders me-2" style="color: var(--gm-green-primary);" aria-hidden="true"></i>{% trans "Préférences de mobilité" %}</h1>
+        {% if messages %}{% for m in messages %}<div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>{% endfor %}{% endif %}
+        <form method="post">{% csrf_token %}
+          {% for field in form %}
+          <div class="mb-3">
+            <label for="{{ field.id_for_label }}" class="form-label small fw-semibold text-muted">{{ field.label }}</label>
+            {{ field }}
+            {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+          </div>
+          {% endfor %}
+          <button class="btn btn-green-primary w-100" aria-label="{% trans 'Enregistrer les préférences' %}">{% trans "Enregistrer" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

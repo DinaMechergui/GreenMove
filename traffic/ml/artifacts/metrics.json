@@ -1,0 +1,26 @@
+{
+  "trained_at": "2026-10-25T17:05:30",
+  "train_rows": 72030,
+  "test_rows": 14400,
+  "split": "test = 10 derniers jours",
+  "baseline_point_hour": {
+    "MAE": 0.057,
+    "RMSE": 0.0792,
+    "MAPE_%": 30.58
+  },
+  "lightgbm": {
+    "MAE": 0.0332,
+    "RMSE": 0.0418,
+    "MAPE_%": 17.93
+  },
+  "feature_importance_gain": {
+    "point_id": 1202.6,
+    "minute_of_day": 5430.8,
+    "hour_sin": 896.1,
+    "hour_cos": 11025.2,
+    "dow": 1632.3,
+    "is_weekend": 0.0,
+    "is_holiday": 154.1,
+    "precipitation_mm": 53.2
+  }
+}

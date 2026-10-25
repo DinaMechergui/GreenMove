@@ -5,7 +5,9 @@ Contient les réglages communs à tous les environnements (développement et pro
 
 from pathlib import Path
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ImproperlyConfigured
 from decouple import config, Csv
+import dj_database_url
 
 # Répertoire racine du projet (dossier greenmove/)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -23,6 +25,9 @@ INSTALLED_APPS = [
     # Daphne doit être avant django.contrib.staticfiles pour Channels
     'daphne',
 
+    # Thème admin (doit précéder django.contrib.admin)
+    'jazzmin',
+
     # Django core
     'django.contrib.admin',
     'django.contrib.auth',
@@ -30,6 +35,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+
+    # Authentification Google (django-allauth)
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 
     # Bibliothèques tierces
     'rest_framework',
@@ -53,6 +65,7 @@ INSTALLED_APPS = [
 # Middlewares
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',  # Gestion i18n
     'django.middleware.common.CommonMiddleware',
@@ -61,6 +74,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_htmx.middleware.HtmxMiddleware',      # Support Django HTMX
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -87,9 +101,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Configuration Base de Données
-DB_ENGINE = config('DB_ENGINE', default='sqlite').lower()
+DB_ENGINE = config('DB_ENGINE', default='postgres').lower()
+DATABASE_URL = config('DATABASE_URL', default='').strip()
 
-if DB_ENGINE == 'postgres':
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
+    }
+elif DB_ENGINE == 'postgres':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -100,13 +119,17 @@ if DB_ENGINE == 'postgres':
             'PORT': config('DB_PORT', default='5432'),
         }
     }
-else:
+elif DB_ENGINE == 'sqlite':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+else:
+    raise ImproperlyConfigured(
+        "DB_ENGINE must be either 'postgres' or 'sqlite'."
+    )
 
 # Validation des mots de passe
 AUTH_PASSWORD_VALIDATORS = [
@@ -170,6 +193,14 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '60/min',
+        'user': '300/min',
+    },
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
@@ -201,9 +232,98 @@ CACHES = {
 NOMINATIM_USER_AGENT = config('NOMINATIM_USER_AGENT', default='GreenMove-Platform/1.0 (contact@greenmove.tn)')
 ORS_API_KEY = config('ORS_API_KEY', default='')
 OPEN_METEO_API_URL = config('OPEN_METEO_API_URL', default='https://api.open-meteo.com/v1/forecast')
-
+TOMTOM_API_KEY = config('TOMTOM_API_KEY', default='')
+TRAFFIC_SOURCE = config('TRAFFIC_SOURCE', default='synthetic')  # 'synthetic' ou 'tomtom'
 # Notifications Telegram Bot (gratuites) — no-op si token vide
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN', default='')
 TELEGRAM_CHAT_ID = config('TELEGRAM_CHAT_ID', default='')
+
+# ==========================================
+# Authentification Google (django-allauth)
+# ==========================================
+SITE_ID = 1
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='')
+GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET', default='')
+GOOGLE_LOGIN_ENABLED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+        **({'APP': {'client_id': GOOGLE_CLIENT_ID, 'secret': GOOGLE_CLIENT_SECRET, 'key': ''}}
+           if GOOGLE_LOGIN_ENABLED else {}),
+    }
+}
+ACCOUNT_LOGIN_METHODS = {'username', 'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+
+# ==========================================
+# E-mail, Celery (Beat) et IA optionnelle
+# ==========================================
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='GreenMove <noreply@greenmove.tn>')
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default=config('REDIS_URL', default='redis://127.0.0.1:6379/0'))
+# Sans broker (dev/tests), les tâches s'exécutent de façon synchrone.
+CELERY_TASK_ALWAYS_EAGER = config('CELERY_TASK_ALWAYS_EAGER', default=False, cast=bool)
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    'planner-month-end-projection': {
+        'task': 'planner.tasks.project_month_end_all',
+        'schedule': 60 * 60 * 24,  # quotidien
+    },
+    'planner-weekly-report': {
+        'task': 'planner.tasks.send_weekly_reports',
+        'schedule': 60 * 60 * 24 * 7,  # hebdomadaire
+    },
+    'traffic-collect-snapshots': {
+        'task': 'traffic.tasks.collect_traffic_snapshots',
+        'schedule': 15 * 60,
+    },
+}
+
+# Explications en langage naturel : 'none' (gabarits), 'gemini' ou 'ollama'. Repli automatique sur les gabarits.
+LLM_PROVIDER = config('LLM_PROVIDER', default='none').lower()
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+GEMINI_MODEL = config('GEMINI_MODEL', default='gemini-1.5-flash')
+OLLAMA_URL = config('OLLAMA_URL', default='http://127.0.0.1:11434')
+OLLAMA_MODEL = config('OLLAMA_MODEL', default='llama3')
+
+# ==========================================
+# Thème d'administration (Jazzmin) aux couleurs GreenMove
+# ==========================================
+JAZZMIN_SETTINGS = {
+    'site_title': 'GreenMove Admin',
+    'site_header': 'GreenMove',
+    'site_brand': 'GreenMove',
+    'welcome_sign': 'Administration GreenMove - Mobilité verte',
+    'copyright': 'GreenMove 2026',
+    'search_model': ['accounts.CustomUser'],
+    'topmenu_links': [
+        {'name': 'Site', 'url': '/', 'new_window': True},
+        {'name': 'API Docs', 'url': '/api/docs/', 'new_window': True},
+    ],
+    'icons': {
+        'accounts.CustomUser': 'fas fa-user-circle',
+        'accounts.AuditLog': 'fas fa-clipboard-list',
+        'planner.TripRecord': 'fas fa-route',
+        'planner.RecurringTrip': 'fas fa-calendar-week',
+        'planner.CarbonBudget': 'fas fa-leaf',
+        'auth.Group': 'fas fa-users-cog',
+    },
+    'show_ui_builder': False,
+}
+JAZZMIN_UI_TWEAKS = {
+    'navbar': 'navbar-success',
+    'sidebar': 'sidebar-dark-success',
+    'brand_colour': 'navbar-success',
+    'accent': 'accent-success',
+    'button_classes': {'primary': 'btn-success'},
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
