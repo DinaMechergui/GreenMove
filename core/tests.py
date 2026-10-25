@@ -25,10 +25,12 @@ class CoreInitializationTests(TestCase):
 
     def test_placeholder_views(self):
         """Vérifie que les modules vides 'Bientôt disponible' s'affichent correctement."""
-        for app in ['tracker:index', 'traffic:index', 'planner:index', 'rewards:index']:
+        for app in ['traffic:index', 'planner:index', 'rewards:index']:
             res = self.client.get(reverse(app))
             self.assertEqual(res.status_code, 200)
             self.assertContains(res, "Bientôt disponible")
+        tracker_response = self.client.get(reverse('tracker:index'))
+        self.assertEqual(tracker_response.status_code, 302)
 
 
 class DemoDataTests(TestCase):
