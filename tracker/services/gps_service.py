@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta
 
 from cryptography.fernet import Fernet, InvalidToken
+from django.conf import settings
 from django.utils import timezone
 
 
@@ -19,7 +20,7 @@ class GPSKeyUnavailable(RuntimeError):
 
 
 def _fernet() -> Fernet:
-    secret = os.environ.get("GPS_ENCRYPTION_KEY", "")
+    secret = os.environ.get("GPS_ENCRYPTION_KEY", settings.GPS_ENCRYPTION_KEY)
     if len(secret) < 32:
         raise GPSKeyUnavailable(
             "GPS_ENCRYPTION_KEY doit contenir au moins 32 caractères."

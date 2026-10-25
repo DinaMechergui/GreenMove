@@ -68,6 +68,22 @@ def add_point(trip, payload):
         raise GPSDataError("La précision ou la vitesse GPS doit être finie.")
     if recorded_at < trip.start_time - timedelta(minutes=5):
         raise GPSDataError("L'horodatage précède le début du trajet.")
+    previous_timestamp = (
+        trip.gps_points.filter(sequence__lt=sequence)
+        .order_by("-sequence")
+        .values_list("recorded_at", flat=True)
+        .first()
+    )
+    next_timestamp = (
+        trip.gps_points.filter(sequence__gt=sequence)
+        .order_by("sequence")
+        .values_list("recorded_at", flat=True)
+        .first()
+    )
+    if previous_timestamp is not None and recorded_at <= previous_timestamp:
+        raise GPSDataError("L'horodatage doit suivre les points GPS précédents.")
+    if next_timestamp is not None and recorded_at >= next_timestamp:
+        raise GPSDataError("L'horodatage doit précéder les points GPS suivants.")
     encrypted_latitude, encrypted_longitude = encrypt_coordinates(latitude, longitude)
     try:
         point, created = GPSPoint.objects.get_or_create(
@@ -187,7 +203,10 @@ def refresh_confirmed_carbon(trip):
     """Recalculate completed-trip CO2 and its single user-confirmed segment."""
     if trip.status != Trip.Status.COMPLETED:
         return trip
-    selected_mode = trip.confirmed_transport_mode or trip.detected_transport_mode
+    selected_mode = trip.confirmed_transport_mode or (
+        trip.detected_transport_mode
+        if trip.prediction_status == "complete" else ""
+    )
     trip.co2_kg = (
         calculate_trip_emissions(trip.distance_km, selected_mode)
         if selected_mode else Decimal("0")
@@ -207,6 +226,62 @@ def refresh_confirmed_carbon(trip):
         )
     trip.save(update_fields=("co2_kg", "updated_at"))
     return trip
+
+
+@transaction.atomic
+def _replace_segments(trip, segments, selected_mode, confidence=None):
+    supported_modes = {choice for choice, _ in Trip.TransportMode.choices}
+    segments = [
+        segment for segment in segments
+        if segment["transport_mode"] in supported_modes
+    ]
+    if not segments and selected_mode:
+        segments = [
+            {
+                "transport_mode": selected_mode,
+                "distance_km": trip.distance_km,
+                "duration_seconds": trip.duration_seconds,
+                "confidence": confidence,
+            }
+        ]
+    if not segments:
+        trip.segments.all().delete()
+        trip.co2_kg = Decimal("0")
+        return
+    for segment in segments:
+        segment["distance_km"] = Decimal(str(segment["distance_km"])).quantize(
+            Decimal("0.001")
+        )
+    allocated_before_last = sum(
+        (segment["distance_km"] for segment in segments[:-1]), Decimal("0")
+    )
+    if allocated_before_last > trip.distance_km:
+        segments = [
+            {
+                "transport_mode": selected_mode,
+                "distance_km": trip.distance_km,
+                "duration_seconds": trip.duration_seconds,
+                "confidence": confidence,
+            }
+        ]
+        allocated_before_last = Decimal("0")
+    segments[-1]["distance_km"] = trip.distance_km - allocated_before_last
+    trip.segments.all().delete()
+    for order, segment in enumerate(segments, start=1):
+        segment["co2_kg"] = calculate_trip_emissions(
+            segment["distance_km"], segment["transport_mode"]
+        )
+        trip.segments.create(
+            order=order,
+            transport_mode=segment["transport_mode"],
+            distance_km=segment["distance_km"],
+            duration_seconds=segment["duration_seconds"],
+            co2_kg=segment["co2_kg"],
+            confidence=segment.get("confidence"),
+        )
+    trip.co2_kg = sum(
+        (segment.co2_kg for segment in trip.segments.all()), Decimal("0")
+    )
 
 
 @transaction.atomic
@@ -238,7 +313,8 @@ def finish_trip(trip):
                 "status": "low_confidence",
                 "mode": None,
             }
-    mode_for_checks = trip.confirmed_transport_mode or mode
+    accepted_mode = mode if classifier["status"] == "complete" else None
+    mode_for_checks = trip.confirmed_transport_mode or accepted_mode
     inspection = inspect_points(samples, mode_for_checks) if samples else {
         "status": "suspect", "flags": ["insufficient_points"]
     }
@@ -266,60 +342,17 @@ def finish_trip(trip):
     )
     trip.validation_flags = sorted(set(flags))
     trip.points_digest = "" if replayed else digest
-    selected_mode = trip.confirmed_transport_mode or mode
-    if selected_mode:
-        proposed_segments = []
-        if not trip.confirmed_transport_mode and classifier["status"] == "complete":
-            from .multimodal_service import segment_points
+    selected_mode = trip.confirmed_transport_mode or accepted_mode
+    proposed_segments = []
+    if selected_mode and not trip.confirmed_transport_mode and classifier["status"] == "complete":
+        from .multimodal_service import segment_points
 
-            proposed_segments = segment_points(samples)
-            proposed_segments = [
-                segment for segment in proposed_segments
-                if segment["transport_mode"] in supported_modes
-            ]
-        if not proposed_segments:
-            proposed_segments = [
-                {
-                    "transport_mode": selected_mode,
-                    "distance_km": trip.distance_km,
-                    "duration_seconds": trip.duration_seconds,
-                    "confidence": trip.prediction_confidence if selected_mode == mode else None,
-                }
-            ]
-        for segment in proposed_segments:
-            segment["distance_km"] = Decimal(str(segment["distance_km"])).quantize(
-                Decimal("0.001")
-            )
-        allocated_before_last = sum(
-            (segment["distance_km"] for segment in proposed_segments[:-1]),
-            Decimal("0"),
-        )
-        if allocated_before_last > trip.distance_km:
-            proposed_segments = [
-                {
-                    "transport_mode": selected_mode,
-                    "distance_km": trip.distance_km,
-                    "duration_seconds": trip.duration_seconds,
-                    "confidence": trip.prediction_confidence if selected_mode == mode else None,
-                }
-            ]
-            allocated_before_last = Decimal("0")
-        proposed_segments[-1]["distance_km"] = trip.distance_km - allocated_before_last
-        trip.segments.all().delete()
-        for order, segment in enumerate(proposed_segments, start=1):
-            segment["co2_kg"] = calculate_trip_emissions(
-                segment["distance_km"], segment["transport_mode"]
-            )
-            trip.segments.create(
-                order=order,
-                transport_mode=segment["transport_mode"],
-                distance_km=segment["distance_km"],
-                duration_seconds=segment["duration_seconds"],
-                co2_kg=segment["co2_kg"],
-                confidence=segment.get("confidence"),
-            )
-        trip.co2_kg = sum(
-            (segment.co2_kg for segment in trip.segments.all()), Decimal("0")
-        )
+        proposed_segments = segment_points(samples)
+    _replace_segments(
+        trip,
+        proposed_segments,
+        selected_mode,
+        trip.prediction_confidence if selected_mode == mode else None,
+    )
     trip.save()
     return trip

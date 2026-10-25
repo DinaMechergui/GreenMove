@@ -1,7 +1,10 @@
 import json
+from io import BytesIO, StringIO
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest import skipUnless
+from urllib.error import HTTPError
 import uuid
 from datetime import timedelta
 from decimal import Decimal
@@ -11,6 +14,7 @@ from django.contrib.auth import get_user_model
 from accounts.models import AuditLog
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -39,6 +43,7 @@ from tracker.services.gps_service import (
     validate_coordinate,
 )
 from tracker.services.gpx_service import build_gpx, parse_gpx
+from tracker.services.geolife_training import load_labeled_windows
 from tracker.services.multimodal_service import segment_points
 from tracker.services.route_matching import (
     RouteServiceError,
@@ -46,9 +51,15 @@ from tracker.services.route_matching import (
     match_osrm,
     query_overpass_context,
 )
-from tracker.services.transport_classifier import extract_features, predict_transport
+from tracker.services.transport_classifier import (
+    _load_model,
+    extract_features,
+    model_artifact_configured,
+    predict_transport,
+)
 from tracker.services.trip_service import add_point, finish_trip
 
+CONFIGURED_TRANSPORT_MODEL_PATH = os.environ.get("TRANSPORT_MODEL_PATH", "")
 
 class CarbonServiceTests(TestCase):
     def test_factors_and_trip_calculation(self):
@@ -81,10 +92,19 @@ class CarbonServiceTests(TestCase):
 class GPSServiceTests(TestCase):
     def setUp(self):
         self.environment = patch.dict(
-            os.environ, {"GPS_ENCRYPTION_KEY": "a-secure-test-key-with-at-least-32-chars"}
+            os.environ,
+            {
+                "GPS_ENCRYPTION_KEY": "a-secure-test-key-with-at-least-32-chars",
+                "TRANSPORT_MODEL_PATH": "",
+            },
         )
         self.environment.start()
         self.addCleanup(self.environment.stop)
+        self.model_setting = patch(
+            "tracker.services.transport_classifier.settings.TRANSPORT_MODEL_PATH", ""
+        )
+        self.model_setting.start()
+        self.addCleanup(self.model_setting.stop)
 
     def test_coordinate_validation_and_roundtrip_encryption(self):
         ciphertexts = encrypt_coordinates(36.8065, 10.1815)
@@ -159,6 +179,27 @@ class GPXServiceTests(TestCase):
 class AntiCheatAndAIServiceTests(TestCase):
     def setUp(self):
         self.start = timezone.now()
+        self.environment = patch.dict(
+            os.environ,
+            {
+                "GPS_ENCRYPTION_KEY": "a-secure-test-key-with-at-least-32-chars",
+                "TRANSPORT_MODEL_PATH": "",
+            },
+        )
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+        self.model_setting = patch(
+            "tracker.services.transport_classifier.settings.TRANSPORT_MODEL_PATH", ""
+        )
+        self.model_setting.start()
+        self.addCleanup(self.model_setting.stop)
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="ai-test-user",
+            email="ai-test-user@example.test",
+            password="test-password",
+        )
+        self.client.force_login(self.user)
 
     def _point(self, lat, lon, seconds, accuracy=10):
         return {
@@ -224,18 +265,21 @@ class AntiCheatAndAIServiceTests(TestCase):
                 with patch(
                     "joblib.load", return_value=FakeModel([0.1, 0.9])
                 ):
+                    _load_model.cache_clear()
                     result = predict_transport(points)
                 self.assertEqual(result["mode"], "car")
                 self.assertEqual(result["status"], "complete")
                 with patch(
                     "joblib.load", return_value=FakeModel([0.45, 0.55])
                 ):
+                    _load_model.cache_clear()
                     uncertain = predict_transport(points)
                 self.assertEqual(uncertain["status"], "low_confidence")
-                self.assertIsNone(uncertain["mode"])
+                self.assertEqual(uncertain["mode"], "car")
                 with patch(
                     "joblib.load", return_value=FakeModel([0.45, 0.55])
                 ) as load:
+                    _load_model.cache_clear()
                     load.side_effect = RuntimeError("test inference fault")
                     with self.assertLogs(
                         "tracker.services.transport_classifier", level="ERROR"
@@ -243,6 +287,234 @@ class AntiCheatAndAIServiceTests(TestCase):
                         failed = predict_transport(points)
                 self.assertEqual(failed["status"], "failed")
                 self.assertIsNone(failed["mode"])
+                _load_model.cache_clear()
+
+    def test_reanalysis_runs_lightgbm_and_refreshes_segments_and_carbon(self):
+        import joblib
+
+        with TemporaryDirectory() as directory:
+            model_path = Path(directory) / "transport.joblib"
+            feature_rows = []
+            labels = []
+            modes = (
+                ("walk", 4.0),
+                ("bicycle", 16.0),
+                ("car", 48.0),
+                ("bus", 24.0),
+            )
+            for mode, speed in modes:
+                for index in range(40):
+                    offset = (index % 10) * 0.1
+                    feature_rows.append(
+                        [
+                            speed + offset,
+                            speed + 1 + offset,
+                            0.3 + offset / 10,
+                            0.05 + offset / 100,
+                            0.05 if mode in {"car", "bicycle"} else 0.35,
+                            10 + index % 3,
+                            8,
+                        ]
+                    )
+                    labels.append(mode)
+            model = LGBMClassifier(
+                n_estimators=60,
+                num_leaves=7,
+                min_child_samples=1,
+                random_state=42,
+                verbosity=-1,
+            )
+            model.fit(feature_rows, labels)
+            joblib.dump(model, model_path)
+
+            start_time = timezone.now() - timedelta(minutes=20)
+            trip = Trip.objects.create(
+                user=self.user,
+                idempotency_key=uuid.uuid4(),
+                start_time=start_time,
+            )
+            for sequence in range(20):
+                add_point(
+                    trip,
+                    {
+                        "sequence": sequence,
+                        "latitude": 36.8 + sequence * 0.003,
+                        "longitude": 10.1,
+                        "recorded_at": (
+                            start_time + timedelta(seconds=sequence * 30)
+                        ).isoformat(),
+                        "accuracy_m": 10,
+                    },
+                )
+            trip = finish_trip(trip)
+            self.assertEqual(trip.prediction_status, "unavailable")
+            trip.segments.create(
+                order=1,
+                transport_mode="walk",
+                distance_km=trip.distance_km,
+                duration_seconds=trip.duration_seconds,
+                co2_kg=0,
+            )
+            trip.co2_kg = Decimal("0")
+            trip.save(update_fields=("co2_kg",))
+
+            _load_model.cache_clear()
+            with patch.dict(os.environ, {"TRANSPORT_MODEL_PATH": str(model_path)}):
+                with patch("joblib.load", wraps=joblib.load) as load:
+                    response = self.client.post(
+                        reverse("tracker:retry-analysis", args=[trip.pk])
+                    )
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(load.call_count, 1)
+
+            trip.refresh_from_db()
+            self.assertEqual(trip.prediction_status, "complete")
+            self.assertEqual(trip.detected_transport_mode, "car")
+            self.assertGreater(trip.prediction_confidence, 0.6)
+            self.assertGreater(trip.co2_kg, Decimal("0"))
+            self.assertEqual(
+                sum((segment.distance_km for segment in trip.segments.all()), Decimal("0")),
+                trip.distance_km,
+            )
+            self.assertEqual(
+                sum((segment.co2_kg for segment in trip.segments.all()), Decimal("0")),
+                trip.co2_kg,
+            )
+            self.assertContains(
+                self.client.get(reverse("tracker:detail", args=[trip.pk])),
+                "Voiture",
+            )
+            _load_model.cache_clear()
+
+    def test_geolife_loader_reads_labels_and_builds_features_without_training(self):
+        with TemporaryDirectory() as directory:
+            user_directory = Path(directory) / "Data" / "000"
+            trajectory_directory = user_directory / "Trajectory"
+            trajectory_directory.mkdir(parents=True)
+            (user_directory / "labels.txt").write_text(
+                "Start Time\tEnd Time\tTransportation Mode\n"
+                "2008/10/23 00:00:00\t2008/10/23 00:04:00\twalk\n"
+                "2008/10/23 00:00:00\t2008/10/23 00:04:00\tairplane\n",
+                encoding="utf-8",
+            )
+            rows = [
+                "Geolife trajectory", "WGS 84", "Altitude is in Feet",
+                "Reserved 3", "0", "0",
+            ]
+            rows.extend(
+                f"36.8{index:04d},10.1,0,0,0,2008-10-23,"
+                f"00:0{index // 2}:{(index % 2) * 30:02d}"
+                for index in range(8)
+            )
+            (trajectory_directory / "20081023.plt").write_text(
+                "\n".join(rows), encoding="utf-8"
+            )
+
+            features, labels, groups, skipped, skipped_points = load_labeled_windows(
+                directory
+            )
+
+        self.assertEqual(len(features), 1)
+        self.assertEqual(labels, ["walk"])
+        self.assertEqual(groups, ["000"])
+        self.assertEqual(skipped, 1)
+        self.assertEqual(skipped_points, 0)
+        self.assertEqual(
+            set(features[0]),
+            {
+                "mean_speed_kmh", "max_speed_kmh", "speed_std_kmh",
+                "mean_acceleration_mps2", "stop_ratio", "mean_accuracy_m",
+                "point_count",
+            },
+        )
+
+    def test_geolife_loader_aggregates_duplicate_second_samples(self):
+        with TemporaryDirectory() as directory:
+            user_directory = Path(directory) / "Data" / "000"
+            trajectory_directory = user_directory / "Trajectory"
+            trajectory_directory.mkdir(parents=True)
+            (user_directory / "labels.txt").write_text(
+                "Start Time\tEnd Time\tTransportation Mode\n"
+                "2008/10/23 00:00:00\t2008/10/23 00:04:00\twalk\n",
+                encoding="utf-8",
+            )
+            rows = [
+                "Geolife trajectory", "WGS 84", "Altitude is in Feet",
+                "Reserved 3", "0", "0",
+            ]
+            rows.extend(
+                f"{36.8 + index * 0.0001:.7f},10.1,0,0,0,2008-10-23,"
+                f"00:00:{index // 2:02d}"
+                for index in range(16)
+            )
+            rows.append("400.0,10.1,0,0,0,2008-10-23,00:00:08")
+            (trajectory_directory / "20081023.plt").write_text(
+                "\n".join(rows), encoding="utf-8"
+            )
+
+            features, labels, groups, _, skipped_points = load_labeled_windows(directory)
+
+        self.assertTrue(features)
+        self.assertEqual(set(labels), {"walk"})
+        self.assertEqual(set(groups), {"000"})
+        self.assertEqual(skipped_points, 1)
+
+    def test_training_command_writes_model_and_metrics_for_synthetic_fixture(self):
+        with TemporaryDirectory() as directory:
+            data_root = Path(directory) / "Data"
+            for user_index in range(4):
+                user_directory = data_root / f"{user_index:03d}"
+                trajectory_directory = user_directory / "Trajectory"
+                trajectory_directory.mkdir(parents=True)
+                labels = [
+                    "Start Time\tEnd Time\tTransportation Mode",
+                    "2008/10/23 00:00:00\t2008/10/23 00:04:00\twalk",
+                    "2008/10/23 00:10:00\t2008/10/23 00:14:00\tcar",
+                ]
+                (user_directory / "labels.txt").write_text(
+                    "\n".join(labels), encoding="utf-8"
+                )
+                for mode, start_minute, base_latitude, increment in (
+                    ("walk", 0, 36.8 + user_index * 0.01, 0.00001),
+                    ("car", 10, 36.8 + user_index * 0.01 + 0.1, 0.002),
+                ):
+                    rows = [
+                        "Geolife trajectory", "WGS 84", "Altitude is in Feet",
+                        "Reserved 3", "0", "0",
+                    ]
+                    rows.extend(
+                        f"{base_latitude + index * increment:.7f},10.1,0,0,0,"
+                        f"2008-10-23,00:{start_minute + index // 2:02d}:"
+                        f"{(index % 2) * 30:02d}"
+                        for index in range(8)
+                    )
+                    (trajectory_directory / f"{mode}.plt").write_text(
+                        "\n".join(rows), encoding="utf-8"
+                    )
+
+            model_path = Path(directory) / "transport.joblib"
+            call_command(
+                "train_transport_model",
+                data_dir=data_root,
+                output=model_path,
+                stdout=StringIO(),
+            )
+            metrics_path = model_path.with_suffix(".joblib.metrics.json")
+            metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
+            self.assertTrue(model_path.is_file())
+
+        self.assertEqual(
+            metrics["split"],
+            "GroupShuffleSplit by Geolife user, test_size=0.25",
+        )
+        self.assertGreater(metrics["train_samples"], 0)
+        self.assertGreater(metrics["test_samples"], 0)
+        self.assertEqual(metrics["train_users"] + metrics["test_users"], 4)
+        self.assertEqual(set(metrics["confusion_matrix_labels"]), {"car", "walk"})
+        self.assertEqual(
+            metrics["inference_latency_ms"]["samples_measured"],
+            metrics["test_samples"],
+        )
 
     def test_short_noise_windows_are_not_assigned_a_mode(self):
         points = [self._point(36.8, 10.1, index) for index in range(4)]
@@ -332,6 +604,27 @@ class AntiCheatAndAIServiceTests(TestCase):
         with self.assertRaises(RouteServiceError):
             query_overpass_context([(36.8, 10.1)])
 
+    @patch("tracker.services.route_matching.urlopen")
+    def test_map_service_uses_user_agent_and_reports_no_matching_segment(self, urlopen):
+        response = urlopen.return_value.__enter__.return_value
+        response.read.return_value = b"{}"
+        _request_json("https://example.invalid")
+        request = urlopen.call_args.args[0]
+        self.assertEqual(
+            request.get_header("User-agent"),
+            "GreenMove-Mobility-Tracker/1.0",
+        )
+
+        urlopen.side_effect = HTTPError(
+            "https://example.invalid",
+            400,
+            "Bad Request",
+            {},
+            BytesIO(b'{"code":"NoSegment","message":"no segment"}'),
+        )
+        with self.assertRaisesRegex(RouteServiceError, "aucun parcours exploitable"):
+            _request_json("https://example.invalid")
+
     @patch("tracker.services.route_matching.urlopen", side_effect=TimeoutError)
     def test_external_route_timeout_is_explicit(self, _urlopen):
         with self.assertRaises(RouteServiceError):
@@ -354,10 +647,19 @@ class AntiCheatAndAIServiceTests(TestCase):
 class TrackerViewsTests(TestCase):
     def setUp(self):
         self.environment = patch.dict(
-            os.environ, {"GPS_ENCRYPTION_KEY": "a-secure-test-key-with-at-least-32-chars"}
+            os.environ,
+            {
+                "GPS_ENCRYPTION_KEY": "a-secure-test-key-with-at-least-32-chars",
+                "TRANSPORT_MODEL_PATH": "",
+            },
         )
         self.environment.start()
         self.addCleanup(self.environment.stop)
+        self.model_setting = patch(
+            "tracker.services.transport_classifier.settings.TRANSPORT_MODEL_PATH", ""
+        )
+        self.model_setting.start()
+        self.addCleanup(self.model_setting.stop)
         user_model = get_user_model()
         self.user = user_model.objects.create_user(
             username="citoyen", email="citoyen@example.test", password="password-safe-123"
@@ -441,6 +743,290 @@ class TrackerViewsTests(TestCase):
             self.client.post(endpoint, data=json.dumps(payload), content_type="application/json").status_code,
             400,
         )
+
+    def test_synthetic_gps_trace_persists_distance_and_accepts_weak_accuracy(self):
+        start_time = timezone.now() - timedelta(minutes=5)
+        trip = Trip.objects.create(
+            user=self.user,
+            idempotency_key=uuid.uuid4(),
+            start_time=start_time,
+        )
+        endpoint = reverse("tracker:record-point", args=[trip.pk])
+        coordinates = [
+            (36.8000, 10.1000),
+            (36.8001, 10.1000),
+            (36.8002, 10.1000),
+            (36.8003, 10.1000),
+        ]
+        for sequence, (latitude, longitude) in enumerate(coordinates):
+            response = self.client.post(
+                endpoint,
+                data=json.dumps(
+                    {
+                        "sequence": sequence,
+                        "latitude": latitude,
+                        "longitude": longitude,
+                        "recorded_at": (
+                            start_time + timedelta(seconds=sequence * 60)
+                        ).isoformat(),
+                        "accuracy_m": 122,
+                    }
+                ),
+                content_type="application/json",
+            )
+            self.assertEqual(response.status_code, 201, response.content)
+            self.assertTrue(response.json()["accepted"])
+
+        self.assertEqual(GPSPoint.objects.filter(trip=trip).count(), 4)
+        first_point = GPSPoint.objects.filter(trip=trip).order_by("sequence").first()
+        self.assertNotIn("36.8000000", first_point.latitude_ciphertext)
+
+        self.client.post(reverse("tracker:complete", args=[trip.pk]))
+        trip.refresh_from_db()
+        self.assertGreater(trip.distance_km, Decimal("0"))
+        self.assertEqual(trip.prediction_status, "unavailable")
+        self.assertNotIn("insufficient_points", trip.validation_flags)
+
+    def test_missing_gps_key_is_reported_and_point_is_not_persisted(self):
+        trip = Trip.objects.create(user=self.user, idempotency_key=uuid.uuid4())
+        with patch.dict(os.environ, {"GPS_ENCRYPTION_KEY": ""}):
+            response = self.client.post(
+                reverse("tracker:record-point", args=[trip.pk]),
+                data=json.dumps(
+                    {
+                        "sequence": 0,
+                        "latitude": 36.8,
+                        "longitude": 10.1,
+                        "recorded_at": timezone.now().isoformat(),
+                        "accuracy_m": 122,
+                    }
+                ),
+                content_type="application/json",
+            )
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("GPS_ENCRYPTION_KEY", response.json()["error"])
+        self.assertFalse(GPSPoint.objects.filter(trip=trip).exists())
+
+    def test_points_reject_non_increasing_timestamps_by_sequence(self):
+        start_time = timezone.now() - timedelta(minutes=2)
+        trip = Trip.objects.create(
+            user=self.user,
+            idempotency_key=uuid.uuid4(),
+            start_time=start_time,
+        )
+        endpoint = reverse("tracker:record-point", args=[trip.pk])
+        first = {
+            "sequence": 1,
+            "latitude": 36.8001,
+            "longitude": 10.1,
+            "recorded_at": (start_time + timedelta(seconds=60)).isoformat(),
+        }
+        self.assertEqual(
+            self.client.post(
+                endpoint, data=json.dumps(first), content_type="application/json"
+            ).status_code,
+            201,
+        )
+        out_of_order = {
+            **first,
+            "sequence": 0,
+            "recorded_at": (start_time + timedelta(seconds=90)).isoformat(),
+        }
+        response = self.client.post(
+            endpoint,
+            data=json.dumps(out_of_order),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("précéder", response.json()["error"])
+        self.assertEqual(GPSPoint.objects.filter(trip=trip).count(), 1)
+
+    def test_multimodal_trace_persists_walk_bus_walk_segments(self):
+        start_time = timezone.now() - timedelta(minutes=30)
+        trip = Trip.objects.create(
+            user=self.user,
+            idempotency_key=uuid.uuid4(),
+            start_time=start_time,
+        )
+        for sequence in range(42):
+            add_point(
+                trip,
+                {
+                    "sequence": sequence,
+                    "latitude": 36.8 + sequence * 0.00001,
+                    "longitude": 10.1,
+                    "recorded_at": (
+                        start_time + timedelta(seconds=sequence * 30)
+                    ).isoformat(),
+                    "accuracy_m": 10,
+                },
+            )
+        predictions = iter(
+            {"status": "complete", "mode": mode, "confidence": 0.9}
+            for mode in ("walk", "walk", "bus", "bus", "walk", "walk")
+        )
+        with patch(
+            "tracker.services.trip_service.predict_transport",
+            return_value={"status": "complete", "mode": "walk", "confidence": 0.9},
+        ), patch(
+            "tracker.services.multimodal_service.predict_transport",
+            side_effect=lambda _window: next(predictions),
+        ):
+            trip = finish_trip(trip)
+
+        segments = list(trip.segments.all())
+        self.assertEqual(
+            [segment.transport_mode for segment in segments],
+            ["walk", "bus", "walk"],
+        )
+        self.assertEqual(
+            sum((segment.distance_km for segment in segments), Decimal("0")),
+            trip.distance_km,
+        )
+        self.assertEqual(
+            sum((segment.co2_kg for segment in segments), Decimal("0")),
+            trip.co2_kg,
+        )
+        self.assertGreater(segments[1].distance_km, Decimal("0"))
+
+    def test_export_is_disabled_without_points_and_endpoint_rejects_empty_trace(self):
+        trip = Trip.objects.create(
+            user=self.user,
+            idempotency_key=uuid.uuid4(),
+            status=Trip.Status.COMPLETED,
+        )
+        detail = self.client.get(reverse("tracker:detail", args=[trip.pk]))
+        self.assertContains(detail, 'aria-disabled="true"')
+        self.assertNotContains(detail, f'href="{reverse("tracker:export-gpx", args=[trip.pk])}"')
+        response = self.client.get(reverse("tracker:export-gpx", args=[trip.pk]))
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Aucun point GPS valide", response.content.decode())
+
+    def test_detail_explains_missing_model_and_hides_impossible_retry(self):
+        trip = Trip.objects.create(
+            user=self.user,
+            idempotency_key=uuid.uuid4(),
+            status=Trip.Status.COMPLETED,
+            prediction_status="unavailable",
+        )
+        with patch.dict(os.environ, {"TRANSPORT_MODEL_PATH": ""}):
+            response = self.client.get(reverse("tracker:detail", args=[trip.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Aucun modèle LightGBM entraîné")
+        self.assertContains(response, "TRANSPORT_MODEL_PATH")
+        self.assertNotContains(response, "Réessayer l'analyse")
+
+    def test_low_confidence_retry_shows_candidate_without_assigning_carbon(self):
+        start_time = timezone.now() - timedelta(minutes=10)
+        trip = Trip.objects.create(
+            user=self.user,
+            idempotency_key=uuid.uuid4(),
+            status=Trip.Status.COMPLETED,
+            start_time=start_time,
+            end_time=timezone.now(),
+            distance_km=Decimal("0.100"),
+            duration_seconds=300,
+            prediction_status="unavailable",
+        )
+        for sequence in range(8):
+            latitude, longitude = encrypt_coordinates(
+                36.8 + sequence * 0.00008, 10.1
+            )
+            GPSPoint.objects.create(
+                trip=trip,
+                sequence=sequence,
+                latitude_ciphertext=latitude,
+                longitude_ciphertext=longitude,
+                recorded_at=start_time + timedelta(seconds=sequence * 30),
+                accuracy_m=8,
+            )
+
+        with patch(
+            "tracker.views.predict_transport",
+            return_value={
+                "status": "low_confidence",
+                "mode": "walk",
+                "confidence": 0.52,
+            },
+        ):
+            retry = self.client.post(
+                reverse("tracker:retry-analysis", args=[trip.pk])
+            )
+
+        self.assertEqual(retry.status_code, 302)
+        trip.refresh_from_db()
+        self.assertEqual(trip.prediction_status, "low_confidence")
+        self.assertEqual(trip.detected_transport_mode, "walk")
+        self.assertEqual(trip.co2_kg, Decimal("0"))
+        self.assertFalse(trip.segments.exists())
+        detail = self.client.get(reverse("tracker:detail", args=[trip.pk]))
+        self.assertContains(detail, "Le modèle propose")
+        self.assertContains(detail, "Piste IA · à confirmer 52 %")
+
+    @skipUnless(
+        CONFIGURED_TRANSPORT_MODEL_PATH,
+        "Requires an explicitly configured trained LightGBM artifact.",
+    )
+    def test_configured_geolife_model_retries_and_renders_a_real_prediction(self):
+        start_time = timezone.now() - timedelta(minutes=10)
+        trip = Trip.objects.create(
+            user=self.user,
+            idempotency_key=uuid.uuid4(),
+            status=Trip.Status.COMPLETED,
+            start_time=start_time,
+            end_time=timezone.now(),
+            distance_km=Decimal("0.100"),
+            duration_seconds=300,
+            prediction_status="unavailable",
+        )
+        for sequence in range(8):
+            latitude, longitude = encrypt_coordinates(
+                36.8 + sequence * 0.00008, 10.1
+            )
+            GPSPoint.objects.create(
+                trip=trip,
+                sequence=sequence,
+                latitude_ciphertext=latitude,
+                longitude_ciphertext=longitude,
+                recorded_at=start_time + timedelta(seconds=sequence * 30),
+                accuracy_m=8,
+            )
+
+        model_path = CONFIGURED_TRANSPORT_MODEL_PATH
+        with patch.dict(os.environ, {"TRANSPORT_MODEL_PATH": model_path}):
+            with patch(
+                "tracker.services.transport_classifier.settings.TRANSPORT_MODEL_PATH",
+                model_path,
+            ):
+                retry = self.client.post(
+                    reverse("tracker:retry-analysis", args=[trip.pk])
+                )
+
+        self.assertEqual(retry.status_code, 302)
+        trip.refresh_from_db()
+        self.assertIn(trip.prediction_status, {"complete", "low_confidence"})
+        self.assertIn(
+            trip.detected_transport_mode,
+            {mode for mode, _label in Trip.TransportMode.choices},
+        )
+        self.assertIsNotNone(trip.prediction_confidence)
+        detail = self.client.get(reverse("tracker:detail", args=[trip.pk]))
+        self.assertContains(detail, trip.get_detected_transport_mode_display())
+        self.assertNotContains(detail, "Aucun modèle LightGBM entraîné")
+        if trip.prediction_status == "low_confidence":
+            self.assertFalse(trip.segments.exists())
+            self.assertEqual(trip.co2_kg, Decimal("0"))
+        else:
+            self.assertTrue(trip.segments.exists())
+            self.assertGreater(trip.co2_kg, Decimal("0"))
+
+    def test_model_artifact_readiness_requires_a_real_file(self):
+        with TemporaryDirectory() as directory:
+            model_path = Path(directory) / "transport.joblib"
+            with patch.dict(os.environ, {"TRANSPORT_MODEL_PATH": str(model_path)}):
+                self.assertFalse(model_artifact_configured())
+                model_path.write_bytes(b"temporary model artifact")
+                self.assertTrue(model_artifact_configured())
 
     def test_owner_isolation_and_crud(self):
         trip = Trip.objects.create(user=self.other, idempotency_key=uuid.uuid4())

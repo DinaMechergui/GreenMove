@@ -1,25 +1,38 @@
 # Évaluation IA — Mobility Tracker
 
-## Résultat observé
+## État constaté
 
-Statut : **non évalué / modèle indisponible**. Le dépôt ne contient ni les données Geolife annotées requises, ni un modèle entraîné, ni un résultat d'évaluation reproductible. Aucune accuracy, precision, recall, F1-score, matrice de confusion ou latence n'est publiée car aucune évaluation réelle n'a pu être faite.
+Le jeu officiel **GeoLife Trajectories 1.3** de Microsoft a été téléchargé depuis la page Microsoft (archive ZIP de 313 164 406 octets), vérifié, puis extrait hors du dépôt dans `C:\Users\Admin\AppData\Local\GreenMove\datasets\geolife-extracted`. L'archive contient 182 utilisateurs, 18 670 fichiers de trajectoire et 69 utilisateurs avec `labels.txt`. Le modèle entraîné et son rapport sont conservés hors Git dans `C:\Users\Admin\AppData\Local\GreenMove\models\transport_geolife.joblib` et `transport_geolife.joblib.metrics.json`. La variable utilisateur Windows `TRANSPORT_MODEL_PATH` pointe vers cet artefact.
 
-`predict_transport` renvoie explicitement `unavailable` quand `TRANSPORT_MODEL_PATH` est absent ou que LightGBM/joblib n'est pas disponible. Ce résultat n'est pas présenté comme une prédiction de transport.
+`tracker.services.transport_classifier.extract_features` calcule la vitesse moyenne et maximale, l'écart-type de vitesse, l'accélération absolue moyenne, le ratio d'arrêts, la précision GPS moyenne et le nombre de points. Le classifieur vérifie que l'artefact est LightGBM et que le nombre de caractéristiques correspond au schéma attendu.
 
-## Composants présents
+## Entraînement et évaluation réels
 
-- `tracker.services.transport_classifier.extract_features`: caractéristiques de vitesse moyenne et maximale, écart-type des vitesses, accélération absolue moyenne, ratio d'arrêts (<1 km/h), précision GPS moyenne et nombre de points.
-- `predict_transport`: charge un classifieur LightGBM sérialisé via joblib depuis `TRANSPORT_MODEL_PATH`, puis renvoie classe, confiance et temps d'inférence mesuré avec `perf_counter`.
-- Un trajet trop court pour fournir trois points ne lance pas de classification.
-- La commande d'entraînement, validation par utilisateur/trajectoire et la génération de rapport n'ont pas été implémentées.
+Le modèle a été entraîné avec LightGBM 4.7.0. Le lecteur agrège les coordonnées ayant la même seconde, sépare les fichiers de trajectoire, ignore et compte les coordonnées invalides, et utilise uniquement les périodes explicitement annotées. Les fenêtres sont regroupées par utilisateur et la séparation est `GroupShuffleSplit` (25 % des utilisateurs en test, graine 42); aucune fenêtre d'un utilisateur de test n'entre dans l'entraînement.
 
-## À fournir pour une évaluation reproductible
+Résultats réellement mesurés sur **213 545 fenêtres de 16 utilisateurs tenus à l'écart** (486 742 fenêtres d'entraînement de 48 autres utilisateurs) :
 
-1. Une copie autorisée de Geolife avec les fichiers `labels.txt` et trajectoires réellement accessibles.
-2. Une procédure de construction des fenêtres GPS et d'association des labels aux périodes.
-3. Un découpage train/test groupé par utilisateur, afin d'éviter la fuite de trajectoires d'un même utilisateur.
-4. Entraîner LightGBMClassifier sur le train uniquement, et sauvegarder le pipeline et la liste ordonnée de caractéristiques.
-5. Évaluer les prédictions test avec accuracy, precision/recall/F1 par classe, matrice de confusion, support et latence d'inférence médiane/p95 avec le nombre d'observations.
-6. Examiner bus/voiture et classes insuffisamment représentées. Ne pas présenter ces classes si les labels et supports ne les distinguent pas.
+| Métrique | Résultat |
+|---|---:|
+| Accuracy | 0.6251 |
+| Précision macro | 0.5212 |
+| Recall macro | 0.5519 |
+| F1 macro | 0.5084 |
+| Latence d'inférence p50 / p95 (1 000 prédictions) | 12.02 / 48.32 ms |
 
-Les limites actuelles incluent l'absence de modèle, de normalisation temporelle documentée, de calibration de confiance, de jeux test tenus à l'écart et de mesures sur des trajets tunisiens.
+| Mode | Précision | Recall | F1 | Support test |
+|---|---:|---:|---:|---:|
+| Vélo | 0.7391 | 0.6160 | 0.6719 | 49 182 |
+| Bus | 0.5884 | 0.4253 | 0.4937 | 47 117 |
+| Voiture / taxi | 0.3051 | 0.1780 | 0.2248 | 18 710 |
+| Métro / subway | 0.1271 | 0.4244 | 0.1957 | 3 897 |
+| Train | 0.8808 | 0.8080 | 0.8429 | 61 979 |
+| Marche | 0.4865 | 0.8597 | 0.6214 | 32 660 |
+
+La matrice de confusion (lignes = vrai, colonnes = prédit) est sauvegardée dans le rapport JSON accompagnant le modèle. Les classes `car` et `metro` ont une qualité trop faible pour être considérées comme des prédictions fiables; une piste sous le seuil de confiance est affichée comme **à confirmer** et n'alimente pas les segments ni le CO₂. Ces résultats Geolife ne démontrent pas la généralisation aux trajets du Grand Tunis : une validation locale étiquetée reste nécessaire.
+
+La commande reproductible reste disponible :
+
+```powershell
+python manage.py train_transport_model --data-dir "C:\datasets\Geolife\Data" --output "C:\models\greenmove-transport.joblib"
+```

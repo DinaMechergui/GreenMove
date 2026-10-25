@@ -1,11 +1,14 @@
 """Opt-in map matching and OSM context lookups with bounded public requests."""
 
 import json
+import logging
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 from .gps_service import validate_coordinate
+
+logger = logging.getLogger(__name__)
 
 
 class RouteServiceError(RuntimeError):
@@ -13,10 +16,26 @@ class RouteServiceError(RuntimeError):
 
 
 def _request_json(url, *, method="GET", data=None, headers=None, timeout=8):
-    request = Request(url, data=data, headers=headers or {}, method=method)
+    request_headers = {"User-Agent": "GreenMove-Mobility-Tracker/1.0"}
+    request_headers.update(headers or {})
+    request = Request(url, data=data, headers=request_headers, method=method)
     try:
         with urlopen(request, timeout=timeout) as response:
             body = response.read(2 * 1024 * 1024 + 1)
+    except HTTPError as exc:
+        error_body = exc.read(2 * 1024 * 1024 + 1)
+        try:
+            error_code = json.loads(error_body).get("code")
+        except (json.JSONDecodeError, UnicodeDecodeError, AttributeError):
+            error_code = None
+        if error_code in {"NoSegment", "NoMatch"}:
+            raise RouteServiceError(
+                "OSRM n'a associé aucun parcours exploitable."
+            ) from exc
+        logger.warning("Cartographic service returned HTTP %s.", exc.code)
+        raise RouteServiceError(
+            f"Le service cartographique a répondu HTTP {exc.code}."
+        ) from exc
     except (HTTPError, URLError, TimeoutError, OSError) as exc:
         raise RouteServiceError("Le service cartographique est indisponible.") from exc
     if len(body) > 2 * 1024 * 1024:
