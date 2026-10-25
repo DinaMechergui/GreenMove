@@ -13,9 +13,10 @@ document.addEventListener('DOMContentLoaded', function () {
   const mapElement = document.getElementById('traffic-map');
   const map = L.map('traffic-map').setView([36.8065, 10.1815], 11);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+    subdomains: 'abcd',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank">CARTO</a>'
   }).addTo(map);
 
   let markersLayer = L.layerGroup().addTo(map);
