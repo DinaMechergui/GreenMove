@@ -19,6 +19,7 @@ urlpatterns = [
     path('challenges/claim/<int:challenge_id>/', views.claim_challenge_reward, name='claim_challenge'),
     path('challenges/refresh/', views.refresh_personalized_challenges, name='refresh_challenges'),
     path('challenges/join/<int:challenge_id>/', views.join_collective_challenge, name='join_collective'),
+    path('challenges/contribute/<int:challenge_id>/', views.contribute_to_collective_challenge, name='contribute_collective'),
 
     # Boutique Récompenses & Coupons
     path('catalog/', views.rewards_catalog, name='catalog'),

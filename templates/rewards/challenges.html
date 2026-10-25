@@ -102,7 +102,7 @@
               <!-- Jauge Communautaire Animée -->
               <div class="p-3 rounded-4 mb-3" style="background: var(--gm-surface-muted);">
                 <div class="d-flex justify-content-between small fw-bold mb-1">
-                  <span class="text-success"><i class="bi bi-cloud-slash me-1"></i>{{ col.current_co2_kg|floatformat:0 }} kg CO₂ évités</span>
+                  <span class="text-success"><i class="bi bi-cloud-slash me-1"></i>{{ col.current_co2_kg|floatformat:1 }} kg CO₂ évités</span>
                   <span class="text-muted">Objectif : {{ col.target_co2_kg|floatformat:0 }} kg</span>
                 </div>
                 <div class="progress rounded-pill mb-2" style="height: 12px;">
@@ -120,9 +120,17 @@
                 </div>
 
                 {% if request.user in col.participants.all %}
-                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 small">
-                    <i class="bi bi-check-circle-fill me-1"></i>{% trans "Membre Engagé" %}
-                  </span>
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 small">
+                      <i class="bi bi-check-circle-fill me-1"></i>{% trans "Membre Engagé" %}
+                    </span>
+                    <form action="{% url 'rewards:contribute_collective' col.id %}" method="post" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 shadow-sm py-1 fw-bold" style="font-size: 0.75rem;" title="Enregistrer une action éco (marche, vélo, covoiturage)">
+                        <i class="bi bi-plus-circle me-1"></i>{% trans "+5 kg CO₂ (Action)" %}
+                      </button>
+                    </form>
+                  </div>
                 {% else %}
                   <form action="{% url 'rewards:join_collective' col.id %}" method="post">
                     {% csrf_token %}

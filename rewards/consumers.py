@@ -55,7 +55,7 @@ class LeaderboardConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_top_leaderboard(self, category: str = 'global', filter_val: str = ''):
         from accounts.models import CustomUser
-        from ..models import UserGamificationProfile
+        from rewards.models import UserGamificationProfile
 
         qs = CustomUser.objects.filter(is_active=True).select_related('gamification_profile')
 

@@ -37,6 +37,8 @@ from .services.co2_calculator import (
     award_ride_eco_points,
     get_or_create_gamification_profile,
     broadcast_leaderboard_update,
+    update_user_challenges_progress,
+    check_and_award_badges,
 )
 from .services.kmeans_profiler import (
     profile_user_with_kmeans,
@@ -253,7 +255,43 @@ def join_collective_challenge(request, challenge_id):
     """Permet à l'utilisateur de s'engager dans un défi collectif."""
     col = get_object_or_404(CollectiveChallenge, id=challenge_id, is_active=True)
     col.participants.add(request.user)
-    messages.success(request, _(f"Vous avez rejoint le défi collectif '{col.title}' ! Chaque trajet comptera pour l'équipe."))
+    messages.success(request, _(f"Vous avez rejoint le défi collectif '{col.title}' ! Vous pouvez maintenant valider vos trajets pour faire grimper la jauge."))
+    return redirect('rewards:challenges')
+
+
+@login_required
+def contribute_to_collective_challenge(request, challenge_id):
+    """Permet à un membre engagé d'enregistrer une action écologique et de faire grimper la jauge de CO₂ du défi."""
+    col = get_object_or_404(CollectiveChallenge, id=challenge_id, is_active=True)
+    if request.user not in col.participants.all():
+        col.participants.add(request.user)
+
+    co2_amount = 5.0  # 5 kg de CO2 économisés pour une action verte
+    col.current_co2_kg = round(col.current_co2_kg + co2_amount, 2)
+    col.save(update_fields=['current_co2_kg'])
+
+    profile = get_or_create_gamification_profile(request.user)
+    profile.total_co2_saved_kg = round(profile.total_co2_saved_kg + co2_amount, 2)
+    profile.monthly_co2_saved_kg = round(profile.monthly_co2_saved_kg + co2_amount, 2)
+    profile.save(update_fields=['total_co2_saved_kg', 'monthly_co2_saved_kg'])
+
+    points_earned = 50
+    request.user.eco_points += points_earned
+    request.user.save(update_fields=['eco_points'])
+
+    EcoTransaction.objects.create(
+        user=request.user,
+        points=points_earned,
+        co2_saved_kg=co2_amount,
+        transaction_type=EcoTransaction.TransactionTypeChoices.CHALLENGE_REWARD,
+        description=f"Action éco validée pour le défi collectif '{col.title}'"
+    )
+
+    update_user_challenges_progress(request.user, co2_added=co2_amount, rides_added=1)
+    check_and_award_badges(request.user)
+    broadcast_leaderboard_update()
+
+    messages.success(request, _(f"🌱 Bravo ! Vous avez contribué +{co2_amount} kg de CO₂ et gagné +{points_earned} EcoPoints pour le défi '{col.title}' !"))
     return redirect('rewards:challenges')
 
 

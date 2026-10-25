@@ -162,6 +162,22 @@ class EcoRewardsInterconnectionTests(TestCase):
         # Badge débloqué
         self.assertTrue(UserBadge.objects.filter(user=self.driver, badge=self.badge).exists())
 
+    def test_contribute_to_collective_challenge(self):
+        """Vérifie qu'un membre peut contribuer directement du CO2 à un défi collectif."""
+        self.client.force_login(self.driver)
+        initial_co2 = self.col_challenge.current_co2_kg
+        initial_points = self.driver.eco_points
+
+        response = self.client.post(reverse('rewards:contribute_collective', kwargs={'challenge_id': self.col_challenge.id}))
+        self.assertEqual(response.status_code, 302)
+
+        self.col_challenge.refresh_from_db()
+        self.driver.refresh_from_db()
+
+        self.assertEqual(self.col_challenge.current_co2_kg, initial_co2 + 5.0)
+        self.assertEqual(self.driver.eco_points, initial_points + 50)
+        self.assertTrue(self.col_challenge.participants.filter(id=self.driver.id).exists())
+
 
 class KMeansPersonalizedChallengesTests(TestCase):
     """Tests du profilage comportemental et de la difficulté progressive des défis."""
