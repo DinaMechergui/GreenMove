@@ -21,6 +21,8 @@ urlpatterns = [
 
     # Temps réel
     path('chat/<int:pk>/', views.chat_room, name='chat_room'),
+    path('chat/room/<int:room_id>/send/', views.chat_post_message, name='chat_post_message'),
+    path('chat/room/<int:room_id>/messages/', views.chat_get_messages, name='chat_get_messages'),
     path('live/<uuid:token>/', views.live_tracking, name='live_tracking'),
 
     # Outils IA

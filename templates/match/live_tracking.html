@@ -114,7 +114,8 @@
     const lastPos = document.getElementById('last-pos');
     const lastTs = document.getElementById('last-ts');
 
-    const ws = new WebSocket(`ws://${window.location.host}/ws/match/track/{{ ws_token }}/`);
+    const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const ws = new WebSocket(`${wsScheme}://${window.location.host}/ws/match/track/{{ ws_token }}/`);
 
     ws.onopen = () => {
       statusEl.innerHTML = '<span class="rounded-circle d-inline-block bg-success" style="width:7px;height:7px;"></span> {% trans "Connecté" %}';

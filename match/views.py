@@ -775,14 +775,14 @@ WELCOME_SUGGESTIONS = [
 @login_required
 def chat_room(request, pk: int):
     """
-    Chat temps réel d'un trajet (WebSocket) avec messages d'accueil suggérés.
+    Chat temps réel d'un trajet (WebSocket + fallback HTTP) avec messages d'accueil suggérés.
     """
     ride = get_object_or_404(Ride.objects.select_related('user'), pk=pk)
     is_owner = request.user.pk == ride.user_id
     is_accepted_passenger = ride.bookings.filter(
         passenger=request.user, status=RideBooking.StatusChoices.ACCEPTED
     ).exists()
-    if not (is_owner or is_accepted_passenger):
+    if not (request.user.is_superuser or is_owner or is_accepted_passenger):
         messages.warning(
             request,
             "Le chat est réservé au conducteur et aux passagers dont la demande a été acceptée."
@@ -791,7 +791,7 @@ def chat_room(request, pk: int):
 
     room, _ = ChatRoom.objects.get_or_create(ride=ride)
     room.participants.add(ride.user)
-    if is_accepted_passenger:
+    if is_accepted_passenger or request.user.is_superuser:
         room.participants.add(request.user)
 
     # Messages d'accueil suggérés (injectés une seule fois)
@@ -806,13 +806,109 @@ def chat_room(request, pk: int):
         .order_by('created_at').values_list('content', flat=True)
     )
 
+    initial_messages = [
+        {
+            'id': m.id,
+            'sender': m.sender_id,
+            'sender_name': (m.sender.get_full_name() or m.sender.username) if m.sender else 'GreenMove',
+            'content': m.content,
+            'created_at': m.created_at.strftime('%H:%M'),
+        }
+        for m in room.messages.filter(is_suggestion=False).select_related('sender').order_by('created_at')[:100]
+    ]
+
     context = {
         'ride': ride,
         'room': room,
         'suggestions': suggestions,
+        'initial_messages': initial_messages,
         'other_participant': room.participants.exclude(pk=request.user.pk).first(),
     }
     return render(request, 'match/chat.html', context)
+
+
+@login_required
+@require_POST
+def chat_post_message(request, room_id: int):
+    """
+    Endpoint HTTP de secours pour envoyer un message dans le salon de chat.
+    Assure le relais temps réel via Channel Layer si disponible.
+    """
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        content = (data.get('content') or '').strip()
+    except Exception:
+        content = request.POST.get('content', '').strip()
+
+    if not content:
+        return JsonResponse({'status': 'error', 'error': 'Message vide'}, status=400)
+
+    room = get_object_or_404(ChatRoom.objects.select_related('ride'), pk=room_id)
+    user = request.user
+    allowed = bool(
+        user.is_superuser or
+        room.ride.user_id == user.pk or
+        room.ride.bookings.filter(passenger=user, status=RideBooking.StatusChoices.ACCEPTED).exists()
+    )
+    if not allowed:
+        return JsonResponse({'status': 'denied', 'error': 'Non autorisé'}, status=403)
+
+    if not room.participants.filter(pk=user.pk).exists():
+        room.participants.add(user)
+
+    msg = ChatMessage.objects.create(room=room, sender=user, content=content[:2000])
+    payload = {
+        'id': msg.id,
+        'sender': user.pk,
+        'sender_name': user.get_full_name() or user.username,
+        'content': msg.content,
+        'created_at': msg.created_at.strftime('%H:%M'),
+    }
+
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                f'chat_room_{room.id}',
+                {'type': 'chat_message', 'message': payload}
+            )
+    except Exception:
+        pass
+
+    return JsonResponse({'status': 'ok', 'message': payload})
+
+
+@login_required
+def chat_get_messages(request, room_id: int):
+    """
+    Endpoint HTTP pour récupérer l'historique ou les nouveaux messages.
+    """
+    room = get_object_or_404(ChatRoom.objects.select_related('ride'), pk=room_id)
+    user = request.user
+    allowed = bool(
+        user.is_superuser or
+        room.ride.user_id == user.pk or
+        room.ride.bookings.filter(passenger=user, status=RideBooking.StatusChoices.ACCEPTED).exists()
+    )
+    if not allowed:
+        return JsonResponse({'status': 'denied', 'error': 'Non autorisé'}, status=403)
+
+    since_id = request.GET.get('since_id')
+    qs = room.messages.filter(is_suggestion=False).select_related('sender').order_by('created_at')
+    if since_id and since_id.isdigit():
+        qs = qs.filter(id__gt=int(since_id))
+
+    messages_data = [
+        {
+            'id': m.id,
+            'sender': m.sender_id,
+            'sender_name': (m.sender.get_full_name() or m.sender.username) if m.sender else 'GreenMove',
+            'content': m.content,
+            'created_at': m.created_at.strftime('%H:%M'),
+        }
+        for m in qs[:100]
+    ]
+    return JsonResponse({'status': 'ok', 'messages': messages_data})
 
 
 # ==========================================
