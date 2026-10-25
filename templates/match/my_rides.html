@@ -69,9 +69,20 @@
                   <span class="small text-success">
                     <i class="bi bi-tree-fill" aria-hidden="true"></i> -{{ ride.estimated_co2_saved }} kg CO₂
                   </span>
-                  <a href="{% url 'match:ride_detail' ride.id %}" class="btn btn-sm btn-outline-success rounded-pill px-3">
-                    {% trans "Gérer le trajet" %}
-                  </a>
+                  <div class="d-flex gap-2">
+                    <a href="{% url 'match:ride_detail' ride.id %}" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                      {% trans "Gérer le trajet" %}
+                    </a>
+                    {% if ride.status != 'CANCELLED' and ride.status != 'COMPLETED' %}
+                      <form method="post" action="{% url 'match:cancel_ride' ride.id %}"
+                            onsubmit="return confirm('{% trans "Annuler ce trajet ? Les réservations actives seront annulées et les passagers notifiés." %}');">
+                        {% csrf_token %}
+                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                          <i class="bi bi-x-circle me-1" aria-hidden="true"></i>{% trans "Annuler" %}
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
                 </div>
               </div>
             {% endfor %}

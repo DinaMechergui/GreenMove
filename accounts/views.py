@@ -33,7 +33,8 @@ def register_view(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
+            # Plusieurs backends configurés (ModelBackend + allauth) : backend explicite requis
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, f"Bienvenue sur GreenMove, {user.first_name or user.username} ! Vous avez reçu 100 GreenPoints de bienvenue.")
             return redirect('accounts:profile')
         else:
@@ -53,7 +54,7 @@ def login_view(request):
         form = CustomLoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            login(request, user)
+            login(request, user, backend=getattr(user, 'backend', None) or 'django.contrib.auth.backends.ModelBackend')
             messages.success(request, f"Ravi de vous revoir, {user.first_name or user.username} !")
             next_url = request.GET.get('next') or 'match:search'
             from .prefs_views import apply_language
@@ -91,16 +92,68 @@ def profile_view(request):
     return render(request, 'accounts/profile.html', context)
 
 
+def _sync_rides_with_profile(user, old_home: str, old_work: str) -> int:
+    """
+    Les trajets récurrents qui utilisaient les anciennes adresses du profil
+    suivent les nouvelles (géocodage), puis les groupes DBSCAN sont recalculés :
+    l'utilisateur est automatiquement déplacé vers le groupe de son nouveau trajet.
+    Retourne le nombre de trajets mis à jour.
+    """
+    new_home = user.home_address or ''
+    new_work = user.work_address or ''
+    if not (old_home or old_work) or (old_home == new_home and old_work == new_work):
+        return 0
+
+    from match.models import Ride
+    from match.services.geocoding import geocode_address
+
+    changed = 0
+    for ride in Ride.objects.filter(user=user, is_recurring=True):
+        fields = []
+        if old_home and new_home != old_home and ride.origin_address == old_home:
+            ride.origin_address = new_home
+            coords = geocode_address(new_home)
+            if coords:
+                ride.origin_lat, ride.origin_lon = coords
+            fields += ['origin_address', 'origin_lat', 'origin_lon']
+        if old_work and new_work != old_work and ride.destination_address == old_work:
+            ride.destination_address = new_work
+            coords = geocode_address(new_work)
+            if coords:
+                ride.destination_lat, ride.destination_lon = coords
+            fields += ['destination_address', 'destination_lat', 'destination_lon']
+        if fields:
+            ride.save(update_fields=fields + ['updated_at'])
+            changed += 1
+
+    if changed:
+        try:
+            from match.services.clusters import compute_and_persist_groups
+            compute_and_persist_groups()
+        except Exception:
+            pass
+    return changed
+
+
 @login_required
 def profile_edit_htmx(request):
     """
     Mise à jour dynamique du profil via HTMX sans rechargement de page.
     """
     if request.method == 'POST':
+        old_home = request.user.home_address
+        old_work = request.user.work_address
         form = ProfileEditForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             user = form.save()
+            updated = _sync_rides_with_profile(user, old_home, old_work)
             messages.success(request, "Votre profil écologique a été mis à jour avec succès !")
+            if updated:
+                messages.info(
+                    request,
+                    f"{updated} trajet(s) récurrent(s) aligné(s) sur vos nouvelles adresses : "
+                    "vos groupes ont été recalculés automatiquement.",
+                )
             return render(request, 'accounts/includes/profile_card.html', {'user_profile': user})
         else:
             return render(request, 'accounts/includes/profile_form.html', {'form': form})
@@ -127,6 +180,12 @@ class APIProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+    def perform_update(self, serializer):
+        user = self.get_object()
+        old_home, old_work = user.home_address, user.work_address
+        serializer.save()
+        _sync_rides_with_profile(user, old_home, old_work)
 
 
 # ==========================================

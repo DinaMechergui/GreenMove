@@ -20,6 +20,25 @@ def estimate_trip_cost(distance_km: float) -> float:
     return round(distance_km * COST_PER_KM_TND, 2)
 
 
+def ride_effective_distance_km(ride) -> float:
+    """
+    Distance d'un trajet : longueur du tracé routier (polyline) si disponible,
+    sinon distance Haversine (ligne droite) entre départ et arrivée.
+    """
+    distance_km = ride.distance_km
+    coords = ride.polyline_coords
+    if len(coords) >= 2:
+        total = 0.0
+        for i in range(1, len(coords)):
+            total += calculate_haversine_distance(
+                coords[i - 1][0], coords[i - 1][1],
+                coords[i][0], coords[i][1],
+            )
+        if total > 0:
+            distance_km = round(total, 1)
+    return round(float(distance_km or 0.0), 1)
+
+
 def compute_duo_split(ride, distance_km: Optional[float] = None,
                       passenger_price: Optional[float] = None) -> Dict:
     """
@@ -42,20 +61,9 @@ def compute_duo_split(ride, distance_km: Optional[float] = None,
           "fuel_liter_saved",
         }
     """
-    # 1. Distance réelle
+    # 1. Distance réelle (tracé routier si dispo, sinon Haversine)
     if distance_km is None:
-        distance_km = ride.distance_km
-        coords = ride.polyline_coords
-        if len(coords) >= 2:
-            # longueur du tracé réel si disponible (approx géodésique segment par segment)
-            total = 0.0
-            for i in range(1, len(coords)):
-                total += calculate_haversine_distance(
-                    coords[i - 1][0], coords[i - 1][1],
-                    coords[i][0], coords[i][1],
-                )
-            if total > 0:
-                distance_km = round(total, 1)
+        distance_km = ride_effective_distance_km(ride)
     distance_km = round(float(distance_km or 0.0), 1)
 
     # 2. Coûts

@@ -33,7 +33,10 @@
          style="background: var(--gm-green-tint); color: var(--gm-green-primary);">
       <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
       <span class="small">
-        {% trans "Vous êtes membre du groupe" %} « {{ current_group.label }} ».
+        {% trans "Vous êtes membre du groupe" %} « {{ current_group.label }} »
+        {% if auto_joined %}
+          <span class="fw-semibold">({% trans "adhésion automatique : ce groupe correspond à vos trajets récurrents" %})</span>
+        {% endif %}.
         {% trans "Un seul groupe à la fois : rejoindre un autre groupe vous retirera automatiquement de celui-ci." %}
       </span>
     </div>

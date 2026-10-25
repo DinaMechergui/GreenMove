@@ -30,7 +30,7 @@ from .services.routing import get_route_details
 from .services.ai_matcher import find_best_matches, compute_ride_match_score
 from .services.similarity import ride_similarity
 from .services.isochrones import find_meeting_point
-from .services.clusters import cluster_recurring_rides, join_group
+from .services.clusters import cluster_recurring_rides, join_group, sync_groups_with_rides
 from .services.costs import compute_duo_split, compute_custom_split
 from .services import telegram as telegram_service
 from accounts.signals import ADMIN_GROUP
@@ -219,6 +219,19 @@ def create_ride(request):
                     )
             except Exception:
                 pass
+
+            # Adhésion automatique au groupe DBSCAN si trajet récurrent
+            if ride.is_recurring:
+                try:
+                    group = sync_groups_with_rides(request.user)
+                    if group:
+                        messages.info(
+                            request,
+                            f"Adhésion automatique : vous avez rejoint le groupe "
+                            f"« {group.label} » ({group.get_mode_display()}).",
+                        )
+                except Exception:
+                    pass
 
             messages.success(request, "Votre trajet écologique a été publié ! Vous avez gagné 30 GreenPoints.")
             return redirect('match:ride_detail', pk=ride.id)
@@ -430,6 +443,82 @@ def manage_booking(request, booking_id: int):
 
 
 @login_required
+@require_POST
+def cancel_ride(request, pk: int):
+    """
+    Annulation d'un trajet par son créateur : les réservations actives sont
+    annulées, les passagers notifiés (WS), le chat prévenu et le suivi désactivé.
+    """
+    ride = get_object_or_404(Ride.objects.select_related('user'), pk=pk)
+    if request.user.pk != ride.user_id and not request.user.is_superuser:
+        messages.error(request, "Seul le créateur du trajet peut l'annuler.")
+        return redirect('match:ride_detail', pk=pk)
+    if ride.status == Ride.StatusChoices.CANCELLED:
+        messages.info(request, "Ce trajet est déjà annulé.")
+        return redirect('match:my_rides')
+
+    affected_passengers = []
+    with transaction.atomic():
+        ride = Ride.objects.select_for_update().get(pk=pk)
+        bookings = (
+            RideBooking.objects.select_for_update()
+            .filter(
+                ride=ride,
+                status__in=(
+                    RideBooking.StatusChoices.PENDING,
+                    RideBooking.StatusChoices.ACCEPTED,
+                ),
+            )
+            .select_related('passenger')
+        )
+        affected_passengers = [b.passenger for b in bookings]
+        bookings.update(status=RideBooking.StatusChoices.CANCELLED)
+        ride.status = Ride.StatusChoices.CANCELLED
+        ride.save(update_fields=['status', 'updated_at'])
+        TrackingLink.objects.filter(ride=ride, is_active=True).update(is_active=False)
+
+    # Message système dans le salon de chat du trajet
+    room = ChatRoom.objects.filter(ride=ride).first()
+    if room:
+        ChatMessage.objects.create(
+            room=room, sender=None,
+            content="🛑 Ce trajet a été annulé par le conducteur.",
+        )
+
+    # Notification temps réel aux passagers concernés
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            for passenger in affected_passengers:
+                async_to_sync(channel_layer.group_send)(
+                    f'user_notifications_{passenger.pk}',
+                    {
+                        'type': 'match_notification',
+                        'message': {
+                            'title': 'Trajet annulé',
+                            'text': (
+                                f"Le trajet {ride.origin_address} ➔ "
+                                f"{ride.destination_address} a été annulé."
+                            ),
+                            'ride_id': ride.id,
+                        },
+                    },
+                )
+    except Exception:
+        pass
+
+    if affected_passengers:
+        messages.success(
+            request,
+            f"Trajet annulé. {len(affected_passengers)} réservation(s) annulée(s) "
+            "et passager(s) notifié(s).",
+        )
+    else:
+        messages.success(request, "Trajet annulé.")
+    return redirect('match:my_rides')
+
+
+@login_required
 def my_rides(request):
     """
     Tableau de bord personnel : mes trajets proposés et mes réservations.
@@ -626,6 +715,13 @@ def trip_groups(request):
             messages.error(request, "Groupe introuvable.")
         return redirect('match:groups')
 
+    # Adhésion automatique : mes trajets récurrents déterminent mon groupe
+    if request.user.is_authenticated:
+        try:
+            sync_groups_with_rides(request.user)
+        except Exception:
+            pass
+
     clusters = cluster_recurring_rides()
     mode_labels = {
         'COVOITURAGE': 'Covoiturage',
@@ -634,15 +730,25 @@ def trip_groups(request):
     }
     joined_ride_ids = set()
     current_group = None
+    auto_joined = False
     if request.user.is_authenticated:
         current_group = RideGroup.objects.filter(members=request.user).first()
         joined_ride_ids = set(
             RideGroup.objects.filter(members=request.user)
             .values_list('rides__id', flat=True)
         )
+        auto_joined = bool(
+            current_group and current_group.rides.filter(user=request.user).exists()
+        )
 
     for c in clusters:
-        c['joined'] = any(r.id in joined_ride_ids for r in c['rides'])
+        if request.user.is_authenticated:
+            c['joined'] = (
+                any(r.id in joined_ride_ids for r in c['rides'])
+                or any(r.user_id == request.user.pk for r in c['rides'])
+            )
+        else:
+            c['joined'] = False
         c['member_count'] = len({r.user_id for r in c['rides']})
         c['mode_display'] = mode_labels.get(c['mode'], c['mode'])
 
@@ -650,6 +756,7 @@ def trip_groups(request):
         'clusters': clusters,
         'total_groups': len(clusters),
         'current_group': current_group,
+        'auto_joined': auto_joined,
     }
     return render(request, 'match/groups.html', context)
 
