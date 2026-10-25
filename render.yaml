@@ -1,7 +1,7 @@
 databases:
   - name: greenmove-db
     databaseName: greenmove_db
-    user: postgres
+    user: greenmove_user
     plan: free
     region: frankfurt
 
