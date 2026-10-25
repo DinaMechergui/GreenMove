@@ -230,7 +230,7 @@
               <span class="badge bg-light text-dark border">{{ mode.count }} trajet{{ mode.count|pluralize }} · {{ mode.percentage }}%</span>
             </div>
             <div class="progress rounded-pill" style="height: 8px;">
-              <div class="progress-bar bg-success rounded-pill" role="progressbar" style="width: {{ mode.percentage }}%;" aria-valuenow="{{ mode.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+              <div class="progress-bar bg-success rounded-pill" role="progressbar" data-progress="{{ mode.percentage }}" aria-valuenow="{{ mode.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
           </li>
           {% endfor %}
@@ -429,4 +429,12 @@
     {% endif %}
   </section>
 </main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.progress-bar[data-progress]').forEach(function(bar) {
+      bar.style.width = (bar.getAttribute('data-progress') || 0) + '%';
+    });
+  });
+</script>
 {% endblock %}
