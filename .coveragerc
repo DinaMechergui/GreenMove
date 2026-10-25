@@ -1,0 +1,18 @@
+[run]
+source = accounts, planner
+omit =
+    */migrations/*
+    */tests*
+    */test_*
+    */__pycache__/*
+    */.venv/*
+
+[report]
+show_missing = True
+skip_covered = False
+precision = 1
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if TYPE_CHECKING:
+    raise NotImplementedError

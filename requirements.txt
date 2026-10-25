@@ -16,3 +16,6 @@ python-decouple
 requests
 pillow
 polib
+icalendar
+scikit-learn
+coverage

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}500 – Erreur serveur | GreenMove{% endblock %}
+
+{% block content %}
+<div class="container py-5 text-center" style="min-height:60vh;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+  <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true" class="mb-4">
+    <circle cx="60" cy="60" r="58" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/>
+    <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-size="36" font-weight="bold" fill="#e65100">500</text>
+    <path d="M30 80 Q60 68 90 80" stroke="#e65100" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </svg>
+  <h1 class="fw-bold mb-2" style="color:#e65100;">Erreur serveur</h1>
+  <p class="text-muted mb-4" style="max-width:420px;">
+    Un problème inattendu est survenu. Notre équipe a été notifiée automatiquement. Merci de réessayer dans quelques instants.
+  </p>
+  <a href="{% url 'core:home' %}" class="btn btn-green-primary">
+    <i class="bi bi-house-fill me-2" aria-hidden="true"></i>Retour à l'accueil
+  </a>
+</div>
+{% endblock %}

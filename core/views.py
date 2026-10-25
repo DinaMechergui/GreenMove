@@ -119,3 +119,13 @@ def about(request):
     Page À Propos présentant la mission et l'architecture de GreenMove.
     """
     return render(request, 'core/about.html')
+
+
+def handler404(request, exception=None):
+    """Page d'erreur 404 personnalisée."""
+    return render(request, '404.html', status=404)
+
+
+def handler500(request):
+    """Page d'erreur 500 personnalisée."""
+    return render(request, '500.html', status=500)
