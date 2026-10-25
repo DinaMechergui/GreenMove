@@ -22,6 +22,9 @@
   .chat-mine { background: var(--gm-green-primary, #2E7D32); color: #fff; border-bottom-right-radius: .25rem; }
   .chat-theirs { background: #EDF5EE; color: #23422A; border-bottom-left-radius: .25rem; }
   .chat-meta { font-size: .65rem; opacity: .7; margin-top: .2rem; }
+  .chat-author { font-size: .72rem; }
+  .chat-mine .chat-author { opacity: .85; }
+  .chat-theirs .chat-author { color: #2D5434; }
   .suggestion-chip {
     cursor: pointer;
     border: 1px dashed var(--gm-green-primary, #2E7D32);
@@ -51,7 +54,11 @@
         {% if other_participant %} • {{ other_participant.get_full_name|default:other_participant.username }}{% endif %}
       </div>
     </div>
-    <span class="badge rounded-pill bg-success bg-opacity-10 text-success border" style="font-size: .72rem;" id="chat-connection-badge">
+    <span class="badge rounded-pill bg-success bg-opacity-10 text-success border" style="font-size: .72rem;" id="chat-connection-badge"
+          data-txt-connecting="{% trans 'Connexion…' %}"
+          data-txt-connected="{% trans 'En direct (WebSocket)' %}"
+          data-txt-standard="{% trans 'Mode standard (HTTP)' %}"
+          data-txt-reconnecting="{% trans 'Reconnexion…' %}">
       <span class="rounded-circle d-inline-block bg-success" style="width:7px;height:7px;" id="chat-connection-dot"></span>
       <span id="chat-connection-text">{% trans "En direct" %}</span>
     </span>
@@ -71,13 +78,19 @@
     </div>
   </div>
 
-  <div class="card-greenmove p-3 border shadow-sm mb-3">
+  <div class="card-greenmove p-3 border shadow-sm mb-3"
+       id="chat-card"
+       data-user-id="{{ user.id }}"
+       data-room-id="{{ room.id }}"
+       data-ws-path="/ws/match/chat/{{ room.id }}/"
+       data-post-url="{% url 'match:chat_post_message' room.id %}"
+       data-get-url="{% url 'match:chat_get_messages' room.id %}">
     <div id="chat-messages" class="p-3">
       {% if initial_messages %}
         {% for m in initial_messages %}
           <div class="d-flex mb-3 {% if m.sender == user.id %}justify-content-end{% else %}justify-content-start{% endif %}" data-msg-id="{{ m.id }}">
             <div class="chat-bubble {% if m.sender == user.id %}chat-mine{% else %}chat-theirs{% endif %}">
-              <div class="fw-semibold" style="font-size:.72rem;{% if m.sender == user.id %}opacity:.85{% else %}color:#2D5434{% endif %}">
+              <div class="fw-semibold chat-author">
                 {% if m.sender != user.id %}{{ m.sender_name }}{% endif %}
               </div>
               <div>{{ m.content }}</div>
@@ -112,10 +125,16 @@
 {% block extra_js %}
 <script>
   document.addEventListener('DOMContentLoaded', () => {
+    const chatCard = document.getElementById('chat-card');
+    if (!chatCard) return;
+
+    const myId = parseInt(chatCard.dataset.userId, 10);
+    const wsPath = chatCard.dataset.wsPath;
+    const postUrl = chatCard.dataset.postUrl;
+    const getUrl = chatCard.dataset.getUrl;
     const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const roomUrl = `${wsScheme}://${window.location.host}/ws/match/chat/{{ room.id }}/`;
-    const postUrl = "{% url 'match:chat_post_message' room.id %}";
-    const getUrl = "{% url 'match:chat_get_messages' room.id %}";
+    const roomUrl = `${wsScheme}://${window.location.host}${wsPath}`;
+
     let ws = null;
     let wsConnected = false;
     let fallbackPollingTimer = null;
@@ -125,9 +144,14 @@
     const box = document.getElementById('chat-messages');
     const form = document.getElementById('chat-form');
     const input = document.getElementById('chat-input');
+    const badge = document.getElementById('chat-connection-badge');
     const badgeText = document.getElementById('chat-connection-text');
     const badgeDot = document.getElementById('chat-connection-dot');
-    const myId = {{ user.id }};
+
+    const txtConnecting = badge ? (badge.dataset.txtConnecting || 'Connexion…') : 'Connexion…';
+    const txtConnected = badge ? (badge.dataset.txtConnected || 'En direct (WebSocket)') : 'En direct (WebSocket)';
+    const txtStandard = badge ? (badge.dataset.txtStandard || 'Mode standard (HTTP)') : 'Mode standard (HTTP)';
+    const txtReconnecting = badge ? (badge.dataset.txtReconnecting || 'Reconnexion…') : 'Reconnexion…';
 
     // Enregistrer les messages déjà affichés
     document.querySelectorAll('#chat-messages [data-msg-id]').forEach(el => {
@@ -160,7 +184,7 @@
       if (m.id) wrap.setAttribute('data-msg-id', m.id);
       wrap.innerHTML = `
         <div class="chat-bubble ${mine ? 'chat-mine' : 'chat-theirs'}">
-          <div class="fw-semibold" style="font-size:.72rem;${mine ? 'opacity:.85' : 'color:#2D5434'}">
+          <div class="fw-semibold chat-author">
             ${mine ? '' : escapeHtml(m.sender_name || '')}
           </div>
           <div>${escapeHtml(m.content)}</div>
@@ -206,14 +230,14 @@
     }
 
     function connect() {
-      setStatus(false, '{% trans "Connexion…" %}', 'bg-warning');
+      setStatus(false, txtConnecting, 'bg-warning');
       try {
         ws = new WebSocket(roomUrl);
 
         ws.onopen = () => {
           wsConnected = true;
           stopFallbackPolling();
-          setStatus(true, '{% trans "En direct (WebSocket)" %}', 'bg-success');
+          setStatus(true, txtConnected, 'bg-success');
           input.focus();
         };
 
@@ -232,20 +256,20 @@
 
         ws.onerror = () => {
           wsConnected = false;
-          setStatus(false, '{% trans "Mode standard (HTTP)" %}', 'bg-info');
+          setStatus(false, txtStandard, 'bg-info');
           startFallbackPolling();
         };
 
         ws.onclose = () => {
           wsConnected = false;
-          setStatus(false, '{% trans "Reconnexion…" %}', 'bg-warning');
+          setStatus(false, txtReconnecting, 'bg-warning');
           startFallbackPolling();
           setTimeout(connect, 3500);
         };
       } catch (err) {
         console.warn('WebSocket inaccessible, utilisation du fallback HTTP:', err);
         wsConnected = false;
-        setStatus(false, '{% trans "Mode standard (HTTP)" %}', 'bg-info');
+        setStatus(false, txtStandard, 'bg-info');
         startFallbackPolling();
       }
     }

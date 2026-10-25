@@ -63,7 +63,17 @@
           {% trans "Connexion…" %}
         </span>
       </div>
-      <div id="live-map"></div>
+      <div id="live-map"
+           data-is-owner="{{ is_owner|yesno:'true,false' }}"
+           data-start-lat="{{ ride.origin_lat|unlocalize }}"
+           data-start-lon="{{ ride.origin_lon|unlocalize }}"
+           data-ws-token="{{ ws_token }}"
+           data-txt-connected="{% trans 'Connecté' %}"
+           data-txt-broadcaster="{% trans 'Diffusion active' %}"
+           data-txt-viewer="{% trans 'Suivi en direct' %}"
+           data-txt-disconnected="{% trans 'Déconnecté' %}"
+           data-txt-copied="{% trans 'Lien copié !' %}"></div>
+      {{ route_coords_json|json_script:"route-coords-data" }}
     </div>
 
     <div class="row g-3">
@@ -88,16 +98,33 @@
 {% if is_valid %}
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const isOwner = {{ is_owner|yesno:"true,false" }};
-    const startLat = {{ ride.origin_lat|unlocalize }};
-    const startLon = {{ ride.origin_lon|unlocalize }};
+    const mapEl = document.getElementById('live-map');
+    if (!mapEl) return;
+
+    const isOwner = mapEl.dataset.isOwner === 'true';
+    const startLat = parseFloat(mapEl.dataset.startLat) || 36.8065;
+    const startLon = parseFloat(mapEl.dataset.startLon) || 10.1815;
+    const wsToken = mapEl.dataset.wsToken || '';
+
+    const txtConnected = mapEl.dataset.txtConnected || 'Connecté';
+    const txtBroadcaster = mapEl.dataset.txtBroadcaster || 'Diffusion active';
+    const txtViewer = mapEl.dataset.txtViewer || 'Suivi en direct';
+    const txtDisconnected = mapEl.dataset.txtDisconnected || 'Déconnecté';
+    const txtCopied = mapEl.dataset.txtCopied || 'Lien copié !';
 
     const map = L.map('live-map').setView([startLat, startLon], 13);
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
       attribution: '&copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics', maxZoom: 19,
     }).addTo(map);
 
-    const routeCoords = {{ route_coords_json|safe }};
+    let routeCoords = [];
+    const routeScript = document.getElementById('route-coords-data');
+    if (routeScript && routeScript.textContent) {
+      try {
+        const parsed = JSON.parse(routeScript.textContent);
+        routeCoords = typeof parsed === 'string' ? JSON.parse(parsed) : parsed;
+      } catch (e) {}
+    }
     if (Array.isArray(routeCoords) && routeCoords.length > 1) {
       L.polyline(routeCoords, { color: '#2E7D32', weight: 4, opacity: .7 }).addTo(map);
     }
@@ -115,18 +142,18 @@
     const lastTs = document.getElementById('last-ts');
 
     const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${wsScheme}://${window.location.host}/ws/match/track/{{ ws_token }}/`);
+    const ws = new WebSocket(`${wsScheme}://${window.location.host}/ws/match/track/${wsToken}/`);
 
     ws.onopen = () => {
-      statusEl.innerHTML = '<span class="rounded-circle d-inline-block bg-success" style="width:7px;height:7px;"></span> {% trans "Connecté" %}';
+      statusEl.innerHTML = `<span class="rounded-circle d-inline-block bg-success" style="width:7px;height:7px;"></span> ${txtConnected}`;
     };
 
     ws.onmessage = (e) => {
       const data = JSON.parse(e.data);
       if (data.type === 'tracking_role') {
         statusEl.innerHTML = data.role === 'broadcaster'
-          ? '<span class="rounded-circle d-inline-block bg-success" style="width:7px;height:7px;"></span> {% trans "Diffusion active" %}'
-          : '<span class="rounded-circle d-inline-block bg-info" style="width:7px;height:7px;"></span> {% trans "Suivi en direct" %}';
+          ? `<span class="rounded-circle d-inline-block bg-success" style="width:7px;height:7px;"></span> ${txtBroadcaster}`
+          : `<span class="rounded-circle d-inline-block bg-info" style="width:7px;height:7px;"></span> ${txtViewer}`;
       } else if (data.type === 'tracking_update') {
         const pos = [data.lat, data.lon];
         marker.setLatLng(pos);
@@ -137,7 +164,7 @@
     };
 
     ws.onclose = () => {
-      statusEl.innerHTML = '<span class="rounded-circle d-inline-block bg-danger" style="width:7px;height:7px;"></span> {% trans "Déconnecté" %}';
+      statusEl.innerHTML = `<span class="rounded-circle d-inline-block bg-danger" style="width:7px;height:7px;"></span> ${txtDisconnected}`;
     };
 
     // Le conducteur diffuse sa géolocalisation navigateur
@@ -156,7 +183,7 @@
     if (copyBtn) {
       copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(window.location.href).then(() => {
-          copyBtn.innerHTML = '<i class="bi bi-check2 me-1" aria-hidden="true"></i>{% trans "Lien copié !" %}';
+          copyBtn.innerHTML = `<i class="bi bi-check2 me-1" aria-hidden="true"></i>${txtCopied}`;
         });
       });
     }
