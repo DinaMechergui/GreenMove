@@ -1,0 +1,134 @@
+/* ==========================================================================
+   GreenMove · Module Traffic
+   S'appuie sur les variables du thème commun (static/css/style.css),
+   donc compatible avec le mode sombre [data-theme="dark"].
+   ========================================================================== */
+
+.tm-page { color: var(--gm-text-main); }
+
+/* Focus toujours visible (navigation clavier) */
+.tm-page a:focus-visible,
+.tm-page button:focus-visible,
+.tm-page input:focus-visible,
+.tm-page select:focus-visible,
+.tm-page summary:focus-visible,
+.tm-page .leaflet-marker-icon:focus-visible,
+.tm-page [tabindex]:focus-visible {
+  outline: 3px solid #1D4ED8;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.9);
+}
+
+/* ---------- En-tête du module ---------- */
+.tm-hero {
+  background: linear-gradient(135deg, var(--gm-green-tint), var(--gm-surface));
+  border: 1px solid var(--gm-border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.75rem;
+}
+.tm-hero h1 { font-family: var(--font-headings); font-weight: 800; }
+
+.tm-sim-badge {
+  display: inline-flex; align-items: center; gap: .45rem;
+  background: #FFF4D6; color: #5C4300;
+  border: 1px solid #E9C46A; border-radius: var(--radius-pill);
+  padding: .3rem .85rem; font-size: .85rem; font-weight: 600;
+  text-decoration: none;
+}
+.tm-sim-badge:hover { background: #FDEBB5; color: #3F2E00; }
+
+.tm-subnav { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.tm-subnav a {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .45rem .95rem; border-radius: var(--radius-pill);
+  color: var(--gm-text-main); text-decoration: none; font-weight: 500;
+  border: 1px solid var(--gm-border-subtle); background: var(--gm-surface);
+  transition: var(--transition-smooth);
+}
+.tm-subnav a:hover { border-color: var(--gm-green-primary); color: var(--gm-green-primary); }
+.tm-subnav a[aria-current="page"] { background: var(--gm-green-primary); color: #fff; border-color: var(--gm-green-primary); }
+
+/* ---------- Cartes ---------- */
+.tm-card {
+  background: var(--gm-surface);
+  border: 1px solid var(--gm-border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--gm-card-shadow);
+  padding: 1.25rem;
+}
+.tm-card h2, .tm-card h3 { font-family: var(--font-headings); }
+
+/* ---------- Bandeau météo ---------- */
+.tm-weather { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; list-style: none; padding: 0; margin: 0; }
+.tm-weather li {
+  background: var(--gm-surface); border: 1px solid var(--gm-border-subtle);
+  border-radius: var(--radius-sm); padding: .7rem .9rem;
+  display: flex; align-items: center; gap: .65rem;
+}
+.tm-weather i { font-size: 1.4rem; color: var(--gm-green-primary); }
+.tm-weather .tm-wx-label { display: block; font-size: .78rem; color: var(--gm-text-muted); }
+.tm-weather .tm-wx-value { font-weight: 700; }
+
+/* ---------- Carte Leaflet ---------- */
+.tm-map { height: 520px; border-radius: var(--radius-md); border: 1px solid var(--gm-border-subtle); z-index: 0; }
+@media (max-width: 767px) { .tm-map { height: 380px; } }
+.tm-map[aria-busy="true"] { opacity: .65; transition: opacity .2s; }
+
+.tm-marker {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.35);
+  font-size: 1rem; transition: transform .2s;
+}
+.leaflet-marker-icon:hover .tm-marker { transform: scale(1.15); }
+.tm-divicon { background: none; border: none; }
+
+/* Couleur + icône + texte : l'information ne repose jamais sur la seule couleur */
+.tm-bg-fluide { background: #1B7F4B; color: #fff; }
+.tm-bg-modere { background: #F2C14E; color: #1D2A22; }
+.tm-bg-dense  { background: #E8730C; color: #111; }
+.tm-bg-bloque { background: #B42318; color: #fff; }
+
+.tm-level {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .2rem .6rem; border-radius: var(--radius-pill);
+  font-weight: 600; font-size: .85rem; white-space: nowrap;
+}
+.tm-level-fluide { background: #DCF2E3; color: #14532D; }
+.tm-level-modere { background: #FDF3D3; color: #6B4E00; }
+.tm-level-dense  { background: #FDE5D2; color: #8A3B00; }
+.tm-level-bloque { background: #FBDAD7; color: #8B1A12; }
+
+.tm-legend { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
+.tm-legend li { display: flex; align-items: center; gap: .55rem; font-size: .9rem; }
+.tm-legend .tm-marker { width: 26px; height: 26px; border-width: 2px; font-size: .8rem; }
+
+/* ---------- Contrôles ---------- */
+.tm-time-display { font-family: var(--font-headings); font-size: 2rem; font-weight: 800; color: var(--gm-green-primary); }
+.tm-range { width: 100%; accent-color: var(--gm-green-primary); }
+.tm-quick .btn { border-radius: var(--radius-pill); }
+
+/* ---------- Meilleur moment ---------- */
+.tm-best-message {
+  font-family: var(--font-headings); font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+  font-weight: 800; color: var(--gm-green-primary); line-height: 1.25;
+}
+.tm-kpi { text-align: center; padding: .9rem; border-radius: var(--radius-sm); background: var(--gm-surface-muted); }
+.tm-kpi .tm-kpi-value { display: block; font-size: 1.6rem; font-weight: 800; font-family: var(--font-headings); }
+.tm-kpi .tm-kpi-label { font-size: .82rem; color: var(--gm-text-muted); }
+
+.tm-loading { display: none; align-items: center; gap: .6rem; font-weight: 600; color: var(--gm-green-primary); }
+.htmx-request .tm-loading, .htmx-request.tm-loading, .tm-loading.is-active { display: inline-flex; }
+
+.tm-chart-box { position: relative; height: 320px; }
+
+/* Tableaux */
+.tm-page .table { color: var(--gm-text-main); --bs-table-bg: transparent; }
+.tm-page caption { caption-side: top; color: var(--gm-text-muted); }
+
+[data-theme="dark"] .tm-sim-badge { background: #3A2F0B; color: #FCE7A6; border-color: #8C6D1F; }
+[data-theme="dark"] .leaflet-popup-content-wrapper, [data-theme="dark"] .leaflet-popup-tip { background: #1C2620; color: #EBF2EC; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-page *, .tm-marker { transition: none !important; animation: none !important; }
+}

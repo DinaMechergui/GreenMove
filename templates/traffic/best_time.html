@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Meilleur moment pour partir" %} | Traffic | GreenMove{% endblock %}
+
+{% block extra_css %}
+<meta name="description" content="{% trans 'Trouvez le meilleur créneau horaire pour votre trajet dans le Grand Tunis afin d éviter les bouchons.' %}">
+<link rel="stylesheet" href="{% static 'traffic/traffic.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 tm-page">
+  {% include "traffic/_module_header.html" with active="best_time" %}
+
+  <div class="row g-4">
+    <!-- Formulaire -->
+    <div class="col-lg-5">
+      <div class="tm-card h-100">
+        <h2 class="h5 fw-bold mb-3">
+          <i class="bi bi-sliders me-2 text-success" aria-hidden="true"></i>{% trans "Paramètres du trajet" %}
+        </h2>
+
+        <form method="get" action="{% url 'traffic:best_time' %}"
+              hx-get="{% url 'traffic:best_time' %}"
+              hx-target="#best-time-results"
+              hx-indicator="#loading-spinner"
+              hx-swap="innerHTML"
+              aria-label="{% trans 'Formulaire de recherche du meilleur moment pour partir' %}">
+
+          <div class="mb-3">
+            <label for="origin_select" class="form-label fw-semibold">{% trans "Point de départ" %}</label>
+            <select id="origin_select" name="origin" class="form-select" required aria-required="true">
+              <option value="">{% trans "-- Choisir le point de départ --" %}</option>
+              {% for p in points %}
+                <option value="{{ p.id }}" {% if form.origin == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="destination_select" class="form-label fw-semibold">{% trans "Point d'arrivée" %}</label>
+            <select id="destination_select" name="destination" class="form-select" required aria-required="true">
+              <option value="">{% trans "-- Choisir le point d'arrivée --" %}</option>
+              {% for p in points %}
+                <option value="{{ p.id }}" {% if form.destination == p.id|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="day_input" class="form-label fw-semibold">{% trans "Jour du déplacement" %}</label>
+            <input type="date" id="day_input" name="day" class="form-control" value="{{ form.day }}" required aria-required="true">
+          </div>
+
+          <div class="row g-2 mb-4">
+            <div class="col-6">
+              <label for="start_time_input" class="form-label fw-semibold">{% trans "Heure min" %}</label>
+              <input type="time" id="start_time_input" name="start_time" class="form-control" value="{{ form.start_time }}" required aria-required="true">
+            </div>
+            <div class="col-6">
+              <label for="end_time_input" class="form-label fw-semibold">{% trans "Heure max" %}</label>
+              <input type="time" id="end_time_input" name="end_time" class="form-control" value="{{ form.end_time }}" required aria-required="true">
+            </div>
+            <div class="form-text small">{% trans "Plage maximale de 12 heures." %}</div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between gap-2">
+            <button type="submit" class="btn btn-green-primary px-4" aria-label="{% trans 'Calculer le créneau optimal' %}">
+              <i class="bi bi-search me-1" aria-hidden="true"></i>{% trans "Calculer l'horaire optimal" %}
+            </button>
+            <div id="loading-spinner" class="tm-loading" aria-live="polite">
+              <div class="spinner-border spinner-border-sm text-success" role="status">
+                <span class="visually-hidden">{% trans "Calcul en cours..." %}</span>
+              </div>
+              <span class="small">{% trans "Calcul en cours..." %}</span>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Zone de résultat (HTMX) -->
+    <div class="col-lg-7">
+      <div id="best-time-results" aria-live="polite">
+        {% if submitted %}
+          {% include "traffic/partials/best_time_result.html" %}
+        {% else %}
+          <div class="tm-card text-center py-5">
+            <div class="text-muted mb-3">
+              <i class="bi bi-clock-history display-4" style="color: var(--gm-green-soft);" aria-hidden="true"></i>
+            </div>
+            <h3 class="h5 fw-bold mb-2">{% trans "Trouvez l'horaire idéal" %}</h3>
+            <p class="text-muted small mx-auto mb-0" style="max-width: 400px;">
+              {% trans "Sélectionnez vos points de départ et d'arrivée pour visualiser l'impact des embouteillages et découvrir le moment idéal pour démarrer." %}
+            </p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
