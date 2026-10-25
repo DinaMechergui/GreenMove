@@ -225,7 +225,7 @@
                   <span>{{ cluster.count }} citoyen{{ cluster.count|pluralize }}</span>
                 </div>
                 <div class="progress" style="height: 6px;">
-                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ cluster.percentage }}%;" aria-valuenow="{{ cluster.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                  <div class="progress-bar bg-success rounded-pill" role="progressbar" data-progress="{{ cluster.percentage }}" aria-valuenow="{{ cluster.percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                 </div>
               </div>
             </div>
@@ -255,4 +255,14 @@
 
   </div>
 </section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.progress-bar[data-progress]').forEach(function(bar) {
+      bar.style.width = bar.getAttribute('data-progress') + '%';
+    });
+  });
+</script>
 {% endblock %}

@@ -77,9 +77,9 @@
                 {% else %}
                   <span class="text-secondary" style="font-size: 0.72rem;">Validé {{ coupon.used_at|date:"d/m H:i" }}</span>
                 {% endif %}
-                <form action="{% url 'rewards:delete_coupon' coupon.id %}" method="post" onsubmit="return confirm('{% trans "Supprimer ce coupon de votre historique ?" %}');" class="d-inline ms-1">
+                <form action="{% url 'rewards:delete_coupon' coupon.id %}" method="post" onsubmit="return confirm('Supprimer ce coupon de votre historique ?');" class="d-inline ms-1">
                   {% csrf_token %}
-                  <button type="submit" class="btn btn-sm btn-outline-danger border-0 py-0 px-1 rounded-circle" title="{% trans "Supprimer (CRUD)" %}" aria-label="{% trans "Supprimer coupon" %}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger border-0 py-0 px-1 rounded-circle" title="Supprimer (CRUD)" aria-label="Supprimer coupon">
                     <i class="bi bi-trash3"></i>
                   </button>
                 </form>
