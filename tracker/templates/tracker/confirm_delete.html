@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Supprimer le trajet | GreenMove{% endblock %}
+{% block content %}
+<main class="container py-5 tracker-page">
+  <section class="card card-body">
+    <h1 class="h2">Supprimer ce trajet ?</h1>
+    <p>Le trajet et ses points GPS chiffrés seront supprimés définitivement.</p>
+    <form method="post">{% csrf_token %}<button class="btn btn-danger" type="submit">Confirmer la suppression</button> <a class="btn btn-outline-secondary" href="{% url 'tracker:detail' trip.pk %}">Annuler</a></form>
+  </section>
+</main>
+{% endblock %}

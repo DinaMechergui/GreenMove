@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Ma heatmap | GreenMove{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'tracker/tracker.css' %}">
+{% endblock %}
+{% block content %}
+<main class="container py-5 tracker-page">
+  <a href="{% url 'tracker:index' %}">← Mes trajets</a>
+  <h1 class="h2 mt-3">Ma heatmap personnelle</h1>
+  <p>Carte privée : seuls les points de vos propres trajets sont représentés. {{ heat_points|length }} point(s), maximum 2 000.</p>
+  {% if heatmap_error %}<p class="alert alert-warning" role="alert">{{ heatmap_error }}</p>{% endif %}
+  <div id="personal-heatmap" class="tracker-map" role="img" aria-label="Heatmap privée des déplacements du propriétaire"></div>
+  <h2 class="h5 mt-4">Résumé accessible</h2>
+  <p>La carte visualise les zones visitées par fréquence. Elle ne représente pas les trajets d'autres utilisateurs.</p>
+  <a class="btn btn-outline-success" href="{% url 'tracker:index' %}">Retour à l'historique</a>
+</main>
+{{ heat_points|json_script:"personal-heat-points" }}
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js" defer></script>
+<script src="{% static 'tracker/heatmap.js' %}" defer></script>
+{% endblock %}

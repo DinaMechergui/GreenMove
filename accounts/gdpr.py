@@ -74,9 +74,23 @@ def delete_account(user):
     # Les traces GPS sont identifiantes : on les efface, les statistiques de trajets restent.
     for rel in user._meta.related_objects:
         model = rel.related_model
-        if rel.auto_created and (rel.one_to_many or rel.one_to_one) and any(
-                f.name == 'gps_points' for f in model._meta.get_fields()):
-            model._default_manager.filter(**{rel.field.name: user}).update(gps_points=[])
+        if not (rel.auto_created and (rel.one_to_many or rel.one_to_one)):
+            continue
+        gps_field = next(
+            (field for field in model._meta.get_fields() if field.name == 'gps_points'),
+            None,
+        )
+        if gps_field is None:
+            continue
+        related = model._default_manager.filter(**{rel.field.name: user})
+        if isinstance(gps_field, models.JSONField):
+            related.update(gps_points=[])
+        elif getattr(gps_field, 'one_to_many', False):
+            gps_model = gps_field.related_model
+            relation_name = gps_field.field.name
+            gps_model._default_manager.filter(
+                **{f'{relation_name}__in': related}
+            ).delete()
     AuditLog.objects.filter(user=user).update(username='anonyme', ip_address=None, detail='')
     user.username = f'anonyme_{token}'
     user.email = f'{token}@anonymized.invalid'

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Mobility Tracker | GreenMove{% endblock %}
+{% block extra_css %}
+<link rel="manifest" href="{% url 'tracker:manifest' %}">
+<link rel="stylesheet" href="{% static 'tracker/tracker.css' %}">
+{% endblock %}
+{% block content %}
+<main class="container py-5 tracker-page">
+  <header class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+      <p class="text-success fw-semibold mb-1">MOBILITY TRACKER</p>
+      <h1 class="h2 fw-bold mb-1">Mes déplacements</h1>
+      <p class="text-muted mb-0">Vos trajets et leurs estimations carbone restent privés.</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-success" href="{% url 'tracker:heatmap' %}">Ma heatmap</a>
+      <a class="btn btn-outline-success" href="{% url 'tracker:import-gpx' %}">Importer un fichier GPX</a>
+    </div>
+  </header>
+
+  {% if active_trip %}
+  <section class="card card-body border-success mb-4" aria-labelledby="active-trip-title">
+    <h2 id="active-trip-title" class="h5">Un trajet est en cours</h2>
+    <p>La capture GPS se poursuit tant que cette page reste ouverte.</p>
+    <a class="btn btn-success align-self-start" href="{% url 'tracker:detail' active_trip.pk %}">Reprendre le trajet</a>
+  </section>
+  {% else %}
+  <section class="card card-body shadow-sm mb-4" aria-labelledby="start-trip-title">
+    <h2 id="start-trip-title" class="h5">Démarrer un trajet GPS</h2>
+    <p id="gps-permission-note" class="text-muted">La localisation du navigateur est requise. Le site doit être ouvert en HTTPS ou sur localhost.</p>
+    <form method="post" action="{% url 'tracker:start' %}">
+      {% csrf_token %}
+      <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+      <button class="btn btn-success" type="submit">Démarrer le trajet</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <section aria-labelledby="history-title">
+    <h2 id="history-title" class="h4 mb-3">Historique</h2>
+    <form method="get" class="row g-3 align-items-end mb-4" aria-label="Filtrer les trajets">
+      <div class="col-sm-4">
+        <label class="form-label" for="transport-filter">Transport</label>
+        <select class="form-select" name="transport" id="transport-filter">
+          <option value="">Tous</option>
+          {% for value, label in transport_modes %}
+          <option value="{{ value }}" {% if request.GET.transport == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3"><label class="form-label" for="from-filter">À partir du</label><input class="form-control" type="date" id="from-filter" name="from" value="{{ request.GET.from }}"></div>
+      <div class="col-sm-3"><label class="form-label" for="to-filter">Jusqu'au</label><input class="form-control" type="date" id="to-filter" name="to" value="{{ request.GET.to }}"></div>
+      <div class="col-sm-2"><button class="btn btn-outline-success w-100" type="submit">Filtrer</button></div>
+    </form>
+    {% if page.object_list %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <caption class="visually-hidden">Historique personnel de vos trajets</caption>
+        <thead><tr><th scope="col">Date</th><th scope="col">Transport</th><th scope="col">Distance</th><th scope="col">CO₂e</th><th scope="col">Validation</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+        <tbody>
+        {% for trip in page.object_list %}
+          <tr>
+            <td>{{ trip.start_time|date:"d/m/Y H:i" }}</td>
+            <td>{% if trip.confirmed_transport_mode %}{{ trip.get_confirmed_transport_mode_display }}{% elif trip.detected_transport_mode %}{{ trip.get_detected_transport_mode_display }} (IA){% else %}Non déterminé{% endif %}</td>
+            <td>{{ trip.distance_km }} km</td><td>{{ trip.co2_kg }} kg</td>
+            <td>{{ trip.get_validation_status_display }}</td>
+            <td><a href="{% url 'tracker:detail' trip.pk %}">Détails<span class="visually-hidden"> du trajet</span></a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <nav aria-label="Pages des trajets">
+      {% if page.has_previous %}<a class="btn btn-sm btn-outline-secondary" href="?page={{ page.previous_page_number }}">Précédent</a>{% endif %}
+      <span class="mx-2">Page {{ page.number }} sur {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}<a class="btn btn-sm btn-outline-secondary" href="?page={{ page.next_page_number }}">Suivant</a>{% endif %}
+    </nav>
+    {% else %}
+    <p class="alert alert-light border">Aucun trajet pour le moment. Démarrez un trajet ou importez un fichier GPX.</p>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

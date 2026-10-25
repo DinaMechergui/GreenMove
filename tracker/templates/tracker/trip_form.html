@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Modifier le trajet | GreenMove{% endblock %}
+{% block content %}
+<main class="container py-5 tracker-page">
+  <h1 class="h2 mb-4">Modifier le trajet</h1>
+  <form method="post" class="card card-body">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div id="{{ field.id_for_label }}-help" class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="text-danger" role="alert">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+    {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="d-flex gap-2"><button class="btn btn-success" type="submit">Enregistrer</button><a class="btn btn-outline-secondary" href="{% url 'tracker:detail' trip.pk %}">Annuler</a></div>
+  </form>
+</main>
+{% endblock %}

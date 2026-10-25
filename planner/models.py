@@ -25,8 +25,14 @@ class TripRecord(models.Model):
     distance_km = models.FloatField()
     duration_min = models.FloatField(default=0)
     co2_kg = models.FloatField(default=0, editable=False)
-    source_trip_id = models.PositiveIntegerField(null=True, blank=True, unique=True, editable=False,
-                                                 help_text=_("Identifiant du Trip du tracker synchronisé"))
+    source_trip_id = models.CharField(
+        max_length=36,
+        null=True,
+        blank=True,
+        unique=True,
+        editable=False,
+        help_text=_("Identifiant du Trip du tracker synchronisé"),
+    )
 
     class Meta:
         ordering = ('-date',)
