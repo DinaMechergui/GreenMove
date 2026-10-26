@@ -55,7 +55,7 @@
     <div class="mb-5">
       <div class="d-flex align-items-center justify-content-between mb-3">
         <h4 class="fw-bold text-dark mb-0">{% trans "Vos Défis Individuels en Cours" %}</h4>
-        <span class="text-muted small">{{ personalized_challenges.count }} défi{{ personalized_challenges.count|pluralize }} actif{{ personalized_challenges.count|pluralize }}</span>
+        <span class="text-muted small">{{ personalized_challenges|length }} défi{{ personalized_challenges|length|pluralize }} actif{{ personalized_challenges|length|pluralize }}</span>
       </div>
 
       {% for challenge in personalized_challenges %}

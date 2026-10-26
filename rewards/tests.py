@@ -327,3 +327,84 @@ class RewardsViewsAccessibilityTests(TestCase):
         resp = self.client.post(reverse('rewards:delete_coupon', args=[coupon.id]))
         self.assertEqual(resp.status_code, 302)
         self.assertEqual(UserCoupon.objects.filter(id=coupon.id).count(), 0)
+
+    def test_challenges_sync_with_ride_booking(self):
+        """Une réservation de trajet doit mettre à jour les défis et permettre de réclamer la récompense."""
+        self.client.force_login(self.user)
+        # Créer les défis pour l'utilisateur
+        generate_personalized_challenges(self.user)
+        
+        # Simuler un conducteur et un trajet
+        driver = CustomUser.objects.create_user(username="driver_sync_test", password="password123")
+        ride = Ride.objects.create(
+            user=driver,
+            origin_address="Tunis",
+            origin_lat=36.8065,
+            origin_lon=10.1815,
+            destination_address="Ariana",
+            destination_lat=36.8665,
+            destination_lon=10.1955,
+            departure_datetime=timezone.now() + timedelta(hours=2),
+            seats_available=3,
+            price_tnd=5.0,
+            status=Ride.StatusChoices.ACTIVE
+        )
+        # Réserver le trajet
+        booking = RideBooking.objects.create(
+            ride=ride,
+            passenger=self.user,
+            seats_requested=1,
+            status=RideBooking.StatusChoices.PENDING
+        )
+        
+        # Charger la page des défis
+        resp = self.client.get(reverse('rewards:challenges'))
+        self.assertEqual(resp.status_code, 200)
+        
+        # Le défi Premier Covoiturage Solidaire (target: 1.0) doit être COMPLETED
+        challenge = PersonalizedChallenge.objects.filter(
+            user=self.user,
+            category='RIDES',
+            target_value=1.0
+        ).first()
+        self.assertIsNotNone(challenge)
+        self.assertGreaterEqual(challenge.current_value, 1.0)
+        self.assertEqual(challenge.status, 'COMPLETED')
+        self.assertContains(resp, "Réclamer ma récompense")
+
+    def test_challenges_deduplication(self):
+        """Vérifie que les défis en double sont nettoyés et que seuls les défis uniques sont actifs."""
+        self.client.force_login(self.user)
+        # Créer 2 fois des défis avec le même titre
+        PersonalizedChallenge.objects.create(
+            user=self.user,
+            title="Premier Covoiturage Solidaire",
+            description="Test",
+            category="RIDES",
+            difficulty="EASY",
+            target_value=1.0,
+            end_date=timezone.now().date() + timedelta(days=7),
+            status="ACTIVE"
+        )
+        PersonalizedChallenge.objects.create(
+            user=self.user,
+            title="Premier Covoiturage Solidaire",
+            description="Test doublon",
+            category="RIDES",
+            difficulty="EASY",
+            target_value=1.0,
+            end_date=timezone.now().date() + timedelta(days=7),
+            status="ACTIVE"
+        )
+        
+        resp = self.client.get(reverse('rewards:challenges'))
+        self.assertEqual(resp.status_code, 200)
+        
+        # Un seul défi avec ce titre doit rester ACTIVE ou COMPLETED
+        active_count = PersonalizedChallenge.objects.filter(
+            user=self.user,
+            title="Premier Covoiturage Solidaire",
+            status__in=['ACTIVE', 'COMPLETED']
+        ).count()
+        self.assertEqual(active_count, 1)
+

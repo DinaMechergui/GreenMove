@@ -38,6 +38,7 @@ from .services.co2_calculator import (
     get_or_create_gamification_profile,
     broadcast_leaderboard_update,
     update_user_challenges_progress,
+    sync_user_challenges_with_activity,
     check_and_award_badges,
 )
 from .services.kmeans_profiler import (
@@ -65,14 +66,31 @@ def index(request):
     user = request.user
     profile = get_or_create_gamification_profile(user)
 
+    # Synchronisation immédiate avec les réservations et trajets réels
+    try:
+        sync_user_challenges_with_activity(user)
+    except Exception:
+        pass
+
     # Vérifier / générer les défis personnalisés si inexistants
-    active_challenges = PersonalizedChallenge.objects.filter(
+    raw_challenges = PersonalizedChallenge.objects.filter(
         user=user,
         status__in=['ACTIVE', 'COMPLETED']
-    ).order_by('status', 'difficulty')
+    ).order_by('difficulty', 'created_at')
 
-    if not active_challenges.exists():
-        active_challenges = generate_personalized_challenges(user)
+    if not raw_challenges.exists():
+        generate_personalized_challenges(user)
+        raw_challenges = PersonalizedChallenge.objects.filter(
+            user=user,
+            status__in=['ACTIVE', 'COMPLETED']
+        ).order_by('difficulty', 'created_at')
+
+    seen_titles = set()
+    active_challenges = []
+    for ch in raw_challenges:
+        if ch.title not in seen_titles:
+            seen_titles.add(ch.title)
+            active_challenges.append(ch)
 
     # Badges débloqués et à débloquer
     earned_badge_ids = set(user.earned_badges.values_list('badge_id', flat=True))
@@ -172,12 +190,37 @@ def challenges_view(request):
     user = request.user
     profile = get_or_create_gamification_profile(user)
 
-    personalized_challenges = PersonalizedChallenge.objects.filter(
-        user=user
-    ).order_by('status', 'difficulty')
+    # Synchronisation immédiate avec l'historique des réservations et trajets
+    try:
+        sync_user_challenges_with_activity(user)
+    except Exception:
+        pass
 
-    if not personalized_challenges.exists():
-        personalized_challenges = generate_personalized_challenges(user)
+    raw_challenges = PersonalizedChallenge.objects.filter(
+        user=user,
+        status__in=['ACTIVE', 'COMPLETED']
+    ).order_by('difficulty', 'created_at')
+
+    if not raw_challenges.exists():
+        generate_personalized_challenges(user)
+        raw_challenges = PersonalizedChallenge.objects.filter(
+            user=user,
+            status__in=['ACTIVE', 'COMPLETED']
+        ).order_by('difficulty', 'created_at')
+
+    # Dédoublonnage pour n'afficher que les défis progressifs actifs et archiver les doublons superflus
+    seen_titles = set()
+    personalized_challenges = []
+    duplicate_ids = []
+    for ch in raw_challenges:
+        if ch.title not in seen_titles:
+            seen_titles.add(ch.title)
+            personalized_challenges.append(ch)
+        else:
+            duplicate_ids.append(ch.id)
+
+    if duplicate_ids:
+        PersonalizedChallenge.objects.filter(id__in=duplicate_ids).update(status='EXPIRED')
 
     collective_challenges = CollectiveChallenge.objects.filter(is_active=True)
 

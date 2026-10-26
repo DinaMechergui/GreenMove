@@ -244,6 +244,69 @@ def update_user_challenges_progress(user, co2_added: float = 0.0, rides_added: i
         ch.save(update_fields=['current_value', 'status'])
 
 
+def sync_user_challenges_with_activity(user):
+    """
+    Synchronise automatiquement la progression des défis d'un utilisateur
+    avec ses vrais trajets et réservations enregistrés dans MobilityMatch.
+    """
+    from ..models import PersonalizedChallenge
+    from match.models import Ride, RideBooking
+
+    # 1. Trajets en tant que conducteur
+    driver_rides = Ride.objects.filter(user=user).count()
+
+    # 2. Réservations en tant que passager (en attente ou acceptées)
+    passenger_bookings = RideBooking.objects.filter(
+        passenger=user,
+        status__in=[RideBooking.StatusChoices.PENDING, RideBooking.StatusChoices.ACCEPTED]
+    ).count()
+
+    total_rides = driver_rides + passenger_bookings
+
+    # 3. Économie de CO2 cumulée
+    profile = getattr(user, 'gamification_profile', None)
+    total_co2 = profile.total_co2_saved_kg if profile else 0.0
+
+    # 4. Trajets aux heures de pointe
+    peak_count = 0
+    for r in Ride.objects.filter(user=user):
+        if r.departure_datetime and ((7 <= r.departure_datetime.hour <= 9) or (16 <= r.departure_datetime.hour <= 19)):
+            peak_count += 1
+    for b in RideBooking.objects.filter(passenger=user, status__in=['PENDING', 'ACCEPTED']).select_related('ride'):
+        if b.ride.departure_datetime and ((7 <= b.ride.departure_datetime.hour <= 9) or (16 <= b.ride.departure_datetime.hour <= 19)):
+            peak_count += 1
+
+    active_challenges = PersonalizedChallenge.objects.filter(
+        user=user, status__in=['ACTIVE', 'COMPLETED']
+    )
+
+    for ch in active_challenges:
+        modified = False
+        if ch.category in ['RIDES', 'RECURRING'] and total_rides > 0:
+            new_val = min(ch.target_value, float(total_rides))
+            if new_val > ch.current_value:
+                ch.current_value = new_val
+                modified = True
+        elif ch.category == 'CO2' and total_co2 > 0:
+            new_val = min(ch.target_value, round(float(total_co2), 1))
+            if new_val > ch.current_value:
+                ch.current_value = new_val
+                modified = True
+        elif ch.category == 'PEAK_HOURS' and peak_count > 0:
+            new_val = min(ch.target_value, float(peak_count))
+            if new_val > ch.current_value:
+                ch.current_value = new_val
+                modified = True
+
+        if ch.is_finished and ch.status == 'ACTIVE':
+            ch.status = 'COMPLETED'
+            modified = True
+
+        if modified:
+            ch.save(update_fields=['current_value', 'status'])
+
+
+
 def check_and_award_badges(user):
     """Vérifie si les critères d'un badge sont atteints et l'attribue automatiquement."""
     from ..models import Badge, UserBadge, EcoTransaction

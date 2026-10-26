@@ -200,6 +200,18 @@ def create_ride(request):
             request.user.eco_points += 30
             request.user.save(update_fields=['eco_points'])
 
+            try:
+                from rewards.services.co2_calculator import update_user_challenges_progress
+                is_peak = bool(ride.departure_datetime and ((7 <= ride.departure_datetime.hour <= 9) or (16 <= ride.departure_datetime.hour <= 19)))
+                update_user_challenges_progress(
+                    request.user,
+                    co2_added=ride.estimated_co2_saved,
+                    rides_added=1,
+                    is_peak=is_peak
+                )
+            except Exception:
+                pass
+
             # Diffusion en temps réel via Channels si disponible
             try:
                 channel_layer = get_channel_layer()
@@ -360,6 +372,17 @@ def book_ride(request, pk: int):
             # Notification Telegram du conducteur (gratuite, no-op sans token)
             if created:
                 telegram_service.notify_booking(booking)
+                try:
+                    from rewards.services.co2_calculator import update_user_challenges_progress
+                    is_peak = bool(ride.departure_datetime and ((7 <= ride.departure_datetime.hour <= 9) or (16 <= ride.departure_datetime.hour <= 19)))
+                    update_user_challenges_progress(
+                        request.user,
+                        co2_added=ride.estimated_co2_saved,
+                        rides_added=1,
+                        is_peak=is_peak
+                    )
+                except Exception:
+                    pass
 
             # Notification au conducteur via WebSocket si Channels est actif
             try:
@@ -415,6 +438,15 @@ def manage_booking(request, booking_id: int):
                 room.participants.add(ride.user, booking.passenger)
                 booking.passenger.eco_points += 20
                 booking.passenger.save(update_fields=['eco_points'])
+
+                try:
+                    from rewards.services.co2_calculator import update_user_challenges_progress
+                    is_peak = bool(ride.departure_datetime and ((7 <= ride.departure_datetime.hour <= 9) or (16 <= ride.departure_datetime.hour <= 19)))
+                    update_user_challenges_progress(ride.user, co2_added=ride.estimated_co2_saved, rides_added=1, is_peak=is_peak)
+                    update_user_challenges_progress(booking.passenger, co2_added=ride.estimated_co2_saved, rides_added=1, is_peak=is_peak)
+                except Exception:
+                    pass
+
                 messages.success(request, "Demande acceptée. Le chat est maintenant accessible aux participants.")
             else:
                 booking.status = RideBooking.StatusChoices.REJECTED

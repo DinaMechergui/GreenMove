@@ -36,7 +36,7 @@
       </span>
     </div>
     <div class="progress rounded-pill" style="height: 10px;">
-      <div class="progress-bar rounded-pill {% if challenge.status == 'COMPLETED' or claimed_now %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" data-progress="{{ challenge.progress_percentage }}" aria-valuenow="{{ challenge.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+      <div class="progress-bar rounded-pill {% if challenge.status == 'COMPLETED' or claimed_now %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ challenge.progress_percentage }}%;" data-progress="{{ challenge.progress_percentage }}" aria-valuenow="{{ challenge.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
     </div>
   </div>
 

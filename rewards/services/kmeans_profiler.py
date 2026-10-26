@@ -257,11 +257,13 @@ def generate_personalized_challenges(user, force_refresh: bool = False) -> List[
     new_challenges = []
 
     with transaction.atomic():
-        # Marquer les anciens défis actifs comme expirés si refresh
+        # Marquer les anciens défis actifs/complétés comme expirés si refresh forcé
         if force_refresh:
-            PersonalizedChallenge.objects.filter(user=user, status='ACTIVE').update(status='EXPIRED')
+            PersonalizedChallenge.objects.filter(user=user, status__in=['ACTIVE', 'COMPLETED']).update(status='EXPIRED')
 
         for ch_data in cluster_info['challenges']:
+            if not force_refresh and PersonalizedChallenge.objects.filter(user=user, title=ch_data['title'], status__in=['ACTIVE', 'COMPLETED']).exists():
+                continue
             end_date = today + timedelta(days=ch_data['days_valid'])
             challenge = PersonalizedChallenge.objects.create(
                 user=user,
