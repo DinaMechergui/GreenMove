@@ -6,6 +6,7 @@ from django.test import TestCase, Client, SimpleTestCase
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
+import json
 from accounts.models import CustomUser
 from .models import Ride, RideBooking
 from .services.geocoding import geocode_address
@@ -489,6 +490,27 @@ class FeatureViewsTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "chat-messages")
+
+    def test_chat_http_post_and_get_fallback(self):
+        from .models import ChatRoom
+        room = ChatRoom.objects.create(ride=self.ride)
+        self.client.login(username='feat_driver', password='password123')
+
+        # Envoi via fallback HTTP POST
+        post_url = reverse('match:chat_post_message', kwargs={'room_id': room.id})
+        res = self.client.post(post_url, data=json.dumps({'content': 'Bonjour du conducteur !'}), content_type='application/json')
+        self.assertEqual(res.status_code, 200)
+        payload = res.json()
+        self.assertEqual(payload['status'], 'ok')
+        self.assertEqual(payload['message']['content'], 'Bonjour du conducteur !')
+
+        # Lecture via fallback HTTP GET
+        get_url = reverse('match:chat_get_messages', kwargs={'room_id': room.id})
+        res_get = self.client.get(get_url)
+        self.assertEqual(res_get.status_code, 200)
+        get_payload = res_get.json()
+        self.assertEqual(len(get_payload['messages']), 1)
+        self.assertEqual(get_payload['messages'][0]['content'], 'Bonjour du conducteur !')
 
     # --- 6. Suivi live ---
     def test_create_tracking_link_and_live_page(self):

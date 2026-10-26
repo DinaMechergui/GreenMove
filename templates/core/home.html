@@ -25,12 +25,6 @@
   <div class="container position-relative" style="z-index: 2;">
     <div class="row align-items-center g-5">
       <div class="col-lg-7" data-aos="fade-right">
-        <!-- Badge Délicat Hackathon -->
-        <div class="badge-hackathon">
-          <span class="pulse-dot"></span>
-          <span>{{ HACKATHON_BADGE }} • Mobilité Durable & IA</span>
-        </div>
-
         <h1 class="display-4 fw-bold mb-3 text-dark">
           La mobilité douce et <span style="color: var(--gm-green-primary);">intelligente</span> au Grand Tunis
         </h1>
@@ -260,13 +254,17 @@
         </div>
       </div>
 
-      <!-- Module 6: API Ouverte Hackathon -->
+      {% if user.is_staff %}
+      <!-- Module 6: API Ouverte (Réservé aux Administrateurs & Évaluateurs) -->
       <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
         <div class="module-card card-greenmove border" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F9F5 100%);">
           <div class="module-icon-circle" style="background: var(--gm-green-tint); color: var(--gm-green-primary);">
             <i class="bi bi-code-slash"></i>
           </div>
-          <h5 class="fw-bold mb-2 text-dark">API Ouverte & Équipe</h5>
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="fw-bold mb-0 text-dark">API Ouverte & Équipe</h5>
+            <span class="badge bg-secondary">Admin</span>
+          </div>
           <p class="text-muted small flex-grow-1">
             Une architecture Django 5 avec spécification Swagger / OpenAPI 3 et modèles IA scikit-learn documentés pour les autres développeurs de l'équipe.
           </p>
@@ -275,6 +273,7 @@
           </a>
         </div>
       </div>
+      {% endif %}
     </div>
   </div>
 </section>

@@ -66,13 +66,16 @@ def _load_room(room_id, user):
     except ChatRoom.DoesNotExist:
         return None, []
     allowed = bool(user and not user.is_anonymous and (
+        getattr(user, 'is_superuser', False) or
         room.ride.user_id == user.pk or
         room.ride.bookings.filter(
             passenger=user, status='ACCEPTED'
         ).exists()
     ))
-    if not allowed or not room.participants.filter(pk=user.pk).exists():
+    if not allowed:
         return None, []
+    if not room.participants.filter(pk=user.pk).exists():
+        room.participants.add(user)
     messages = [
         {
             'id': m.id,
@@ -100,7 +103,7 @@ def _save_message(room_id, user_id, content):
         sender = CustomUser.objects.get(pk=user_id)
     except Exception:
         return None
-    if sender.pk != room.ride.user_id and not room.ride.bookings.filter(
+    if not getattr(sender, 'is_superuser', False) and sender.pk != room.ride.user_id and not room.ride.bookings.filter(
         passenger=sender, status='ACCEPTED'
     ).exists():
         return None

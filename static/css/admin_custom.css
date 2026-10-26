@@ -1,0 +1,208 @@
+/* ==========================================================================
+   GreenMove Django Admin Custom Styles (Jazzmin Tweaks)
+   Fixes: FilteredSelectMultiple (Dual listbox), Changelist Search & Actions,
+   Badges, and Form Field Alignment.
+   ========================================================================== */
+
+/* 1. Fix Django Admin filter_horizontal (Dual Selector for Permissions/Groups) */
+.selector {
+    width: 100% !important;
+    max-width: 960px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 16px !important;
+    float: none !important;
+    clear: both !important;
+    margin-top: 10px !important;
+    margin-bottom: 16px !important;
+}
+
+.selector-available,
+.selector-chosen {
+    flex: 1 1 0% !important;
+    width: auto !important;
+    min-width: 280px !important;
+    float: none !important;
+}
+
+.selector-available h2,
+.selector-chosen h2 {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    background-color: #f1f5f9 !important;
+    color: #1e293b !important;
+    padding: 8px 12px !important;
+    border-radius: 6px 6px 0 0 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-bottom: none !important;
+    margin: 0 !important;
+}
+
+.selector select {
+    width: 100% !important;
+    min-width: 280px !important;
+    height: 18rem !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 0 0 6px 6px !important;
+    padding: 8px !important;
+    font-size: 0.85rem !important;
+    background-color: #ffffff !important;
+    color: #334155 !important;
+}
+
+.selector-filter {
+    border: 1px solid #cbd5e1 !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    padding: 6px 8px !important;
+    background-color: #f8fafc !important;
+}
+
+.selector-filter input {
+    width: 100% !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+    font-size: 0.82rem !important;
+}
+
+.selector-chooser {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 10px !important;
+    float: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    list-style: none !important;
+    width: 44px !important;
+    background: transparent !important;
+}
+
+.selector-chooser li {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.selector-add,
+.selector-remove {
+    background-color: #2e7d32 !important;
+    border-radius: 50% !important;
+    width: 34px !important;
+    height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+}
+
+.selector-add:hover,
+.selector-remove:hover {
+    background-color: #1b5e20 !important;
+    transform: scale(1.08) !important;
+}
+
+.selector-chooseall,
+.selector-clearall {
+    font-size: 0.78rem !important;
+    color: #2e7d32 !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    margin-top: 4px !important;
+    display: inline-block !important;
+}
+
+/* 2. Fix Changelist Search & Filter Layout (Image 2) */
+#changelist-search {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+    flex-wrap: wrap !important;
+}
+
+#changelist-search input[type="text"] {
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 7px 12px !important;
+    font-size: 0.88rem !important;
+    min-width: 250px !important;
+    box-shadow: none !important;
+}
+
+#changelist-search input[type="submit"] {
+    border-radius: 8px !important;
+    background-color: #2e7d32 !important;
+    border-color: #2e7d32 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    padding: 7px 18px !important;
+    font-size: 0.88rem !important;
+    transition: background-color 0.2s ease !important;
+}
+
+#changelist-search input[type="submit"]:hover {
+    background-color: #1b5e20 !important;
+}
+
+/* 3. Actions Bar (Image 2 - select + Envoyer) */
+.changelist-form .actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px 16px !important;
+    background-color: #f8fafc !important;
+    border-radius: 8px !important;
+    border: 1px solid #e2e8f0 !important;
+    margin-bottom: 14px !important;
+    flex-wrap: wrap !important;
+}
+
+.changelist-form .actions select {
+    border-radius: 6px !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 12px !important;
+    font-size: 0.85rem !important;
+    background-color: #ffffff !important;
+}
+
+.changelist-form .actions button.button,
+.changelist-form .actions button[type="submit"] {
+    border-radius: 6px !important;
+    background-color: #2e7d32 !important;
+    border: none !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    padding: 6px 16px !important;
+    font-size: 0.85rem !important;
+    cursor: pointer !important;
+}
+
+.changelist-form .actions .action-counter {
+    color: #64748b !important;
+    font-size: 0.85rem !important;
+    margin-left: 6px !important;
+}
+
+/* 4. Table Alignment & Polish (Image 4) */
+#result_list th,
+#result_list td {
+    vertical-align: middle !important;
+    padding: 10px 12px !important;
+}
+
+#result_list th a {
+    color: #1e293b !important;
+    font-weight: 600 !important;
+}
+
+/* 5. Inlines & Fieldsets refinement */
+.inline-group .tabular fieldset.module {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border: 1px solid #e2e8f0 !important;
+}

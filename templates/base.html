@@ -206,8 +206,8 @@
             Plateforme intelligente de mutualisation des mobilités pour le Grand Tunis. Réduisons ensemble les émissions et la congestion urbaine.
           </p>
           <div class="d-flex gap-2">
-            <span class="badge rounded-pill text-muted border bg-white" style="font-size: 0.72rem;">Tunis Hackathon 2026</span>
-            <span class="badge rounded-pill text-muted border bg-white" style="font-size: 0.72rem;">Équipe de 5</span>
+            <span class="badge rounded-pill text-muted border bg-white" style="font-size: 0.72rem;">Grand Tunis 2026</span>
+            <span class="badge rounded-pill text-muted border bg-white" style="font-size: 0.72rem;">Mobilité Durable</span>
           </div>
         </div>
 
@@ -228,7 +228,7 @@
             <li><i class="bi bi-check2 text-success me-1"></i> Nominatim OSM (Géocodage)</li>
             <li><i class="bi bi-check2 text-success me-1"></i> OpenRouteService / OSRM</li>
             <li><i class="bi bi-check2 text-success me-1"></i> Open-Meteo (Météo sans clé)</li>
-            <li><a href="/api/docs/" target="_blank" class="footer-link text-success fw-medium"><i class="bi bi-braces-asterisk me-1"></i> Documentation Swagger API</a></li>
+            {% if user.is_staff %}<li><a href="/api/docs/" target="_blank" class="footer-link text-success fw-medium"><i class="bi bi-braces-asterisk me-1"></i> Documentation Swagger API</a></li>{% endif %}
           </ul>
         </div>
 
@@ -239,7 +239,7 @@
           </p>
           <div class="p-2 px-3 rounded-3 bg-white border small d-inline-flex align-items-center gap-2">
             <span class="pulse-dot"></span>
-            <span class="text-muted" style="font-size: 0.8rem;">Architecture modulaire ASGI & Channels</span>
+            <span class="text-muted" style="font-size: 0.8rem;">Plateforme Citoyenne Décarbonée</span>
           </div>
         </div>
       </div>
