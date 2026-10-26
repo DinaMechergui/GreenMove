@@ -52,14 +52,17 @@
           </div>
         </div>
 
+        <!-- Actions Rapides -->
+        <div class="col-lg-5">
+          <div class="d-flex justify-content-lg-end align-items-center gap-2 flex-wrap">
             <a href="{% url 'rewards:challenges' %}" class="btn btn-outline-success rounded-pill px-3 py-2">
               <i class="bi bi-cpu-fill me-1"></i>{% trans "Mes Défis IA" %}
             </a>
             <a href="{% url 'rewards:catalog' %}" class="btn btn-green-primary rounded-pill px-3 py-2 shadow-sm">
-              <i class="bi bi-bag-check-fill me-1"></i>{% trans "Boutique Récompenses" %}
+              <i class="bi bi-bag-check-fill me-1"></i>{% trans "Boutique" %}
             </a>
             <a href="{% url 'rewards:my_coupons' %}" class="btn btn-outline-secondary rounded-pill px-3 py-2">
-              <i class="bi bi-qr-code me-1"></i>{% trans "Mes Coupons" %}
+              <i class="bi bi-qr-code me-1"></i>{% trans "Coupons" %}
               {% if active_coupons_count > 0 %}
                 <span class="badge rounded-pill bg-success ms-1">{{ active_coupons_count }}</span>
               {% endif %}

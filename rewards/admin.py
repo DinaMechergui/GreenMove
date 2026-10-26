@@ -92,8 +92,8 @@ class UserGamificationProfileAdmin(admin.ModelAdmin):
     def level_badge_display(self, obj):
         info = obj.current_level_info
         return format_html(
-            '<span style="background-color: {}; color: white; padding: 4px 10px; border-radius: 12px; font-weight: bold; font-size: 0.85rem;">'
-            '<i class="bi {}"></i> {}'
+            '<span style="background-color: {}; color: #fff; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; line-height: 1.2; box-shadow: 0 1px 2px rgba(0,0,0,0.08);">'
+            '<i class="bi {}" style="font-size: 0.85rem;"></i> {}'
             '</span>',
             info['color'], info['icon'], info['title']
         )
@@ -141,7 +141,7 @@ class UserGamificationProfileAdmin(admin.ModelAdmin):
         for ub in badges:
             b = ub.badge
             pills.append(
-                f"<span style='background-color:{b.badge_color}; color:#fff; padding:3px 8px; border-radius:8px; font-size:12px; margin-right:5px; display:inline-block; margin-bottom:4px;'>"
+                f"<span style='background-color:{b.badge_color}; color:#fff; padding:3px 10px; border-radius:999px; font-size:12px; margin-right:6px; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; margin-bottom:4px;'>"
                 f"<i class='bi {b.icon}'></i> {b.name}</span>"
             )
         return format_html("".join(pills))

@@ -39,6 +39,11 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
+    class Media:
+        css = {
+            'all': ('css/admin_custom.css',)
+        }
+
 
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):

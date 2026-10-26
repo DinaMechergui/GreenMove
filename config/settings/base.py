@@ -324,6 +324,7 @@ JAZZMIN_SETTINGS = {
         'planner.CarbonBudget': 'fas fa-leaf',
         'auth.Group': 'fas fa-users-cog',
     },
+    'custom_css': 'css/admin_custom.css',
     'show_ui_builder': False,
 }
 JAZZMIN_UI_TWEAKS = {
