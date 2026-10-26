@@ -85,9 +85,12 @@
       <div class="text-muted small">{% trans "CO₂ économisé / semaine" %}</div>
       <div class="fs-3 fw-bold text-success">{{ plan.co2_saved_kg }} kg</div>
       <div class="small text-muted">{% trans "vs tout en voiture" %} ({{ plan.baseline_car_co2_kg }} kg)</div>
-      <div class="small text-muted mt-1">Solveur : <code>{{ plan.solver }}</code></div>
-      <div class="small text-muted">{% trans "Temps de calcul" %} : {{ plan.performance.duration_ms }} ms</div>
-      <div class="small text-muted">{% trans "Économie vs voiture" %} : {{ plan.performance.co2_reduction_pct }} %</div>
+      <div class="small text-success fw-semibold mt-1">{% trans "Économie vs voiture" %} : {{ plan.performance.co2_reduction_pct }} %</div>
+      {% if user.is_staff %}
+      <div class="small text-muted border-top mt-2 pt-1">
+        <span class="badge bg-light text-muted border">Admin</span> Solveur : <code>{{ plan.solver }}</code> ({{ plan.performance.duration_ms }} ms)
+      </div>
+      {% endif %}
     </div></div>
     <div class="col-md-3"><div class="card-greenmove border p-3 h-100">
       <div class="text-muted small text-center">{% trans "Budget carbone du mois" %}</div>
@@ -267,19 +270,27 @@
       {# ─── 3. Plan de la semaine ───────────────────────────────────────── #}
       <section id="section-plan" class="card-greenmove border p-4 mb-4 shadow-sm rounded-4" style="scroll-margin-top: 90px;" aria-labelledby="plan-heading">
         <h2 id="plan-heading" class="h5 fw-bold mb-3">{% trans "Plan de la semaine" %}</h2>
-        <form method="get" class="row g-2 mb-3 small align-items-end" aria-label="{% trans 'Ajuster les poids de l optimiseur' %}">
-          <div class="col"><label for="w_co2">CO₂</label><input id="w_co2" name="co2" type="number" step="0.1" min="0" value="{{ plan.weights.co2 }}" class="form-control form-control-sm"></div>
-          <div class="col"><label for="w_time">{% trans "Temps" %}</label><input id="w_time" name="time" type="number" step="0.1" min="0" value="{{ plan.weights.time }}" class="form-control form-control-sm"></div>
-          <div class="col"><label for="w_cost">{% trans "Coût" %}</label><input id="w_cost" name="cost" type="number" step="0.1" min="0" value="{{ plan.weights.cost }}" class="form-control form-control-sm"></div>
-          <div class="col"><label for="w_comfort">{% trans "Confort" %}</label><input id="w_comfort" name="comfort" type="number" step="0.1" min="0" value="{{ plan.weights.comfort }}" class="form-control form-control-sm"></div>
-          <div class="col-auto">
-            <label for="rain_select">{% trans "Météo" %}</label>
-            <select id="rain_select" name="rain" class="form-select form-select-sm">
-              <option value="">{% trans "Auto" %}</option><option value="1">{% trans "Pluie" %}</option><option value="0">{% trans "Beau" %}</option>
-            </select>
+        {% if user.is_staff %}
+        <div class="border rounded-3 p-3 mb-3 bg-light">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="small fw-bold text-muted"><i class="bi bi-sliders me-1"></i>{% trans "Poids du solveur & météo (Réglages Admin)" %}</span>
+            <span class="badge bg-secondary">Admin</span>
           </div>
-          <div class="col-auto"><button class="btn btn-sm btn-green-primary mt-3">{% trans "Recalculer" %}</button></div>
-        </form>
+          <form method="get" class="row g-2 small align-items-end" aria-label="{% trans 'Ajuster les poids de l optimiseur' %}">
+            <div class="col"><label for="w_co2">CO₂</label><input id="w_co2" name="co2" type="number" step="0.1" min="0" value="{{ plan.weights.co2 }}" class="form-control form-control-sm"></div>
+            <div class="col"><label for="w_time">{% trans "Temps" %}</label><input id="w_time" name="time" type="number" step="0.1" min="0" value="{{ plan.weights.time }}" class="form-control form-control-sm"></div>
+            <div class="col"><label for="w_cost">{% trans "Coût" %}</label><input id="w_cost" name="cost" type="number" step="0.1" min="0" value="{{ plan.weights.cost }}" class="form-control form-control-sm"></div>
+            <div class="col"><label for="w_comfort">{% trans "Confort" %}</label><input id="w_comfort" name="comfort" type="number" step="0.1" min="0" value="{{ plan.weights.comfort }}" class="form-control form-control-sm"></div>
+            <div class="col-auto">
+              <label for="rain_select">{% trans "Météo" %}</label>
+              <select id="rain_select" name="rain" class="form-select form-select-sm">
+                <option value="">{% trans "Auto" %}</option><option value="1">{% trans "Pluie" %}</option><option value="0">{% trans "Beau" %}</option>
+              </select>
+            </div>
+            <div class="col-auto"><button class="btn btn-sm btn-green-primary mt-3">{% trans "Recalculer" %}</button></div>
+          </form>
+        </div>
+        {% endif %}
         {% if plan.plan %}
         <ul class="list-unstyled mb-0">
           {% for t in plan.plan %}
