@@ -11,12 +11,59 @@
       <p class="text-muted mb-0">{% trans "Votre semaine optimisée : moins de CO₂, du temps et de l'argent gagnés." %}
         {% if rain %}<span class="badge bg-primary ms-1"><i class="bi bi-cloud-rain" aria-hidden="true"></i> {% trans "Pluie prévue" %}</span>{% endif %}</p>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-      <a href="{% url 'planner:export_calendar' %}" class="btn btn-green-primary" aria-label="{% trans 'Exporter le calendrier au format .ics' %}"><i class="bi bi-calendar-plus me-1" aria-hidden="true"></i>{% trans "Export .ics" %}</a>
-      <form method="post" action="{% url 'planner:generate_report' %}">{% csrf_token %}<button class="btn btn-green-outline" aria-label="{% trans 'Générer le plan et le rapport PDF en arrière-plan' %}"><i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>{% trans "Générer plan + rapport" %}</button></form>
-      <a href="{% url 'planner:export_csv' %}" class="btn btn-green-outline" aria-label="{% trans 'Exporter mes trajets en CSV' %}"><i class="bi bi-download me-1" aria-hidden="true"></i>{% trans "Export CSV" %}</a>
-      <form method="post" action="{% url 'planner:email_report' %}">{% csrf_token %}<button class="btn btn-green-outline" aria-label="{% trans 'Recevoir le rapport par e-mail' %}"><i class="bi bi-envelope me-1" aria-hidden="true"></i>{% trans "E-mail" %}</button></form>
-      <a href="{% url 'accounts:export_data' %}" class="btn btn-green-outline" aria-label="{% trans 'Télécharger mes données personnelles (RGPD)' %}"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>{% trans "Mes données" %}</a>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <a href="#section-add-trip" class="btn btn-green-primary fw-bold shadow-sm d-inline-flex align-items-center gap-2" aria-label="{% trans 'Enregistrer un trajet effectué' %}">
+        <i class="bi bi-plus-circle-fill" aria-hidden="true"></i>
+        <span>{% trans "Enregistrer un trajet" %}</span>
+      </a>
+      <a href="#section-add-recurring" class="btn btn-green-outline fw-semibold d-inline-flex align-items-center gap-2" aria-label="{% trans 'Ajouter un trajet habituel' %}">
+        <i class="bi bi-calendar-plus" aria-hidden="true"></i>
+        <span>{% trans "+ Trajet habituel" %}</span>
+      </a>
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle d-inline-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{% trans 'Actions et exports' %}">
+          <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
+          <span>{% trans "Exports & Rapports" %}</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'planner:export_calendar' %}">
+              <i class="bi bi-calendar-check text-success" aria-hidden="true"></i>
+              <span>{% trans "Exporter .ics (Calendrier)" %}</span>
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'planner:export_csv' %}">
+              <i class="bi bi-file-earmark-spreadsheet text-primary" aria-hidden="true"></i>
+              <span>{% trans "Exporter en CSV" %}</span>
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <form method="post" action="{% url 'planner:generate_report' %}" class="px-2 py-1">{% csrf_token %}
+              <button class="btn btn-sm btn-light w-100 text-start text-dark border-0 d-flex align-items-center gap-2">
+                <i class="bi bi-file-earmark-pdf text-danger" aria-hidden="true"></i>
+                <span>{% trans "Générer plan + rapport PDF" %}</span>
+              </button>
+            </form>
+          </li>
+          <li>
+            <form method="post" action="{% url 'planner:email_report' %}" class="px-2 py-1">{% csrf_token %}
+              <button class="btn btn-sm btn-light w-100 text-start text-dark border-0 d-flex align-items-center gap-2">
+                <i class="bi bi-envelope text-info" aria-hidden="true"></i>
+                <span>{% trans "Recevoir le rapport par e-mail" %}</span>
+              </button>
+            </form>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item d-flex align-items-center gap-2" href="{% url 'accounts:export_data' %}">
+              <i class="bi bi-shield-check text-secondary" aria-hidden="true"></i>
+              <span>{% trans "Mes données personnelles (RGPD)" %}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -63,115 +110,50 @@
     </div></div>
   </div>
 
+  {# ─── Bandeau d'actions citoyennes rapides ──────────────────────────── #}
+  <div class="card-greenmove border p-3 mb-4 shadow-sm bg-white rounded-4">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle p-2 text-success d-flex align-items-center justify-content-center" style="background: rgba(46, 125, 50, 0.12); width: 44px; height: 44px;">
+          <i class="bi bi-lightning-charge-fill fs-5" aria-hidden="true"></i>
+        </div>
+        <div>
+          <div class="fw-bold text-dark fs-6">{% trans "Actions rapides & Enregistrement" %}</div>
+          <div class="small text-muted">{% trans "Enregistrez vos trajets récents ou planifiez vos trajets habituels pour la semaine." %}</div>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="#section-add-trip" class="btn btn-green-primary btn-sm px-3 py-2 fw-semibold shadow-sm rounded-pill">
+          <i class="bi bi-plus-circle-fill me-1" aria-hidden="true"></i>{% trans "Enregistrer un trajet effectué" %}
+        </a>
+        <a href="#section-add-recurring" class="btn btn-green-outline btn-sm px-3 py-2 fw-semibold rounded-pill">
+          <i class="bi bi-calendar-plus me-1" aria-hidden="true"></i>{% trans "Ajouter un trajet habituel" %}
+        </a>
+        <a href="#section-plan" class="btn btn-outline-secondary btn-sm px-3 py-2 rounded-pill">
+          <i class="bi bi-calendar-week me-1" aria-hidden="true"></i>{% trans "Voir mon plan hebdo" %}
+        </a>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-4">
     <div class="col-lg-7">
-      {# ─── Plan de la semaine ─────────────────────────────────────────── #}
-      <section class="card-greenmove border p-4 mb-4" aria-labelledby="plan-heading">
-        <h2 id="plan-heading" class="h5 fw-bold mb-3">{% trans "Plan de la semaine" %}</h2>
-        <form method="get" class="row g-2 mb-3 small align-items-end" aria-label="{% trans 'Ajuster les poids de l optimiseur' %}">
-          <div class="col"><label for="w_co2">CO₂</label><input id="w_co2" name="co2" type="number" step="0.1" min="0" value="{{ plan.weights.co2 }}" class="form-control form-control-sm"></div>
-          <div class="col"><label for="w_time">{% trans "Temps" %}</label><input id="w_time" name="time" type="number" step="0.1" min="0" value="{{ plan.weights.time }}" class="form-control form-control-sm"></div>
-          <div class="col"><label for="w_cost">{% trans "Coût" %}</label><input id="w_cost" name="cost" type="number" step="0.1" min="0" value="{{ plan.weights.cost }}" class="form-control form-control-sm"></div>
-          <div class="col"><label for="w_comfort">{% trans "Confort" %}</label><input id="w_comfort" name="comfort" type="number" step="0.1" min="0" value="{{ plan.weights.comfort }}" class="form-control form-control-sm"></div>
-          <div class="col-auto">
-            <label for="rain_select">{% trans "Météo" %}</label>
-            <select id="rain_select" name="rain" class="form-select form-select-sm">
-              <option value="">{% trans "Auto" %}</option><option value="1">{% trans "Pluie" %}</option><option value="0">{% trans "Beau" %}</option>
-            </select>
-          </div>
-          <div class="col-auto"><button class="btn btn-sm btn-green-primary mt-3">{% trans "Recalculer" %}</button></div>
-        </form>
-        {% if plan.plan %}
-        <ul class="list-unstyled mb-0">
-          {% for t in plan.plan %}
-          <li class="d-flex justify-content-between align-items-center border-bottom py-2">
-            <div>
-              <strong>{{ t.weekday_label }}</strong> · {{ t.label }}
-              <div class="small text-muted">{% trans "Partir à" %} <strong>{{ t.leave_at }}</strong> → {% trans "arriver" %} {{ t.arrival }} · {{ t.distance_km }} km</div>
-            </div>
-            <div class="text-end me-2">
-              <span class="badge bg-success">{{ t.best.label }}</span>
-              <div class="small text-muted">{{ t.best.minutes }} min · {{ t.best.co2_kg }} kg · {{ t.best.cost_tnd }} TND</div>
-              {% if t.co2_saved_kg > 0 %}<div class="small text-success">−{{ t.co2_saved_kg }} kg CO₂</div>{% endif %}
-            </div>
-            <form method="post" action="{% url 'planner:delete_recurring' t.id %}">{% csrf_token %}
-              <button class="btn btn-sm text-danger" aria-label="{% trans 'Supprimer le trajet' %} {{ t.label }}"><i class="bi bi-trash" aria-hidden="true"></i></button>
-            </form>
-          </li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <div class="text-center py-4">
-          <i class="bi bi-calendar-x display-4 text-muted" aria-hidden="true"></i>
-          <p class="text-muted mt-2 mb-0">{% trans "Aucun trajet habituel : ajoutez-en ci-dessous ou importez un calendrier .ics." %}</p>
-        </div>
-        {% endif %}
-        {% if not plan.cap_respected %}<div class="alert alert-warning mt-2 small" role="alert"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>{% trans "Le plan dépasse votre budget carbone hebdomadaire." %}</div>{% endif %}
-      </section>
-
-      {# ─── Explications IA ─────────────────────────────────────────────── #}
-      {% if explanations.items %}
-      <section class="card-greenmove border p-4 mb-4" aria-labelledby="explain-heading">
-        <h2 id="explain-heading" class="h6 fw-bold"><i class="bi bi-chat-quote me-1" aria-hidden="true"></i>{% trans "Explications" %}{% if explanations.source == 'llm' %} <span class="badge bg-info">IA</span>{% endif %}</h2>
-        <p class="fw-semibold">{{ explanations.summary }}</p>
-        <ul class="small text-muted mb-0">{% for e in explanations.items %}<li>{{ e }}</li>{% endfor %}</ul>
-      </section>
-      {% endif %}
-
-      {# ─── Ajouter trajet habituel ─────────────────────────────────────── #}
-      <section class="card-greenmove border p-4 mb-4 shadow-sm rounded-4" aria-labelledby="add-recurring-heading">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h2 id="add-recurring-heading" class="h6 fw-bold mb-0 text-dark">
-            <i class="bi bi-calendar-plus text-success me-2"></i>{% trans "Ajouter un trajet habituel" %}
+      {# ─── 1. Enregistrer un trajet effectué (CRUD TripRecord) ───────────── #}
+      <section id="section-add-trip" class="card-greenmove border p-4 mb-4 shadow-sm rounded-4" style="scroll-margin-top: 90px;" aria-labelledby="add-trip-heading">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h2 id="add-trip-heading" class="h5 fw-bold text-dark mb-0">
+            <i class="bi bi-plus-circle-fill text-success me-2" aria-hidden="true"></i>{% trans "Enregistrer un trajet effectué" %}
           </h2>
-          <span class="badge bg-light text-muted border">{% trans "Récurrent" %}</span>
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill fw-semibold">
+            <i class="bi bi-check2-circle me-1" aria-hidden="true"></i>{% trans "Trajet réel" %}
+          </span>
         </div>
-        <form method="post" action="{% url 'planner:add_recurring' %}" class="row g-2 align-items-center" aria-label="{% trans 'Formulaire trajet habituel' %}">{% csrf_token %}
-          <div class="col-md-4 col-sm-6">
-            <label for="label_rec" class="form-label small text-muted mb-1">{% trans "Libellé" %}</label>
-            <input id="label_rec" name="label" class="form-control form-control-sm rounded-3" placeholder="{% trans 'Cours, réunion…' %}" required aria-required="true">
-          </div>
+        <p class="text-muted small mb-3">
+          {% trans "Renseignez un trajet que vous venez d'effectuer pour mettre à jour votre budget carbone et comptabiliser votre CO₂." %}
+        </p>
+        <form method="post" action="{% url 'planner:add_trip' %}" class="row g-2 align-items-end" aria-label="{% trans 'Formulaire trajet effectué' %}">{% csrf_token %}
           <div class="col-md-3 col-sm-6">
-            <label for="weekday_rec" class="form-label small text-muted mb-1">{% trans "Jour" %}</label>
-            <select id="weekday_rec" name="weekday" class="form-select form-select-sm rounded-3">{% for v, l in weekdays %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
-          </div>
-          <div class="col-md-2 col-sm-4">
-            <label for="arrival_rec" class="form-label small text-muted mb-1">{% trans "Arrivée" %}</label>
-            <input id="arrival_rec" name="arrival_time" type="time" class="form-control form-control-sm rounded-3" required aria-required="true">
-          </div>
-          <div class="col-md-2 col-sm-4">
-            <label for="dist_rec" class="form-label small text-muted mb-1">{% trans "Distance" %}</label>
-            <div class="input-group input-group-sm">
-              <input id="dist_rec" name="distance_km" type="number" step="0.1" min="0.1" class="form-control rounded-start-3" placeholder="km" required aria-required="true">
-              <span class="input-group-text rounded-end-3">km</span>
-            </div>
-          </div>
-          <div class="col-md-1 col-sm-4 d-flex align-items-end">
-            <button class="btn btn-green-primary btn-sm w-100 rounded-3 d-flex align-items-center justify-content-center" style="height: 31px;" aria-label="{% trans 'Ajouter le trajet habituel' %}" title="{% trans 'Ajouter' %}">
-              <i class="bi bi-plus-lg"></i>
-            </button>
-          </div>
-        </form>
-
-        <div class="mt-3 pt-3 border-top">
-          <form method="post" action="{% url 'planner:import_calendar' %}" enctype="multipart/form-data" class="d-flex align-items-center gap-2" aria-label="{% trans 'Importer un calendrier .ics' %}">{% csrf_token %}
-            <label for="ics_file" class="visually-hidden">{% trans "Fichier .ics" %}</label>
-            <input id="ics_file" type="file" name="ics" accept=".ics" class="form-control form-control-sm rounded-3">
-            <button class="btn btn-sm btn-green-outline px-3 text-nowrap rounded-3">
-              <i class="bi bi-calendar-event me-1"></i>{% trans "Importer .ics" %}
-            </button>
-          </form>
-        </div>
-      </section>
-
-      {# ─── Enregistrer un trajet effectué (CRUD TripRecord) ───────────── #}
-      <section class="card-greenmove border p-4 mb-4 shadow-sm rounded-4" aria-labelledby="add-trip-heading">
-        <h2 id="add-trip-heading" class="h6 fw-bold text-dark mb-3">
-          <i class="bi bi-plus-circle text-success me-2" aria-hidden="true"></i>{% trans "Enregistrer un trajet effectué" %}
-        </h2>
-        <form method="post" action="{% url 'planner:add_trip' %}" class="row g-2" aria-label="{% trans 'Formulaire trajet effectué' %}">{% csrf_token %}
-          <div class="col-md-3 col-sm-6">
-            <label for="trip_date" class="form-label small text-muted mb-1">{% trans "Date / heure" %}</label>
+            <label for="trip_date" class="form-label small text-muted mb-1">{% trans "Date & heure" %}</label>
             <input id="trip_date" name="date" type="datetime-local" class="form-control form-control-sm rounded-3" required aria-required="true">
           </div>
           <div class="col-md-3 col-sm-6">
@@ -229,6 +211,111 @@
         </div>
         {% endif %}
       </section>
+
+      {# ─── 2. Ajouter un trajet habituel ─────────────────────────────────── #}
+      <section id="section-add-recurring" class="card-greenmove border p-4 mb-4 shadow-sm rounded-4" style="scroll-margin-top: 90px;" aria-labelledby="add-recurring-heading">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h2 id="add-recurring-heading" class="h5 fw-bold mb-0 text-dark">
+            <i class="bi bi-calendar-plus text-success me-2" aria-hidden="true"></i>{% trans "Ajouter un trajet habituel" %}
+          </h2>
+          <span class="badge bg-light text-muted border px-2 py-1 rounded-pill">{% trans "Routine hebdomadaire" %}</span>
+        </div>
+        <p class="text-muted small mb-3">
+          {% trans "Configurez vos trajets réguliers pour que le solveur calcule votre plan de semaine optimal." %}
+        </p>
+        <form method="post" action="{% url 'planner:add_recurring' %}" class="row g-2 align-items-center" aria-label="{% trans 'Formulaire trajet habituel' %}">{% csrf_token %}
+          <div class="col-md-4 col-sm-6">
+            <label for="label_rec" class="form-label small text-muted mb-1">{% trans "Libellé" %}</label>
+            <input id="label_rec" name="label" class="form-control form-control-sm rounded-3" placeholder="{% trans 'Cours, travail, réunion…' %}" required aria-required="true">
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <label for="weekday_rec" class="form-label small text-muted mb-1">{% trans "Jour" %}</label>
+            <select id="weekday_rec" name="weekday" class="form-select form-select-sm rounded-3">{% for v, l in weekdays %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+          </div>
+          <div class="col-md-2 col-sm-4">
+            <label for="arrival_rec" class="form-label small text-muted mb-1">{% trans "Arrivée" %}</label>
+            <input id="arrival_rec" name="arrival_time" type="time" class="form-control form-control-sm rounded-3" required aria-required="true">
+          </div>
+          <div class="col-md-2 col-sm-4">
+            <label for="dist_rec" class="form-label small text-muted mb-1">{% trans "Distance" %}</label>
+            <div class="input-group input-group-sm">
+              <input id="dist_rec" name="distance_km" type="number" step="0.1" min="0.1" class="form-control rounded-start-3" placeholder="km" required aria-required="true">
+              <span class="input-group-text rounded-end-3">km</span>
+            </div>
+          </div>
+          <div class="col-md-1 col-sm-4 d-flex align-items-end">
+            <button class="btn btn-green-primary btn-sm w-100 rounded-3 d-flex align-items-center justify-content-center" style="height: 31px;" aria-label="{% trans 'Ajouter le trajet habituel' %}" title="{% trans 'Ajouter' %}">
+              <i class="bi bi-plus-lg" aria-hidden="true"></i>
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-3 pt-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div class="small text-muted">
+            <i class="bi bi-file-earmark-arrow-up me-1" aria-hidden="true"></i>{% trans "Ou importez directement un calendrier :" %}
+          </div>
+          <form method="post" action="{% url 'planner:import_calendar' %}" enctype="multipart/form-data" class="d-flex align-items-center gap-2" aria-label="{% trans 'Importer un calendrier .ics' %}">{% csrf_token %}
+            <label for="ics_file" class="visually-hidden">{% trans "Fichier .ics" %}</label>
+            <input id="ics_file" type="file" name="ics" accept=".ics" class="form-control form-control-sm rounded-3">
+            <button class="btn btn-sm btn-green-outline px-3 text-nowrap rounded-3">
+              <i class="bi bi-calendar-event me-1" aria-hidden="true"></i>{% trans "Importer .ics" %}
+            </button>
+          </form>
+        </div>
+      </section>
+
+      {# ─── 3. Plan de la semaine ───────────────────────────────────────── #}
+      <section id="section-plan" class="card-greenmove border p-4 mb-4 shadow-sm rounded-4" style="scroll-margin-top: 90px;" aria-labelledby="plan-heading">
+        <h2 id="plan-heading" class="h5 fw-bold mb-3">{% trans "Plan de la semaine" %}</h2>
+        <form method="get" class="row g-2 mb-3 small align-items-end" aria-label="{% trans 'Ajuster les poids de l optimiseur' %}">
+          <div class="col"><label for="w_co2">CO₂</label><input id="w_co2" name="co2" type="number" step="0.1" min="0" value="{{ plan.weights.co2 }}" class="form-control form-control-sm"></div>
+          <div class="col"><label for="w_time">{% trans "Temps" %}</label><input id="w_time" name="time" type="number" step="0.1" min="0" value="{{ plan.weights.time }}" class="form-control form-control-sm"></div>
+          <div class="col"><label for="w_cost">{% trans "Coût" %}</label><input id="w_cost" name="cost" type="number" step="0.1" min="0" value="{{ plan.weights.cost }}" class="form-control form-control-sm"></div>
+          <div class="col"><label for="w_comfort">{% trans "Confort" %}</label><input id="w_comfort" name="comfort" type="number" step="0.1" min="0" value="{{ plan.weights.comfort }}" class="form-control form-control-sm"></div>
+          <div class="col-auto">
+            <label for="rain_select">{% trans "Météo" %}</label>
+            <select id="rain_select" name="rain" class="form-select form-select-sm">
+              <option value="">{% trans "Auto" %}</option><option value="1">{% trans "Pluie" %}</option><option value="0">{% trans "Beau" %}</option>
+            </select>
+          </div>
+          <div class="col-auto"><button class="btn btn-sm btn-green-primary mt-3">{% trans "Recalculer" %}</button></div>
+        </form>
+        {% if plan.plan %}
+        <ul class="list-unstyled mb-0">
+          {% for t in plan.plan %}
+          <li class="d-flex justify-content-between align-items-center border-bottom py-2">
+            <div>
+              <strong>{{ t.weekday_label }}</strong> · {{ t.label }}
+              <div class="small text-muted">{% trans "Partir à" %} <strong>{{ t.leave_at }}</strong> → {% trans "arriver" %} {{ t.arrival }} · {{ t.distance_km }} km</div>
+            </div>
+            <div class="text-end me-2">
+              <span class="badge bg-success">{{ t.best.label }}</span>
+              <div class="small text-muted">{{ t.best.minutes }} min · {{ t.best.co2_kg }} kg · {{ t.best.cost_tnd }} TND</div>
+              {% if t.co2_saved_kg > 0 %}<div class="small text-success">−{{ t.co2_saved_kg }} kg CO₂</div>{% endif %}
+            </div>
+            <form method="post" action="{% url 'planner:delete_recurring' t.id %}">{% csrf_token %}
+              <button class="btn btn-sm text-danger" aria-label="{% trans 'Supprimer le trajet' %} {{ t.label }}"><i class="bi bi-trash" aria-hidden="true"></i></button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="bi bi-calendar-x display-4 text-muted" aria-hidden="true"></i>
+          <p class="text-muted mt-2 mb-0">{% trans "Aucun trajet habituel : ajoutez-en via le formulaire ci-dessus ou importez un calendrier .ics." %}</p>
+        </div>
+        {% endif %}
+        {% if not plan.cap_respected %}<div class="alert alert-warning mt-2 small" role="alert"><i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>{% trans "Le plan dépasse votre budget carbone hebdomadaire." %}</div>{% endif %}
+      </section>
+
+      {# ─── 4. Explications IA ───────────────────────────────────────────── #}
+      {% if explanations.items %}
+      <section class="card-greenmove border p-4 mb-4 shadow-sm rounded-4" aria-labelledby="explain-heading">
+        <h2 id="explain-heading" class="h6 fw-bold"><i class="bi bi-chat-quote me-1" aria-hidden="true"></i>{% trans "Explications" %}{% if explanations.source == 'llm' %} <span class="badge bg-info">IA</span>{% endif %}</h2>
+        <p class="fw-semibold">{{ explanations.summary }}</p>
+        <ul class="small text-muted mb-0">{% for e in explanations.items %}<li>{{ e }}</li>{% endfor %}</ul>
+      </section>
+      {% endif %}
     </div>
 
     <div class="col-lg-5">
@@ -246,12 +333,6 @@
       <section class="card-greenmove border p-4 mb-4" aria-labelledby="chart-impact-heading">
         <h2 id="chart-impact-heading" class="h6 fw-bold">{% trans "Économies cumulées (simulateur)" %}</h2>
         <canvas id="impactChart" height="160" role="img" aria-label="{% trans 'Graphique économies cumulées sur 1 an' %}"></canvas>
-      </section>
-
-      {# ─── Métriques IA ────────────────────────────────────────────────── #}
-      <section class="card-greenmove border p-4 mb-4" aria-labelledby="metrics-heading">
-        <h2 id="metrics-heading" class="h6 fw-bold"><i class="bi bi-cpu me-1" aria-hidden="true"></i>{% trans "Métriques IA (KMeans)" %}</h2>
-        <div id="metrics-panel" class="small text-muted">{% trans "Chargement…" %}</div>
       </section>
 
       {# ─── Leaderboard ─────────────────────────────────────────────────── #}
@@ -300,31 +381,14 @@ setInterval(() => fetch("{% url 'planner:api_budget' %}").then(r => r.json()).th
   if (used) { used.textContent = b.used_kg; }
 }), 30000);
 
-// ── Métriques IA ──────────────────────────────────────────────────────
-fetch("{% url 'planner:api_metrics' %}").then(r => r.json()).then(d => {
-  const c = d.clustering;
-  const s = d.co2_stats;
-  const panel = document.getElementById('metrics-panel');
-  if (c.status === 'insufficient_data') {
-    panel.innerHTML = `<span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>${c.message}</span>`;
-    return;
-  }
-  const distHtml = Object.entries(c.cluster_distribution).map(([k,v]) => `<span class="badge bg-secondary me-1">${k} : ${v}</span>`).join('');
-  panel.innerHTML = `
-    <div class="d-flex flex-wrap gap-2 mb-2">
-      <span class="badge bg-success">Silhouette : ${c.silhouette_score ?? 'N/A'}</span>
-      <span class="badge bg-secondary">${c.silhouette_interpretation}</span>
-      <span class="badge bg-light text-dark">${c.n_clusters} clusters · ${c.n_users_analysed} utilisateurs</span>
-      <span class="badge bg-info text-dark">Stabilité ARI : ${c.stability_ari_5_seeds ?? 'N/D'}</span>
-    </div>
-    <div class="mb-2">Silhouette KMeans : <strong>${c.silhouette_score ?? 'N/D'}</strong> · baseline règles : <strong>${c.baseline?.silhouette_score ?? 'N/D'}</strong> · écart : <strong>${c.baseline?.silhouette_delta ?? 'N/D'}</strong></div>
-    ${c.elbow?.length ? `<details class="mb-2"><summary>Courbe du coude (inertie par k)</summary><ul class="mb-0">${c.elbow.map(p => `<li>k=${p.k} : ${p.inertia}</li>`).join('')}</ul></details>` : ''}
-    <div class="mb-2">${distHtml}</div>
-    <div class="text-muted" style="font-size:.75rem;">
-      CO₂ sauvé vs voiture : <strong class="text-success">${s.savings_vs_car_kg} kg (${s.savings_vs_car_pct}%)</strong> ·
-      Vs objectif Paris : <strong class="${s.below_paris_target ? 'text-success' : 'text-danger'}">${s.vs_paris_target_kg > 0 ? '+' : ''}${s.vs_paris_target_kg} kg</strong>
-    </div>`;
-});
+// ── Initialisation date/heure du formulaire trajet effectué ───────────
+const tripDateInput = document.getElementById('trip_date');
+if (tripDateInput && !tripDateInput.value) {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  tripDateInput.value = now.toISOString().slice(0, 16);
+}
+
 
 // ── Leaderboard ───────────────────────────────────────────────────────
 fetch("{% url 'planner:api_leaderboard' %}").then(r => r.json()).then(d => {
