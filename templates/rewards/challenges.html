@@ -145,10 +145,12 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  function applyProgressBars() {
     document.querySelectorAll('.progress-bar[data-progress]').forEach(function(bar) {
       bar.style.width = bar.getAttribute('data-progress') + '%';
     });
-  });
+  }
+  document.addEventListener('DOMContentLoaded', applyProgressBars);
+  document.body.addEventListener('htmx:afterSwap', applyProgressBars);
 </script>
 {% endblock %}
