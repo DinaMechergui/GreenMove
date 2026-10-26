@@ -548,10 +548,12 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ hubs|json_script:"hubs-data" }}
 <!-- Injection des Hubs Tunis pour la Carte Leaflet -->
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const hubsData = {{ hubs|safe }};
+    const hubsDataEl = document.getElementById('hubs-data');
+    const hubsData = hubsDataEl ? JSON.parse(hubsDataEl.textContent) : [];
     const tunisMap = L.map('leaflet-tunis-map').setView([36.8189, 10.2000], 12);
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
@@ -590,13 +592,16 @@
       markers.push(marker);
     });
 
-    window.filterMapCategory = function(cat) {
+    window.filterMapCategory = function(cat, ev) {
+      const evt = ev || window.event;
       document.querySelectorAll('.btn-group button').forEach(b => {
         b.classList.remove('btn-light', 'active');
         b.classList.add('text-muted');
       });
-      event.target.classList.remove('text-muted');
-      event.target.classList.add('btn-light', 'active');
+      if (evt && evt.target) {
+        evt.target.classList.remove('text-muted');
+        evt.target.classList.add('btn-light', 'active');
+      }
 
       markers.forEach(m => {
         if (cat === 'all') {
